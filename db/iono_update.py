@@ -17,6 +17,7 @@ dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
 def update_ionosphere(obsid, med, peak, std, cur):
     cur.execute("SELECT count(*) FROM observation WHERE obs_id =?",(obsid,))
     if cur.fetchone()[0] > 0:
+        print "Updating observation {0} with median = {1}, peak = {2}, std = {3}".format(obsid, med, peak, std)
         cur.execute("UPDATE observation SET ion_phs_med = ?, ion_phs_peak = ?, ion_phs_std = ? WHERE obs_id =?", (med, peak, std, obsid))
     else:
         print "observation not in database: ", obsid
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     if os.path.exists(args.ionocsv):
         filename, file_extension = os.path.splitext(args.ionocsv)
         if file_extension == ".csv":
-            arr = numpy.loadtxt(open(args.ionocsv, "rb"), delimiter=",", skiprows=1)
+            arr = np.loadtxt(open(args.ionocsv, "rb"), delimiter=",", skiprows=1)
             obsid = arr[0]
             med = arr[1]
             peak = arr[2]
@@ -43,12 +44,6 @@ if __name__ == "__main__":
 
     conn = sqlite3.connect(dbfile)
     cur = conn.cursor()
-    print len(ids)
-    if len(ids) > 0:
-        for obs_id in ids:
-            print obs_id
-            update_ionosphere(obsid, med, peak, std, cur)
-            conn.commit()
-        sys.exit()
+    update_ionosphere(obsid, med, peak, std, cur)
     conn.commit()
     conn.close()
