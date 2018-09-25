@@ -2,6 +2,8 @@ import urllib
 import urllib2
 import json
 import sys
+import os
+import numpy as np
 
 import sqlite3
 
@@ -114,12 +116,28 @@ def copy_obs_info(obsid, cur):
 
 
 if __name__ == "__main__":
-    ids = []
-    for a in sys.argv:
-        try:
-            ids.append(int(a))
-        except ValueError as e:
-            pass
+
+    ps = argparse.ArgumentParser(description='add observations to database')
+    ps.add_argument('--obsids', type=str, help='List of obsids to import; format of file ("txt": single-column text file of obsids; "csv": (optionally multi-column) comma-separated file with a header starting with # and a column labelled obsid; "meta": download from the online MWA metadatabase.', default=None)
+
+    args = ps.parse_args()
+
+    user = os.environ['USER']
+
+
+    if os.path.exists(args.obsids):
+        filename, file_extension = os.path.splitext('/path/to/somefile.ext')
+        if file_extension == ".txt":
+            ids = np.loadtxt(args.obsids, comments="#")
+# Makes it work for single-line files
+            if len(obsids.shape)==1:
+               ids = [ids]
+        else:
+            print "Other file formats not yet enabled."
+            sys.exit(1)
+#        elif file_extension == ".csv":
+#        elif file_extension == ".xml":
+
     conn = sqlite3.connect(dbfile)
     cur = conn.cursor()
 
@@ -129,13 +147,13 @@ if __name__ == "__main__":
             conn.commit()
         sys.exit()
     #obsdata = getmeta(service='find', params={'projectid':'D0009', 'limit':100000}) #'limit':10
-    obsdata = getmeta(service='find', params={'projectid':'G0008', 'mintime':'1201549600', 'maxtime': '1201550200', 'limit':10}) #'limit':10
+#    obsdata = getmeta(service='find', params={'projectid':'G0008', 'mintime':'1201549600', 'maxtime': '1201550200', 'limit':10}) #'limit':10
     # For Jai's project - MAXI J1535 - XRB
     #obsdata = getmeta(service='find', params={'obsname':'J1535_%', 'limit':100000}) #'limit':10
-    for obs in obsdata:
-        obs_id = obs[0]
-        copy_obs_info(obs_id, cur)
-        conn.commit()
+#    for obs in obsdata:
+#        obs_id = obs[0]
+#        copy_obs_info(obs_id, cur)
+#        conn.commit()
 #    update_grb_links(cur)
     conn.commit()
     conn.close()
