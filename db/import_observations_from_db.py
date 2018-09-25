@@ -4,7 +4,7 @@ import json
 import sys
 import os
 import numpy as np
-
+import argparse
 import sqlite3
 
 __author__ = "PaulHancock & Natasha Hurley-Walker"
@@ -126,11 +126,11 @@ if __name__ == "__main__":
 
 
     if os.path.exists(args.obsids):
-        filename, file_extension = os.path.splitext('/path/to/somefile.ext')
+        filename, file_extension = os.path.splitext(args.obsids)
         if file_extension == ".txt":
             ids = np.loadtxt(args.obsids, comments="#")
 # Makes it work for single-line files
-            if len(obsids.shape)==1:
+            if len(ids.shape)==1:
                ids = [ids]
         else:
             print "Other file formats not yet enabled."
