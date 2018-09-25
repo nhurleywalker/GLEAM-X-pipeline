@@ -1,0 +1,35 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p STANDARDQ
+#SBATCH --account=ACCOUNT
+#SBATCH --time=06:00:00
+#SBATCH --nodes=1
+
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    cd ${base}
+    python bin/track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+#calid=CALOBSID
+calfile=CALFILE
+base=BASEDIR
+datadir="${base}/processing"
+obsnum=OBSNUM
+
+# apply calibration
+cd ${base}
+python bin/track_task.py start --jobid=${SLURM_JOBID} --start_time=`date +%s`
+
+cd ${datadir}/${obsnum}
+
+applysolutions ${obsnum}.ms ${calfile}
+test_fail $?
+
+cd ${base}
+python bin/track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`

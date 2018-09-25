@@ -1,0 +1,60 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M zeus
+#SBATCH -p copyq
+#SBATCH --account=mwasci
+#SBATCH --time=12:00:00
+#SBATCH --nodes=1
+
+base=BASEDIR
+
+obslist=OBSLIST
+
+# start download
+cd ${base}
+list=`cat $obslist`
+n=1
+for obsnum in $list
+do
+    track_task.py start --jobid=${SLURM_JOBID} --taskid=$n --start_time=`date +%s`
+    ((n+=1))
+done
+
+cd ${base}
+mwa_client --csv=${obslist}_manta.tmp --dir=${base}
+
+n=1
+for obsnum in $list
+do
+    if [[ -e ${obsnum}_ms.zip ]]
+    then
+        if [[ ! -d ${obsnum} ]]
+        then
+            mkdir $obsnum
+        fi
+
+        cd $obsnum
+
+        if [[ -d ${obsnum}.ms ]]
+        then
+            echo "${obsnum}.ms already exists; please remove directory before running unzip job."
+            track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+        else
+            mv ../${obsnum}_ms.zip ./
+            unzip ${obsnum}_ms.zip
+            if [[ $? ]]
+            then
+                rm ${obsnum}_ms.zip
+                track_task.py finish --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+            else
+                echo "Failed to unzip ${obsnum}_ms.zip"
+                track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+            fi
+        fi
+        cd ../
+    else
+        echo "${obsnum}_ms.zip failed to download."
+        track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+    fi
+    ((n+=1))
+done

@@ -1,0 +1,110 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p STANDARDQ
+#SBATCH --account=ACCOUNT
+#SBATCH --time=12:00:00
+#SBATCH --nodes=1
+#SBATCH --array=1-NUMBEAMS
+
+# Set version number
+base=BASEDIR
+absmem=ABSMEM
+
+obsnum=`sed "${SLURM_ARRAY_TASK_ID}q;d" BEAMLIST`
+
+# WSClean suffixes for subchannels and MFS
+subchans="MFS 0000 0001 0002 0003"
+
+cd $base
+
+# Create storage directories for primary beams
+if [[ ! -d pbeams ]]
+then
+    mkdir pbeams
+fi
+
+cd pbeams
+
+# Need to put processing in the pbeams directory so as not to conflict
+# with final survey processing of these particular obsids
+if [[ ! -d ${obsnum} ]] && [[ -d ../${obsnum} ]]
+then
+    mv ../${obsnum} ./
+fi
+
+cd ${obsnum}
+
+metafits=`ls -t ${obsnum}*metafits* | head -1`
+
+# Set up telescope-configuration-dependent options
+if [[ $obsnum -lt 1151402936 ]] ; then
+    telescope="MWA128T"
+    basescale=1.1
+    imsize=4000
+    robust=-1.0
+elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
+    telescope="MWAHEX"
+    basescale=2.0
+    imsize=2000
+    robust=-2.0
+elif [[ $obsnum -ge 1191580576 ]] ; then
+    telescope="MWALB"
+    basescale=0.5
+    imsize=8000
+    robust=0.0
+fi
+
+# Set up channel-dependent options
+chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
+bandwidth=`pyhead.py -p BANDWIDTH ${metafits} | awk '{print $3}'`
+centfreq=`pyhead.py -p FREQCENT ${metafits} | awk '{print $3}'`
+    # Pixel scale
+scale=`echo "$basescale / $chan" | bc -l` # At least 4 pix per synth beam for each channel
+    # Naming convention for output files
+lowfreq=`echo "$centfreq $bandwidth" | awk '{printf("%00d\n",$1-($2/2.)+0.5)}'`
+highfreq=`echo "$centfreq $bandwidth" | awk '{printf("%00d\n",$1+($2/2.)+0.5)}'`
+freqrange="${lowfreq}-${highfreq}"
+
+# Set up position-dependent options
+Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
+dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
+HA=`pyhead.py -p HA $metafits | awk '{print $3}'`
+ha=`echo $HA | awk 'BEGIN{FS=":"} {printf("%.0f",$1+($2/60.)+($3/3600.))}'`
+
+if [[ ! -d ../Dec${dec} ]]
+then
+    mkdir ../Dec${dec}
+fi
+if [[ ! -d ../Dec/${dec}/HA${ha} ]]
+then
+    mkdir ../Dec${dec}/HA${ha}
+fi
+
+if [[ ! -d ../Dec${dec}/HA${ha}/${chan} ]]
+then
+    mkdir ../Dec${dec}/HA${ha}/${chan}
+fi
+
+# Make a simple dirty image with the same imaging parameters as the final survey imaging
+#    -threshold 9999 \
+
+wsclean -nmiter 0 -niter 0 \
+    -name ${obsnum} \
+    -size ${imsize} ${imsize} \
+    -scale ${scale:0:8} \
+    -pol I \
+    -weight briggs ${robust} \
+    -abs-mem ${absmem} \
+    -join-channels \
+    -channels-out 4 \
+    ${obsnum}.ms | tee wsclean.log
+
+# create primary beams
+for subchan in $subchans
+do
+    beam -2016 -proto ${obsnum}-${subchan}-dirty.fits -ms ${obsnum}.ms -name beam-${subchan}
+done
+
+mv beam* ../Dec${dec}/${chan}
+

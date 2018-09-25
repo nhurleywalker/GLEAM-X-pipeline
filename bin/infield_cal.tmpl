@@ -1,0 +1,85 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M galaxy
+#SBATCH -p workq
+#SBATCH --account=mwasci
+#SBATCH --time=06:00:00
+#SBATCH --nodes=1
+
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    cd ${base}
+    python bin/track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+set -x
+
+base=BASEDIR
+obsnum=OBSNUM
+catfile=CATFILE
+datadir="${base}/processing"
+
+
+# start
+cd ${base}
+python bin/track_task.py start --jobid=${SLURM_JOBID} --start_time=`date +%s`
+
+
+cd ${datadir}/${obsnum}
+# make sure that the metafits file exists
+metafits="${obsnum}.metafits"
+if [[ ! -e ${metafits} ]]
+then
+    wget "http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=${obsnum}" -O ${metafits}
+    test_fail $?
+fi
+
+RA=$( pyhead.py -p RA $metafits | awk '{print $3}' )
+Dec=$( pyhead.py -p DEC $metafits | awk '{print $3}' )
+
+solutions=${obsnum}_infield_solutions_initial.bin
+
+if [[ ! -e "local_gleam_model.txt" ]]
+then
+    crop_catalogue.py --ra=$RA --dec=$Dec --radius=20 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile}
+    vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt
+fi
+
+
+# calibrate
+calibrate -m local_gleam_model.txt -minuv 20 ${obsnum}.ms ${solutions}
+test_fail $?
+
+# plot calibration solutions
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+# apply calibration
+applysolutions ${obsnum}.ms ${solutions}
+test_fail $?
+
+# run aoflagger
+# default is to work on the corrected data column
+aoflagger ${obsnum}.ms 
+test_fail $?
+
+solutions=${obsnum}_infield_solutions.bin
+# calibrate again!
+calibrate -m local_gleam_model.txt -minuv 20 ${obsnum}.ms ${solutions}
+test_fail $?
+
+#plot again
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+# apply calibration again
+applysolutions ${obsnum}.ms ${solutions}
+test_fail $?
+
+cd ${base}
+python bin/track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+

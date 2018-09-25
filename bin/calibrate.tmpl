@@ -1,0 +1,93 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M galaxy
+#SBATCH -p workq
+#SBATCH --account=mwasci
+#SBATCH --time=12:00:00
+#SBATCH --nodes=1
+
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    cd ${base}
+    track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+# automatically set the right number of corse
+# maybe leaving -d blank will do this ...
+if [[ $SLURM_JOB_PARTITION -eq "gpuq" ]]
+then
+    cores=8
+else #if [[ $SLURM_JOB_PARTITION -eq "workq" ]]
+    cores=20
+fi
+
+calibrator=CALIBRATOR
+base=BASEDIR
+datadir="${base}/processing"
+modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
+obsnum=OBSNUM
+
+# start
+cd ${base}
+track_task.py start --jobid=${SLURM_JOBID} --taskid=0 --start_time=`date +%s`
+
+calmodel=`basename $modeldir/model-$calibrator*comp_withalpha.txt`
+if [[ ! -e $modeldir/$calmodel ]]
+then
+    calmodel=`basename $modeldir/model-$calibrator*point-source.txt`
+fi
+if [[ ! -e $modeldir/$calmodel ]]
+then
+    echo "No calibrator model available for $calibrator in $modeldir."
+    cd $modeldir
+    callist=`ls *-point-source.txt | sed "s/model-//g" | sed "s/-point-source.txt//g"`
+    echo "Available calibrators are: $callist in $modeldir"
+    echo "Use the name as it is specified in the observing database, e.g. HydA for Hydra A."
+    test_fail 1
+    exit 1
+fi
+
+## look for the calibrator model in the database
+#calmodel=`sqlite3 ${base}/db/MWA-GRB.sqlite "SELECT calfile FROM calibrators WHERE name='${calibrator}'"`
+
+cd ${datadir}/${obsnum}
+
+solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
+
+# calibrate
+calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv 20 -maxuv 2000 -applybeam ${obsnum}.ms ${solutions}
+test_fail $?
+
+# plot calibration solutions
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+## apply calibration
+#applysolutions ${obsnum}.ms ${solutions}
+#test_fail $?
+#
+## run aoflagger
+## default is to work on the corrected data column
+#aoflagger ${obsnum}.ms 
+#test_fail $?
+#
+#solutions=${obsnum}_${calmodel%%.txt}_solutions.bin
+## calibrate again!
+#calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv 20 -applybeam ${obsnum}.ms ${solutions}
+#test_fail $?
+#
+##plot again
+#aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+#test_fail $?
+#
+## apply calibration again
+#applysolutions ${obsnum}.ms ${solutions}
+#test_fail $?
+
+cd ${base}
+track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+

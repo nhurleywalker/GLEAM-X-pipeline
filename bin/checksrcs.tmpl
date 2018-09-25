@@ -1,0 +1,698 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M galaxy
+#SBATCH -p workq
+#SBATCH --account=mwasci
+#SBATCH --time=06:00:00
+#SBATCH --nodes=1
+
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    cd ${base}
+    python bin/track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+set -x
+
+base=BASEDIR
+obsnum=OBSNUM
+srclist=SRCLIST
+
+# start
+cd ${base}
+python bin/track_task.py start --jobid=${SLURM_JOBID} --start_time=`date +%s`
+
+cd ${base}/${obsnum}
+# make sure that the metafits file exists
+metafits="${obsnum}.metafits"
+if [[ ! -e ${metafits} ]]
+then
+    wget "http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=${obsnum}" -O ${metafits}
+    test_fail $?
+fi
+
+check_srcs.py --metafits=$metafits --srclist=$srclist
+
+
+
+
+RA=$( pyhead.py -p RA $metafits | awk '{print $3}' )
+Dec=$( pyhead.py -p DEC $metafits | awk '{print $3}' )
+
+solutions=${obsnum}_infield_solutions_initial.bin
+
+if [[ ! -e "local_gleam_model.txt" ]]
+then
+    crop_catalogue.py --ra=$RA --dec=$Dec --radius=20 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile}
+    vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt
+fi
+
+
+# calibrate
+calibrate -m local_gleam_model.txt -minuv 20 ${obsnum}.ms ${solutions}
+test_fail $?
+
+# plot calibration solutions
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+# apply calibration
+applysolutions ${obsnum}.ms ${solutions}
+test_fail $?
+
+# run aoflagger
+# default is to work on the corrected data column
+aoflagger ${obsnum}.ms 
+test_fail $?
+
+solutions=${obsnum}_infield_solutions.bin
+# calibrate again!
+calibrate -m local_gleam_model.txt -minuv 20 ${obsnum}.ms ${solutions}
+test_fail $?
+
+#plot again
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+# apply calibration again
+applysolutions ${obsnum}.ms ${solutions}
+test_fail $?
+
+cd ${base}
+python bin/track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+
+# Substituted by phase2.sh
+obsnum=OBSNUM
+datadir=DATADIR
+absmem=HOSTMEM
+proj=PROJ
+chan=CHAN
+ncpus=NCPUS
+prep=PREP
+
+# Significance of sources to search for
+nsigma=8
+# Polarisations to generate using pbcorrect
+pols="I Q U V"
+# Polarisations to rescale
+allpols="I Q U V XX XY XYi YY"
+# WSClean suffixes for subchannels and MFS
+subchans="MFS 0000 0001 0002 0003"
+# Minimum uvw for self-calibration (in lambda)
+minuv=75
+# Briggs weighting schemes to use
+robusts="-1.0 0.0"
+# Galaxy queue currently too slow to do more than one
+robusts="-1.0"
+# HACK for HS
+#robusts="2.0"
+# Kinds of image to rescale and upload to NGAS
+#images="image model"
+images="image"
+# HACK
+# Dirty image size
+dirtysize=5120
+# Trimmed image size
+imsize=4000
+imsize=5000
+# HACK
+peelthreshold=10
+#peelthreshold=500
+# HACK
+uvrange=""
+#uvrange=" -minuv-l 6 -maxuv-l 690 "
+#uvrange=" -minuv-l 3.5 -maxuv-l 687 "
+#uvrange=" -minuv-l 5.93 -maxuv-l 1624 "
+uvrange=" -minuv-l 4.37 -maxuv-l 688 "
+# HACK
+# WSClean auto-threshold
+tsigma=3
+#tsigma=4
+# Model for auto-peeling
+model=$MWA_CODE_BASE/MWA_Tools/gleam_scripts/phase2/bsm_v1.txt
+# Version number of this data reduction (based on WSClean parameters)
+# 2.0 = Version 1.5, restoring with longest projected baseline
+# 2.1 = Version 1.7, restoring with -fitbeam (not correct for weights more uniform than robust -1)
+# 2.2 = Version 1.10, restoring with -fitbeam (correct, at last)
+# 2.3 = Version 1.10 multiscale clean testing
+# 2.4 = Version 1.10 overlapping uv-range only
+# 2.5 = Version 2.3.4
+# 2.6 = Version 2.3.4, strictly overlapping uv-range only: 6 to 690
+# 2.7 = Version 2.3.4, overlapping uv-range only, 3.44 to 687.84
+# 2.8 = Version 2.4, overlapping uv-range only, 5.93 to 1624
+# 2.9 = Version 2.4, overlapping uv-range only, 4.37 to 688
+# HACK
+version="2.9"
+#version="2.7"
+#docal=True
+#skipall=True
+
+# List of sources that will be checked for peeling
+sources=`grep name $model | sed 's/"//g' | awk '{print $2}'`
+
+# Tweak pixel scale depending on the frequency of observation
+if [[ ! $chan ]]
+then
+    chan=`get_observation_info.py -g ${obsnum} | grep "Channels" | awk 'BEGIN {FS=","} {print $13}'`
+fi
+if [[ $chan ]]
+then
+    scale=`echo "1.1 / $chan" | bc -l` # At least 4 pix per synth beam for each channel
+    if [[ $chan -eq 69 ]]
+    then
+        freq="072-103MHz"
+    elif [[ $chan -eq 93 ]]
+    then
+        freq="103-134MHz"
+    elif [[ $chan -eq 121 ]]
+    then
+        freq="139-170MHz"
+    elif [[ $chan -eq 145 ]]
+    then
+        freq="170-200MHz"
+    elif [[ $chan -eq 169 ]]
+    then
+        freq="200-231MHz"
+    fi
+else
+    echo "No channel given and database is inaccessible to calculate one."
+    exit 1
+fi
+
+# Calculate min uvw in metres
+minuvm=`echo "234 * $minuv / $chan" | bc -l`
+
+cd $datadir
+
+if [[ ! -d ${proj} ]]
+then
+    mkdir ${proj}
+fi
+cd ${proj}
+
+# Beam storage directory -- this now needs to exist FIRST
+if [[ ! -d pbeams ]]
+then
+    echo "Primary beams directory doesn't exist!"
+    exit 1
+fi
+
+#if [[ ! -d ${obsnum} ]]
+#then
+#    if [[ -e ${obsnum}.tar.gz && ! -e ${osbnum}_phase2.tar.gz ]]
+#    then
+#        $aprun tar -I pigz -xf ${obsnum}.tar.gz
+#        rm ${obsnum}.tar.gz
+#        docal="True"
+#    elif [[ -e ${obsnum}_phase2.tar.gz ]]
+#    then
+#        $aprun tar -I pigz -xf ${obsnum}_phase2.tar.gz
+#        rm ${obsnum}_phase2.tar.gz
+#        docal="False"
+#        testfile=`ls ${obsnum}_${freq}_XX_r*.0_v2.0.fits`
+#        mv $testfile ${obsnum}/testfile.fits
+#    else
+#        echo "No tarball provided; exiting."
+#        exit 1
+#    fi
+#else
+#    echo "Resuming from existing directory."
+#fi
+
+if [[ -d $obsnum ]]
+then
+    cd $obsnum
+
+# Make metafits file if it doesn't exist
+    if [[ ! -e ${obsnum}_metafits_ppds.fits ]]
+    then
+        if [[ ! -e $obsnum.metafits ]]
+        then
+            make_metafits.py -g ${obsnum}
+        fi
+        metafits=${obsnum}.metafits
+    else
+        metafits=${obsnum}_metafits_ppds.fits
+    fi
+
+# Delete Phase 1 processing to save inodes
+    if ls *MHz*v1.0* &> /dev/null
+    then
+        rm -rf *MHz*v1.0*
+    fi
+
+# Hack to work around broken PYTHONPATH look-up
+    if [[ ! -d mwapy ]]
+    then
+        mkdir mwapy
+        mkdir mwapy/pb
+        cp $MWA_CODE_BASE/MWA_Tools/mwapy/data/*atrix.fits ./mwapy/pb/
+    fi
+
+# Should I be doing multiscale clean? Only if abs(b)<15
+    RA=`pyhead.py -p RA $metafits | awk '{print $3}'`
+    Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
+    b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
+    if [[ $b -le 15 ]]
+    then
+        multiscale="-multiscale -mgain 0.6"
+    else
+        multiscale="-mgain 0.85"
+    fi
+
+# Do preprocessing or move straight to cleaning?
+    if [[ $prep != "" ]]
+    then
+
+# Should I be peeling anything?
+# Check for the existence of the primary beams
+        dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
+        if [[ ! -d ../pbeams/Dec${dec}_${chan}/ ]]
+        then
+            echo "Primary beams directory ../pbeams/Dec${dec}_${chan}/ doesn't exist!"
+            exit 1
+        else
+            beamimsize=`pyhead.py -p NAXIS2 ../pbeams/Dec${dec}_${chan}/beam-MFS-xxi.fits | awk '{print $3}'`
+            if [[ $beamimsize -ne $imsize ]]
+            then
+                echo "Detected that you are using a non-standard image size ($imsize), likely because there is a source that won't peel and you need to force a self-cal. Setting docal to True and skipping any peeling stages."
+                skipall="True"
+                docal="True"
+            else
+                cp ../pbeams/Dec${dec}_${chan}/beam-0000-xxi.fits ./testwcs.fits
+                pyhead.py -u CRVAL1 $RA ./testwcs.fits
+            fi
+        fi
+
+        if [[ $skipall != "True" ]]
+        then
+            $aprun autoprocess -peelthreshold $peelthreshold -noselfcal $model ${obsnum}.ms | tee peel_test.txt
+            for source in $sources
+            do
+                appflux=`grep "^$source" peel_test.txt | sed "s/(//" | awk '{printf("%.0f",$2)}'`
+                if [[ $appflux -gt $peelthreshold ]]
+                then
+                    testsources="$source $testsources"
+                fi
+            done
+        # Should I self-calibrate? (I.e. does the bright source lie within the field-of-view?)
+            if [[ $testsources != "" ]]
+            then
+                for source in $testsources
+                do
+                    bool=`check_src_fov.py -f testwcs.fits -s $source`
+                    if [[ $bool == "False" ]]
+                    then
+                        testpeelsources="$source $testpeelsources"
+                        docal=False
+                    elif [[ $bool == "True" ]]
+                    then
+                        calsources="$source $calsources"
+                        echo "$source lies within field-of-view so doesn't need to be peeled."
+                        echo "Self-calibration has been set to True."
+                        docal=True
+                    fi
+                done
+                if [[ $testpeelsources != "" ]]
+                then
+                    if [[ $calsources != "" ]]
+                    then
+        # Need to test whether the source to peel is at least the flux density of the source we would otherwise self-calibrate on -- going to assume that I never have more than two bright sources
+                        peelflux=`grep "^$testpeelsources" peel_test.txt | sed "s/(//" | awk '{printf("%.0f",$2)}'`
+                        calflux=`grep "^$calsources" peel_test.txt | sed "s/(//" | awk '{printf("%.0f",$2)}'`
+                        if [[ $peelflux -lt $calflux ]]
+                        then
+                            echo "Won't bother peeling $peelsources because it is dimmer than $calsources ($peelflux vs $calflux Jy)"         
+                            peelsources=""
+                        else
+                            echo "Will peel sources $testpeelsources ."
+                            peelsources=$testpeelsources
+                        fi
+                    else
+                        echo "Will peel sources $testpeelsources ."
+                        peelsources=$testpeelsources
+                    fi
+                fi
+            else
+                echo "No sources needed to be peeled."
+            fi
+            rm testwcs.fits
+
+        # 1) peel any sources that need to be peeled
+            if [[ $peelsources != "" ]]
+            then
+                caldatacolumn="-datacolumn CORRECTED_DATA"
+                for source in $peelsources
+                do
+                    calmodel=`ls $MWA_CODE_BASE/anoko/mwa-reduce/models/model-$source*comp.txt | tail -1`
+                    if [[ ! -e $calmodel ]]
+                    then
+                        calmodel=$MWA_CODE_BASE/anoko/mwa-reduce/models/model-$source*point-source.txt
+                    fi
+            # Peel minuv is in metres
+                    $aprun peel $caldatacolumn -minuv $minuvm -m $calmodel -applybeam -t 28 ${obsnum}.ms
+                done
+            fi
+        fi
+
+    # 2) Now that we've peeled, we can change to minimum w-term location for all future steps
+        $aprun chgcentre -minw -shiftback ${obsnum}.ms
+
+    # 3) If self-calibrating, do so
+        if [[ ${docal} == "True" ]]
+        then
+            if [[ ! -e ${obsnum}_initial-XX-image.fits ]]
+            then
+            ## quick n dirty image-based clean to get the initial model
+                $aprun wsclean -name ${obsnum}_initial -size ${imsize} ${imsize} -niter 4000 -threshold 0.01 -pol xx,yy,xy,yx -weight briggs -1.0 -scale ${scale:0:8} -stopnegative -absmem ${absmem} -joinpolarizations -j ${ncpus} -minuv-l $minuv ${obsnum}.ms
+                if [[ ! -e ${obsnum}_initial-XX-image.fits ]]
+                then
+                    echo "WSClean must have seg-faulted! PANIC!"
+                    exit 1
+                fi
+            fi
+
+        # Generate the primary beam, if it doesn't already exist
+            if [[ $skipall == "True" ]]
+            then
+                echo "Generating unusually-sized primary beam ($imsize)"
+                $aprun beam -2014 -proto ${obsnum}_initial-XX-model.fits -ms ${obsnum}.ms -name beam-MFS
+            else
+                if [[ ! -e ../pbeams/Dec${dec}_${chan}/beam-MFS-xxi.fits ]]
+                then
+                    $aprun beam -2014 -proto ${obsnum}_initial-XX-model.fits -ms ${obsnum}.ms -name beam-MFS
+                    mv beam-MFS*fits ../pbeams/Dec${dec}_${chan}/
+                fi
+                for beamfile in ../pbeams/Dec${dec}_${chan}/beam-MFS*fits
+                do
+                    ln -s $beamfile
+                done
+            fi
+
+        # Make a pb-corrected image, for later use in source-finding
+            $aprun pbcorrect ${obsnum}_initial image.fits beam-MFS ${obsnum}_initial
+            for pol in $pols
+            do
+                mv ${obsnum}_initial-${pol}.fits ${obsnum}_initial-${pol}-image.fits
+            done
+            root=${obsnum}_initial-I-image
+    # Source-finding without Galactic plane
+            MIMAS -o fov.mim +c $RA $Dec 40
+            MIMAS -o nogal.mim +r fov.mim -r $MWA_CODE_BASE/MWA_Tools/gleam_scripts/catalogue/gp_3deg.mim
+            $aprun BANE --noclobber --compress ${root}.fits
+            $aprun aegean --region=nogal.mim --cores=${ncpus} --seedclip=8 --island --maxsummits=5 --autoload --out=/dev/null --table=$root.vot,$root.reg $root.fits
+
+            rms=`rms_measure.py --middle --mean --boxsize=10 -f ${root}_rms.fits`
+        # Might as well add the rms to the headers since we've gone to the trouble of calculating it
+            pyhead.py -u IMAGERMS $rms ${root}.fits
+            if [[ ! -e ${root}_comp.vot ]]
+            then
+                echo "Aegean failed to run on the initial image, so self-calibration will fail. Terminating the job now."
+                exit 1
+            fi
+
+        # Make a primary-beam corrected model, for use NOW in calibrating
+            $aprun pbcorrect ${obsnum}_initial model.fits beam-MFS ${obsnum}_initcor
+        # Set Q, U, V to zero
+            if [[ ! -d unused ]]
+            then
+                mkdir unused
+            fi
+            mv ${obsnum}_initcor-Q.fits unused/
+            mv ${obsnum}_initcor-U.fits unused/
+            mv ${obsnum}_initcor-V.fits unused/
+
+        # "Uncorrect" the beam
+            $aprun pbcorrect -uncorrect ${obsnum}_initunc model.fits beam-MFS ${obsnum}_initcor
+
+            $aprun wsclean -predict -name ${obsnum}_initunc -size ${imsize} ${imsize} -pol xx,yy,xy,yx -weight briggs -1.0 -scale ${scale:0:8} -absmem ${absmem} -smallinversion -j ${ncpus} ${obsnum}.ms
+
+            # self-cal
+        # Now using minimum baseline of 75 lambda (=250m at 88 MHz)
+            $aprun calibrate -j ${ncpus} -minuv $minuvm -a 0.001 0.0001 -p phases.txt gains.txt $caldatacolumn ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
+
+            aocal_plot.py --refant=127 ${obsnum}_self_solutions.bin
+
+            flaggedchans=`grep "gains to NaN" calibrate.log | awk '{printf("%03d\n",$2)}' | sort | uniq | wc -l`
+            if [[ $flaggedchans -gt 200 || ! -s ${obsnum}_self_solutions.bin ]]
+            then
+                echo "More than a third of the channels were flagged!"
+                echo "Will not apply calibration solutions or clean any more deeply."
+                exit 1
+            fi
+            $aprun applysolutions $caldatacolumn -copy ${obsnum}.ms ${obsnum}_self_solutions.bin
+    # Re-run flagger to catch any broken channels after self-calibration
+            $aprun aoflagger -v -column CORRECTED_DATA ${obsnum}.ms
+        fi
+    else
+        echo "Skipping pre-processing and moving straight to cleaning."
+    fi
+
+# 4) Deep clean with sub-bands
+    for robust in $robusts
+    do
+        #echo "Cleaning to new clean threshold $newthreshold Jy, using robust=${robust} Briggs weighting, and $multiscale."
+        if [[ ! -e ${obsnum}_deeper-0000-XX-image.fits ]]
+        then
+            echo "Cleaning to auto threshold $tsigma sigma using robust=${robust} Briggs weighting, and $multiscale."
+            $aprun wsclean $multiscale -nmiter 5 -niter 1000000 -name ${obsnum}_deeper -size ${dirtysize} ${dirtysize} -trim ${imsize} ${imsize} -auto-threshold $tsigma -pol XX,YY,XY,YX -weight briggs ${robust} -scale ${scale:0:8} -absmem ${absmem} -joinpolarizations -joinchannels -channelsout 4 $uvrange ${obsnum}.ms | tee wsclean.log
+        else
+            echo "Assuming existing deeper images just need renaming..."
+        fi
+
+# If multiscale is set, check whether it actually worked or if it blew up
+# Shouldn't need this anymore...!
+        if [[ $b -le 15 ]]
+        then
+# Print in scientific notation and grab the exponent, otherwise bash can't do the comparison for large numbers
+            lastflux=`grep Iteration wsclean.log | tail -1 | awk '{printf "%4.3e",$7}' | awk 'BEGIN {FS="+"} {print $2}'`
+            if [[ $lastflux != "" ]]
+            then
+                if [[ $lastflux -gt 1 ]]
+                then
+                    n=`grep -n Iteration wsclean.log | tail -1 | awk 'BEGIN {FS=":"} {print $1}'`
+                    ((n-=1))
+                    niter=`head -$n wsclean.log | tail -1 | awk '{print $2}' | sed "s/,//"`
+                    echo "Multiscale clean failed at $niter iterations."
+                    ((niter-=100))
+                    rm *deeper*
+                    echo "Rerunning with $niter iterations."
+                    multiscale="-multiscale -mgain 0.6 -niter $niter"
+                    $aprun wsclean $multiscale -name ${obsnum}_deeper -size ${dirtysize} ${dirtysize} -trim ${imsize} ${imsize} -auto-threshold $tsigma -pol XX,YY,XY,YX -weight briggs ${robust} -scale ${scale:0:8} -absmem ${absmem} -joinpolarizations -joinchannels -channelsout 4 $uvrange ${obsnum}.ms | tee wsclean.log
+                else
+                    echo "Multiscale clean ran correctly."
+                fi
+            fi
+        fi
+
+        if [[ ! -e ${obsnum}_deeper-MFS-XX-image.fits ]]
+        then
+            echo "WSClean must have seg-faulted! PANIC!"
+            exit 1
+        else
+            dec=`get_central_dec.py -f ${obsnum}_deeper-MFS-XX-image.fits --round`
+        fi
+# After imaging, make the polarised images
+        # Generate sub-channel beams
+        for subchan in $subchans
+        do
+        # Check for the existence of the primary beams
+            if [[ ! -d ../pbeams/Dec${dec}_${chan}/ ]]
+            then
+                mkdir ../pbeams/Dec${dec}_${chan}/
+            fi
+        # Generate the primary beam, if it doesn't already exist
+            beamimsize=`pyhead.py -p NAXIS2 ../pbeams/Dec${dec}_${chan}/beam-${subchan}-xxi.fits | awk '{print $3}'`
+            if [[ $beamimsize -ne $imsize ]]
+            then
+                if [[ ! -e beam-${subchan}-xxi.fits ]]
+                then
+                    echo "Generating unusually-sized primary beam ($imsize)"
+                    $aprun beam -2014 -proto ${obsnum}_deeper-${subchan}-XX-model.fits -ms ${obsnum}.ms -name beam-${subchan}
+                else
+                    beamimsize=`pyhead.py -p NAXIS2 ./beam-${subchan}-xxi.fits | awk '{print $3}'`
+                    if [[ $beamimsize -ne $imsize ]]
+                    then
+                        echo "Beam already exists, but is the wrong size ($beamsize instead of $imsize). Generating unusually-sized primary beam ($imsize)"
+                        $aprun beam -2014 -proto ${obsnum}_deeper-${subchan}-XX-model.fits -ms ${obsnum}.ms -name beam-${subchan}
+                    else
+                        echo "Using unusually-sized primary beam ($imsize)"
+                    fi
+                fi
+            else
+                if [[ ! -e ../pbeams/Dec${dec}_${chan}/beam-${subchan}-xxi.fits ]]
+                then
+                    $aprun beam -2014 -proto ${obsnum}_deeper-${subchan}-XX-model.fits -ms ${obsnum}.ms -name beam-${subchan}
+                    beamimsize=`pyhead.py -p NAXIS2 ./beam-${subchan}-xxi.fits | awk '{print $3}'`
+      # Only save them if they are the standard size
+                    if [[ $beamimsize -eq 4000 ]]
+                    then
+                        mv beam-${subchan}*fits ../pbeams/Dec${dec}_${chan}/
+                    fi
+                fi
+                for beamfile in ../pbeams/Dec${dec}_${chan}/beam-${subchan}*fits
+                do
+                    ln -s $beamfile
+                done
+            fi
+
+        # Make polarised images and models
+            for imagetype in $images
+            do
+                $aprun pbcorrect ${obsnum}_deeper-${subchan} ${imagetype}.fits beam-${subchan} ${obsnum}_deeper-${subchan}
+                for pol in $pols
+                do
+    # Restore any peeled components
+                    if [[ -e model-restore.txt && ${pol} == "I" ]]
+                    then
+                       $aprun render -t ${obsnum}_deeper-${subchan}-I.fits -o ${obsnum}_deeper-${subchan}-I-${imagetype}.fits -r -a model-restore.txt
+                       rm ${obsnum}_deeper-${subchan}-I.fits
+                    else
+                        mv ${obsnum}_deeper-${subchan}-${pol}.fits ${obsnum}_deeper-${subchan}-${pol}-${imagetype}.fits
+                    fi
+         # Copy WS fits keys from linear pol images to Stokes pol images
+                    copy_metafitsheader.py -v -i ${obsnum}_deeper-${subchan}-${pol}-${imagetype}.fits -m ${obsnum}_deeper-${subchan}-XX-${imagetype}.fits
+                done
+            done
+        done
+
+# Update rms in header for Q,U,V images (not models!)
+# (We will do I-MFS more carefully in a minute)
+# Disadvantage is that the sub-channels of I are not done
+# Quite a hard problem to fix without running Bane, since the noise varies over the map
+        for pol in $pols
+        do
+            if [[ ${pol} != "I" ]]
+            then
+                for subchan in $subchans
+                do
+                    rms=`rms_measure.py --middle -f ${obsnum}_deeper-${subchan}-${pol}-image.fits`
+                    pyhead.py -u IMAGERMS $rms ${obsnum}_deeper-${subchan}-${pol}-image.fits
+                done
+            fi
+    # HACK SINCE WSCLEAN DOESN'T REPORT MFS IMAGE KEYS PROPERLY
+    # DELETE THIS SECTION WHEN AO HAS FIXED THE BUG
+            copy_metafitsheader.py -v -m ${obsnum}_deeper-0001-${pol}-image.fits -i ${obsnum}_deeper-MFS-${pol}-image.fits
+        done
+
+# Source-finding
+# Do all the calculations on the Stokes I MFS images, and apply to all pols and all sub-bands
+        root=${obsnum}_deeper-MFS-I-image
+# Source-finding without Galactic plane
+        MIMAS -o fov.mim +c $RA $Dec 40
+        MIMAS -o nogal.mim +r fov.mim -r $MWA_CODE_BASE/MWA_Tools/gleam_scripts/catalogue/gp_3deg.mim
+        $aprun BANE --noclobber --compress ${root}.fits
+        $aprun aegean --region=nogal.mim --cores=${ncpus} --seedclip=8 --island --maxsummits=5 --autoload --out=/dev/null --table=$root.vot,$root.reg $root.fits
+        mv ${root}_comp.vot ${root}_${robust}_comp.vot
+        mv ${root}_bkg.fits ${root}_${robust}_bkg.fits
+        mv ${root}_rms.fits ${root}_${robust}_rms.fits
+# Might as well add the rms to the headers since we've gone to the trouble of calculating it
+        rms=`rms_measure.py --middle --mean --boxsize=10 -f ${root}_${robust}_rms.fits`
+        pyhead.py -u IMAGERMS $rms ${root}.fits
+        if [[ ! -e ${root}_${robust}_comp.vot ]]
+        then
+            echo "Aegean failed to run on the deeper image, so there must be something very wrong with it. Terminating now."
+            exit 1
+        else
+            nsrc=`grep "<TR>" ${root}_${robust}_comp.vot | wc -l`
+            if [[ $nsrc -lt 10 ]]
+            then
+                echo "Fewer than 10 sources detected in the deep image; must be a really awful image. Terminating now."
+                exit 1
+            fi
+        fi
+
+#  Record fits keys
+        for pol in $allpols
+        do
+            for imagetype in $images
+            do
+                for subchan in $subchans
+                do
+                    deep=${obsnum}_deeper-${subchan}-${pol}-${imagetype}
+# Record fits keys
+                    rms=`pyhead.py -p IMAGERMS $deep.fits | awk '{print $3}'`
+                    if [[ $rms == "None" ]]
+                    then
+                        rms=`rms_measure.py --middle -f $deep.fits`
+                        pyhead.py -u IMAGERMS $rms $deep.fits
+                    fi
+                    copy_metafitsheader.py  -v -m $metafits -i $deep.fits -e MJD,LST,HA,RA,DEC,DATESTRT
+# HACK SINCE WSCLEAN DOESN'T REPORT MFS IMAGE KEYS PROPERLY
+# DELETE THIS SECTION WHEN AO HAS FIXED THE BUG
+                    if [[ ${subchan} == "MFS" ]]
+                    then
+                        copy_metafitsheader.py -v -m ${obsnum}_deeper-0001-${pol}-${imagetype}.fits -i $deep.fits
+                    fi
+# Rename file to match GLEAM output format
+                    newfilename=`wsclean2gleam.py -f $deep.fits -v $version`
+                    mv $deep.fits $newfilename
+                done
+            done
+        done
+    done
+fi
+
+cd $datadir/$proj/$obsnum
+if [[ -d mwapy ]]
+then
+    rm -rf mwapy
+fi
+
+# Copy to mosaicking directory
+#testfile=`ls 1*MHz_XX_*v2.?.fits | head -1`
+#obsdate=`pyhead.py -p DATE-OBS $testfile | awk '{print substr($3,0,10)}' | sed "s/-//g"`
+#
+#i=0
+#for file in *MHz_XX_*v2.?.fits
+#do
+#    delt=`pyhead.py -p CDELT3 $file | awk '{print $3}'`
+#    if [[ $delt == "7680000.0" ]]
+#    then
+#        cp $file ../$obsdate/$chan/subchan${i}/
+#        YYfile=`echo $file | sed "s/XX/YY/"`
+#        cp $YYfile ../$obsdate/$chan/subchan${i}/
+#        Ifile=`echo $file | sed "s/XX/I/"`
+#        cp $Ifile ../$obsdate/$chan/subchan${i}/
+#        ((i+=1))
+#    fi
+#done
+
+# Make the uploadable tarballs
+cd $datadir/$proj/
+
+if ls ${obsnum}/*MHz*v${version}.fits &> /dev/null
+then
+# At the moment I think it's better to upload everything
+#    if [[ $docal == "True" || -e ${obsnum}/$solobs-solutions.bin ]]
+#    then
+#        if [[ $prep != "" ]]
+#        then
+#HACK
+            echo "Creating measurement set tarball."
+#            if [[ $docal == "True" ]]
+#            then
+#                $aprun tar -I pigz -cf ${obsnum}_phase2.tar.gz ${obsnum}/${obsnum}.ms* ${obsnum}/*solutions.bin ${obsnum}/calibrate.log ${obsnum}/*.txt ${obsnum}/*.vot ${obsnum}/$metafits
+#            else
+# HACK
+#                $aprun tar -I pigz -cf ${obsnum}_phase2.tar.gz ${obsnum}/${obsnum}.ms* ${obsnum}/*.txt ${obsnum}/*.vot ${obsnum}/$metafits
+#            fi
+#        fi
+        echo "Creating images tarball."
+# HACK
+#        $aprunsingle tar -cf ${obsnum}_images_v${version}.tar ${obsnum}/${obsnum}*MHz*v${version}.fits
+#    else
+#        $aprunsingle tar -cf ${obsnum}_images_v${version}.tar ${obsnum}/${obsnum}*MHz*fits
+#    fi
+# Save space
+#    rm -rf ${obsnum}/${obsnum}.ms
+else
+    echo "The images didn't create properly; terminating."
+    exit 1
+fi
+
+
