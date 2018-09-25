@@ -47,7 +47,7 @@ if __name__ == "__main__":
     if len(ids) > 0:
         for obs_id in ids:
             print obs_id
-            update_ionosphere(obsid, med, peak, std, cur):
+            update_ionosphere(obsid, med, peak, std, cur)
             conn.commit()
         sys.exit()
     conn.commit()
