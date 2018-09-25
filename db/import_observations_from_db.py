@@ -11,7 +11,7 @@ __author__ = "PaulHancock & Natasha Hurley-Walker"
 
 # Append the service name to this base URL, eg 'con', 'obs', etc.
 BASEURL = 'http://mwa-metadata01.pawsey.org.au/metadata/'
-dbfile = 'GLEAM-X.sqlite'
+dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
 
 # Function to call a JSON web service and return a dictionary: This function by Andrew Williams
 def getmeta(service='obs', params=None):
@@ -81,7 +81,7 @@ def copy_obs_info(obsid, cur):
     peelsrcs, flags, selfcal, ion_phs_med, ion_phs_peak, ion_phs_std,
     nfiles, archived
     )
-    VALUES (?,?,?,?,?,?,?,  ?,?,?,?,  ?,?,?,?,   ?,?,?,  ?,?,?,?,  ?,?);
+    VALUES (?,?,?,?,?,?,?,  ?,?,?,?,  ?,?,?,?,   ?,?,?,  ?,?,?,?,?,?,  ?,?);
     """, (
     obsid, meta['projectid'], metadata['local_sidereal_time_deg'], meta['starttime'], meta['stoptime']-meta['starttime'], meta['obsname'], meta['creator'],
     metadata['azimuth_pointing'], metadata['elevation_pointing'], metadata['ra_pointing'], metadata['dec_pointing'],
@@ -122,16 +122,13 @@ if __name__ == "__main__":
 
     args = ps.parse_args()
 
-    user = os.environ['USER']
-
-
     if os.path.exists(args.obsids):
         filename, file_extension = os.path.splitext(args.obsids)
         if file_extension == ".txt":
-            ids = np.loadtxt(args.obsids, comments="#")
+            ids = np.loadtxt(args.obsids, comments="#", dtype=int)
 # Makes it work for single-line files
-            if len(ids.shape)==1:
-               ids = [ids]
+#            if len(ids.shape)==1:
+#               ids = [ids]
         else:
             print "Other file formats not yet enabled."
             sys.exit(1)
@@ -140,9 +137,10 @@ if __name__ == "__main__":
 
     conn = sqlite3.connect(dbfile)
     cur = conn.cursor()
-
+    print len(ids)
     if len(ids) > 0:
         for obs_id in ids:
+            print obs_id
             copy_obs_info(obs_id,cur)
             conn.commit()
         sys.exit()

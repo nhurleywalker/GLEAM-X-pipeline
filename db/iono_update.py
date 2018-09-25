@@ -1,0 +1,54 @@
+import urllib
+import urllib2
+import json
+import sys
+import os
+import numpy as np
+import argparse
+import sqlite3
+
+__author__ = "Natasha Hurley-Walker"
+__date__ = "25/09/2018"
+
+# Append the service name to this base URL, eg 'con', 'obs', etc.
+BASEURL = 'http://mwa-metadata01.pawsey.org.au/metadata/'
+dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
+
+def update_ionosphere(obsid, med, peak, std, cur):
+    cur.execute("SELECT count(*) FROM observation WHERE obs_id =?",(obsid,))
+    if cur.fetchone()[0] > 0:
+        cur.execute("UPDATE observation SET ion_phs_med = ?, ion_phs_peak = ?, ion_phs_std = ? WHERE obs_id =?", (med, peak, std, obsid))
+    else:
+        print "observation not in database: ", obsid
+        return
+
+if __name__ == "__main__":
+
+    ps = argparse.ArgumentParser(description='add observations to database')
+    ps.add_argument('--ionocsv', type=str, help='ionospheric triage output csv file', default=None)
+
+    args = ps.parse_args()
+
+    if os.path.exists(args.ionocsv):
+        filename, file_extension = os.path.splitext(args.ionocsv)
+        if file_extension == ".csv":
+            arr = numpy.loadtxt(open(args.ionocsv, "rb"), delimiter=",", skiprows=1)
+            obsid = arr[0]
+            med = arr[1]
+            peak = arr[2]
+            std = arr[3]
+        else:
+            print "Other file formats not yet enabled."
+            sys.exit(1)
+
+    conn = sqlite3.connect(dbfile)
+    cur = conn.cursor()
+    print len(ids)
+    if len(ids) > 0:
+        for obs_id in ids:
+            print obs_id
+            update_ionosphere(obsid, med, peak, std, cur):
+            conn.commit()
+        sys.exit()
+    conn.commit()
+    conn.close()
