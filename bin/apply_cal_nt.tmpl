@@ -1,0 +1,21 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p STANDARDQ
+#SBATCH --account=ACCOUNT
+#SBATCH --time=06:00:00
+#SBATCH --nodes=1
+
+
+#calid=CALOBSID
+calfile=CALFILE
+base=BASEDIR
+datadir="${base}/processing"
+obsnum=OBSNUM
+
+# apply calibration
+
+cd ${datadir}/${obsnum}
+
+applysolutions ${obsnum}.ms ${calfile}
+

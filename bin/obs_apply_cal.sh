@@ -2,7 +2,7 @@
 
 usage()
 {
-echo "obs_apply_cal.sh [-d dep] [-q queue] [-c calid] [-t] obsnum
+echo "obs_apply_cal.sh [-d dep] [-q queue] [-c calid] [-t] [-n] obsnum
   -d dep      : job number for dependency (afterok)
   -q queue    : job queue, default=gpuq
   -c calid    : obsid for calibrator.
@@ -10,6 +10,7 @@ echo "obs_apply_cal.sh [-d dep] [-q queue] [-c calid] [-t] obsnum
                 to calibrate if it exists, otherwise job will fail.
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
+  -n          : no database tracking
   obsnum      : the obsid to process" 1>&2;
 exit 1;
 }
@@ -50,21 +51,24 @@ tst=
 while getopts ':td:q:c:' OPTION
 do
     case "$OPTION" in
-        d)
-            dep=${OPTARG}
-            ;;
+    d)
+        dep=${OPTARG}
+        ;;
 	c)
 	    calid=${OPTARG}
 	    ;;
 	q)
 	    queue="-p ${OPTARG}"
 	    ;;
-        t)
-            tst=1
-            ;;
-        ? | : | h)
-            usage
-            ;;
+    t)
+        tst=1
+        ;;
+    n)
+        notrack=1
+        ;;
+    ? | : | h)
+        usage
+        ;;
   esac
 done
 
@@ -98,7 +102,13 @@ fi
 
 
 script="${base}queue/apply_cal_${obsnum}.sh"
-cat ${base}/bin/apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+if [[ ! -z ${notrack} ]]
+then
+    template=${base}/bin/apply_cal_nt.tmpl
+else
+    template=${base}/bin/apply_cal.tmpl
+fi
+cat $template | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:BASEDIR:${base}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
@@ -127,7 +137,10 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
+if [[ -z ${notrack} ]]
+then
+    python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+fi
 
 echo "Submitted ${script} as ${jobid}"
