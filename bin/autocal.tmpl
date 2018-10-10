@@ -1,0 +1,110 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M galaxy
+#SBATCH -p workq
+#SBATCH --account=mwasci
+#SBATCH --time=12:00:00
+#SBATCH --nodes=1
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    cd ${base}
+    track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+# automatically set the right number of cores
+# maybe leaving -d blank will do this ...
+if [[ $SLURM_JOB_PARTITION -eq "gpuq" ]]
+then
+    cores=8
+else #if [[ $SLURM_JOB_PARTITION -eq "workq" ]]
+    cores=20
+fi
+
+obsnum=OBSNUM
+base=BASEDIR
+datadir="${base}/processing"
+modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
+catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
+# Interval for ionospheric triage (in seconds)
+ts=30
+
+# start
+cd ${base}
+track_task.py start --jobid=${SLURM_JOBID} --taskid=0 --start_time=`date +%s`
+
+cd ${datadir}/${obsnum}
+metafits="${obsnum}.metafits"
+if [[ ! -e ${metafits} ]]
+then
+    wget "http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=${obsnum}" -O ${metafits}
+    test_fail $?
+fi
+
+calibrator=$( pyhead.py -p CALIBSRC $metafits | awk '{print $3}' )
+
+if [[ $calibrator == "None" ]]
+then
+    echo "Running infield calibration for $obsnum"
+    RA=$( pyhead.py -p RA $metafits | awk '{print $3}' )
+    Dec=$( pyhead.py -p DEC $metafits | awk '{print $3}' )
+
+    if [[ ! -e "local_gleam_model.txt" ]]
+    then
+        crop_catalogue.py --ra=$RA --dec=$Dec --radius=20 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile}
+        vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt
+    fi
+    calmodel=local_gleam_model.txt
+else
+    echo "Calibrating on $calibrator for $obsnum"
+
+    calmodel=`basename $modeldir/model-$calibrator*comp_withalpha.txt`
+    if [[ ! -e $modeldir/$calmodel ]]
+    then
+        calmodel=`basename $modeldir/model-$calibrator*point-source.txt`
+    fi
+    if [[ ! -e $modeldir/$calmodel ]]
+    then
+        echo "No calibrator model available for $calibrator in $modeldir."
+        cd $modeldir
+        callist=`ls *-point-source.txt | sed "s/model-//g" | sed "s/-point-source.txt//g"`
+        echo "Available calibrators are: $callist in $modeldir"
+        echo "Use the name as it is specified in the observing database, e.g. HydA for Hydra A."
+        test_fail 1
+        exit 1
+    fi
+    calmodel=$modeldir/$calmodel
+fi
+
+cd ${datadir}/${obsnum}
+
+# Ionospheric triage
+solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
+calibrate -t ${ts} -j ${cores} -m ${calmodel} -minuv 2 -maxuv 2000 ${obsnum}.ms ${solutions}
+test_fail $?
+
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+aocal_diff.py --metafits=$metafits --names $solutions
+test_fail $?
+
+iono_update.py --ionocsv ${obsnum}_ionodiff.csv
+test_fail $?
+
+# At the moment, assume that the ionosphere is OK, and derive some real solutions
+solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
+
+# calibrate
+calibrate -j ${cores} -m ${calmodel} -minuv 2 -maxuv 2000 ${obsnum}.ms ${solutions}
+test_fail $?
+
+# plot calibration solutions
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+cd ${base}
+track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
