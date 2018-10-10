@@ -16,7 +16,7 @@ then
 fi
 }
 
-# automatically set the right number of corse
+# automatically set the right number of cores
 # maybe leaving -d blank will do this ...
 if [[ $SLURM_JOB_PARTITION -eq "gpuq" ]]
 then
@@ -30,6 +30,8 @@ base=BASEDIR
 datadir="${base}/processing"
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 obsnum=OBSNUM
+# Interval for ionospheric triage (in seconds)
+ts=30
 
 # start
 cd ${base}
@@ -51,10 +53,21 @@ then
     exit 1
 fi
 
-## look for the calibrator model in the database
-#calmodel=`sqlite3 ${base}/db/MWA-GRB.sqlite "SELECT calfile FROM calibrators WHERE name='${calibrator}'"`
-
 cd ${datadir}/${obsnum}
+
+# Ionospheric triage
+solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
+calibrate -t ${ts} -j ${cores} -m ${calmodel} -minuv 2 -maxuv 2000 ${obsnum}.ms ${solutions}
+test_fail $?
+
+aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+test_fail $?
+
+aocal_diff.py --metafits=$metafits --names $solutions
+test_fail $?
+
+iono_update.py --ionocsv ${obsnum}_ionodiff.csv
+test_fail $?
 
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
 
@@ -65,28 +78,6 @@ test_fail $?
 # plot calibration solutions
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
 test_fail $?
-
-## apply calibration
-#applysolutions ${obsnum}.ms ${solutions}
-#test_fail $?
-#
-## run aoflagger
-## default is to work on the corrected data column
-#aoflagger ${obsnum}.ms 
-#test_fail $?
-#
-#solutions=${obsnum}_${calmodel%%.txt}_solutions.bin
-## calibrate again!
-#calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv 20 -applybeam ${obsnum}.ms ${solutions}
-#test_fail $?
-#
-##plot again
-#aocal_plot.py --refant=127 --amp_max=2 ${solutions}
-#test_fail $?
-#
-## apply calibration again
-#applysolutions ${obsnum}.ms ${solutions}
-#test_fail $?
 
 cd ${base}
 track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
