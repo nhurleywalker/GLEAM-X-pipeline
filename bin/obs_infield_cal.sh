@@ -7,6 +7,7 @@ echo "obs_infield_cal.sh [-d dep] [-q queue] [-c catalog] [-t] obsnum
   -c catalog : catalogue file to use.
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
+  -n         : no database tracking
   obsnum     : the obsid to process" 1>&2;
 exit 1;
 }
@@ -41,7 +42,7 @@ catfile=
 tst=
 
 # parse args and set options
-while getopts ':td:q:c:' OPTION
+while getopts ':tnd:q:c:' OPTION
 do
     case "$OPTION" in
 	d)
@@ -56,6 +57,9 @@ do
 	    ;;
 	t)
 	    tst=1
+	    ;;
+	n)
+	    notrack=1
 	    ;;
 	? | : | h)
 	    usage
@@ -95,7 +99,13 @@ fi
 base='/astro/mwasci/phancock/D0009/'
 
 script="${base}queue/infield_cal_${obsnum}.sh"
-cat ${base}/bin/infield_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+if [[ ! -z ${notrack} ]]
+then
+    template=${base}/bin/infield_cal_nt.tmpl
+else
+    template=${base}/bin/infield_cal.tmpl
+fi
+cat $template | sed -e "s:OBSNUM:${obsnum}:g" \
                                        -e "s:BASEDIR:${base}:g" \
                                        -e "s:CATFILE:${catfile}:g"  > ${script}
 
@@ -122,7 +132,10 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='infield_cal' --submission_time=`date +%s` --batch_file=${script} \
+if [[ -z ${notrack} ]]
+then
+    python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='infield_cal' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+fi
 
 echo "Submitted ${script} as ${jobid}"
