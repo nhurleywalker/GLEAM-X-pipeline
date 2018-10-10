@@ -1,7 +1,7 @@
 #! /bin/bash
 usage()
 {
-echo "obs_infield_cal.sh [-d dep] [-q queue] [-c catalog] [-t] obsnum
+echo "obs_infield_cal.sh [-d dep] [-q queue] [-c catalog] [-t] [-n] obsnum
   -d dep     : job number for dependency (afterok)
   -q queue   : job queue, default=gpuq
   -c catalog : catalogue file to use.
@@ -96,7 +96,7 @@ then
 fi
 
 # start the real program
-base='/astro/mwasci/phancock/D0009/'
+base='/group/mwasci/nhurleywalker/GLEAM-X-pipeline/'
 
 script="${base}queue/infield_cal_${obsnum}.sh"
 if [[ ! -z ${notrack} ]]
