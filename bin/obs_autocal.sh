@@ -10,39 +10,11 @@ echo "obs_autocal.sh [-d dep] [-q queue] [-t] obsnum
 exit 1;
 }
 
-# Supercomputer options
-if [[ "${HOST:0:4}" == "gala" ]]
-then
-    computer="galaxy"
-    account="mwasci"
-    standardq="workq"
-    absmem=60
-#    standardq="gpuq"
-#    absmem=30
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    computer="magnus"
-    account="pawsey0272"
-    standardq="workq"
-    absmem=60
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    account="pawsey0272"
-    standardq="gpuq"
-    absmem=30 # Check this
-fi
-
-#initialize as empty
-scratch=/astro
-base="$scratch/mwasci/$USER/GLEAMX/"
 dep=
-queue='-p workq'
-calname=
 tst=
 
 # parse args and set options
-while getopts ':td:q:n:' OPTION
+while getopts ':td:q:p:' OPTION
 do
     case "$OPTION" in
 	d)
@@ -50,6 +22,9 @@ do
 	    ;;
 	q)
 	    queue="-p ${OPTARG}"
+	    ;;
+	p)
+	    project=${OPTARG}
 	    ;;
 	t)
 	    tst=1
@@ -63,11 +38,20 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
-# if obsid is empty then just pring help
-if [[ -z ${obsnum} ]]
+# if obsid or project are empty then just pring help
+if [[ -z ${obsnum} || -z ${project} ]]
 then
     usage
 fi
+
+# Supercomputer options
+computer="magnus"
+account="pawsey0272"
+standardq="workq"
+absmem=60
+dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
+queue="-p $standardq"
+datadir=/astro/mwasci/nhurleywalker/$project
 
 # set dependency
 if [[ ! -z ${dep} ]]
@@ -75,16 +59,16 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
-script="${base}queue/autocal_${obsnum}.sh"
+script="${db}queue/autocal_${obsnum}.sh"
 
-cat ${base}/bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
-                                     -e "s:BASEDIR:${base}:g" \
+cat ${db}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+                                     -e "s:DATADIR:${datadir}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" > ${script}
 
-output="${base}queue/logs/autocal_${obsnum}.o%A"
-error="${base}queue/logs/autocal_${obsnum}.e%A"
+output="${db}queue/logs/autocal_${obsnum}.o%A"
+error="${db}queue/logs/autocal_${obsnum}.e%A"
 
 sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
 
@@ -106,7 +90,7 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='calibrate' --submission_time=`date +%s` --batch_file=${script} \
+python ${db}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='calibrate' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
 echo "Submitted ${script} as ${jobid}"
