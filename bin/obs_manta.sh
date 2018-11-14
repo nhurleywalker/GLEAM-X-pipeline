@@ -158,7 +158,7 @@ output=`echo ${output} | sed "s/%A/${jobid}/"`
 n=1
 for obsnum in $list
 do
-    python ${code}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='manta' --submission_time=`date +%s` --batch_file=${script} \
+    python ${code}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='download' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
     ((n+=1))
 done
