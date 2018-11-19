@@ -1,7 +1,11 @@
 #! /bin/bash
+
+#set -x
+
 usage()
 {
 echo "obs_autocal.sh [-d dep] [-q queue] [-t] obsnum
+  -p project : project, no default
   -d dep     : job number for dependency (afterok)
   -q queue   : job queue, default=workq
   -t         : test. Don't submit job, just make the batch file
@@ -47,6 +51,9 @@ fi
 # Supercomputer options
 computer="magnus"
 account="pawsey0272"
+# Hasty hack
+computer="galaxy"
+account="mwasci"
 standardq="workq"
 absmem=60
 dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
@@ -56,21 +63,23 @@ datadir=/astro/mwasci/nhurleywalker/$project
 # set dependency
 if [[ ! -z ${dep} ]]
 then
+    echo "Depends on ${dep}"
     depend="--dependency=afterok:${dep}"
 fi
 
-script="${db}queue/autocal_${obsnum}.sh"
+script="${dbdir}queue/autocal_${obsnum}.sh"
 
-cat ${db}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+cat ${dbdir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
+                                     -e "s:DBDIR:${dbdir}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" > ${script}
 
-output="${db}queue/logs/autocal_${obsnum}.o%A"
-error="${db}queue/logs/autocal_${obsnum}.e%A"
+output="${dbdir}queue/logs/autocal_${obsnum}.o%A"
+error="${dbdir}queue/logs/autocal_${obsnum}.e%A"
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+sub="sbatch -M $computer --output=${output} --error=${error} ${depend} ${queue} ${script}"
 
 if [[ ! -z ${tst} ]]
 then
@@ -83,14 +92,14 @@ fi
 # submit job
 jobid=($(${sub}))
 jobid=${jobid[3]}
-taskid=0
+taskid=1
 
 # rename the err/output files as we now know the jobid
 error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-python ${db}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='calibrate' --submission_time=`date +%s` --batch_file=${script} \
+python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='calibrate' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
 echo "Submitted ${script} as ${jobid}"
