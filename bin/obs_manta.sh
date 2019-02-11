@@ -92,6 +92,7 @@ then
 fi
 
 cd $base
+dllist=""
 list=`cat $obslist`
 if [[ -e ${obslist}_manta.tmp ]] ; then rm ${obslist}_manta.tmp ; fi
 # Set up telescope-configuration-dependent options
@@ -117,11 +118,11 @@ do
     fi
     if [[ -d ${obsnum}/${obsnum}.ms ]]
     then
-        echo "${obsnum}/${obsnum}.ms already exists. Please delete any existing measurement sets before running this script."
-        exit 1
+        echo "${obsnum}/${obsnum}.ms already exists. I will not download it again."
     else
 # start download
         echo "obs_id=${obsnum}, job_type=c, timeres=${timeres}, freqres=${freqres}, edgewidth=80, conversion=ms, allowmissing=true, flagdcchannels=true" >>  ${obslist}_manta.tmp
+        dllist=$dllist"$obsnum "
     fi
 done
 
@@ -156,7 +157,7 @@ output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
 n=1
-for obsnum in $list
+for obsnum in $dllist
 do
     python ${code}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='download' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
