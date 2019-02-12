@@ -44,7 +44,7 @@ fi
 
 #initial variables
 
-base="$scratch/mwasci/$USER/GLEAMX/"
+base="$scratch/mwasci/$USER/"
 code="$group/mwasci/$USER/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
@@ -53,11 +53,13 @@ timeav=
 freqav=
 
 # parse args and set options
-while getopts ':td:s:k:o:' OPTION
+while getopts ':td:p:s:k:o:' OPTION
 do
     case "$OPTION" in
     d)
         dep=${OPTARG} ;;
+    p)
+        project=${OPTARG} ;;
 	q)
 	    queue="-p ${OPTARG}" ;;
 	s)
@@ -91,7 +93,9 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
+base=$base/$project
 cd $base
+
 dllist=""
 list=`cat $obslist`
 if [[ -e ${obslist}_manta.tmp ]] ; then rm ${obslist}_manta.tmp ; fi
