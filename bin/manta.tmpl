@@ -12,7 +12,7 @@ obslist=OBSLIST
 
 # start download
 cd ${base}
-list=`cat $obslist_manta.tmp | awk '{print substr($1,8,10)}'`
+list=`cat ${obslist}_manta.tmp | awk '{print substr($1,8,10)}'`
 n=1
 for obsnum in $list
 do
