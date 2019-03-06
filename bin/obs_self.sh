@@ -2,7 +2,7 @@
 
 usage()
 {
-echo "obs_self.sh [-d dep] [-q queue] [-t] obsnum
+echo "obs_self.sh [-p project] [-d dep] [-q queue] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
   -q queue   : job queue, default=workq
@@ -37,8 +37,6 @@ then
 fi
 
 #initial variables
-dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
-base="$scratch/mwasci/$USER/$project/"
 queue="-p $standardq"
 dep=
 imscale=
@@ -82,6 +80,10 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
+# Set directories
+dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$USER/$project/"
+
 # start the real program
 
 script="${dbdir}queue/self_${obsnum}.sh"
@@ -107,7 +109,7 @@ fi
 # submit job
 jobid=($(${sub}))
 jobid=${jobid[3]}
-taskid=0
+taskid=1
 
 # rename the err/output files as we now know the jobid
 error=`echo ${error} | sed "s/%A/${jobid}/"`
