@@ -2,11 +2,12 @@
 
 usage()
 {
-echo "obs_apply_cal.sh [-d dep] [-q queue] [-c calid] [-t] [-n] obsnum
+echo "obs_apply_cal.sh [-p project] [-d dep] [-q queue] [-c calid] [-t] [-n] obsnum
+  -p project  : project, no default
   -d dep      : job number for dependency (afterok)
   -q queue    : job queue, default=gpuq
   -c calid    : obsid for calibrator.
-                processing/calid/calid_*_solutions.bin will be used
+                project/calid/calid_*_solutions.bin will be used
                 to calibrate if it exists, otherwise job will fail.
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
@@ -40,7 +41,6 @@ fi
 
 #initial variables
 scratch=/astro
-base="$scratch/mwasci/$USER/GLEAMX/"
 dep=
 queue="-p $standardq"
 calid=
@@ -48,7 +48,7 @@ tst=
 
 
 # parse args and set options
-while getopts ':td:q:c:' OPTION
+while getopts ':td:q:c:p:' OPTION
 do
     case "$OPTION" in
     d)
@@ -60,6 +60,9 @@ do
 	q)
 	    queue="-p ${OPTARG}"
 	    ;;
+    p)
+        project=${OPTARG}
+        ;;
     t)
         tst=1
         ;;
@@ -89,8 +92,12 @@ then
     dep="--dependency=afterok:${dep}"
 fi
 
+# Set directories
+dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$USER/$project/"
+
 # look for the calibrator solutions file
-calfile=($( ls -1 ${base}/processing/${calid}/${calid}_*_solutions.bin))
+calfile=($( ls -1 ${base}/${calid}/${calid}_*_solutions.bin))
 calfile=${calfile[0]}
 
 if [[ $? != 0 ]]
@@ -104,9 +111,9 @@ fi
 script="${base}queue/apply_cal_${obsnum}.sh"
 if [[ ! -z ${notrack} ]]
 then
-    template=${base}/bin/apply_cal_nt.tmpl
+    template=${dbdir}/bin/apply_cal_nt.tmpl
 else
-    template=${base}/bin/apply_cal.tmpl
+    template=${dbdir}/bin/apply_cal.tmpl
 fi
 cat $template | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:BASEDIR:${base}:g" \
@@ -115,8 +122,8 @@ cat $template | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:ACCOUNT:${account}:g" \
                                      -e "s:CALFILE:${calfile}:g"  > ${script}
 
-output="${base}queue/logs/apply_cal_${obsnum}.o%A"
-error="${base}queue/logs/apply_cal_${obsnum}.e%A"
+output="${dbdir}queue/logs/apply_cal_${obsnum}.o%A"
+error="${dbdir}queue/logs/apply_cal_${obsnum}.e%A"
 
 sub="sbatch --begin=now+15 --output=${output} --error=${error} ${dep} ${queue} ${script}"
 if [[ ! -z ${tst} ]]
@@ -139,7 +146,7 @@ output=`echo ${output} | sed "s/%A/${jobid}/"`
 # record submission
 if [[ -z ${notrack} ]]
 then
-    python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
+    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 fi
 
