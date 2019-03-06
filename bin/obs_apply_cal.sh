@@ -11,7 +11,6 @@ echo "obs_apply_cal.sh [-p project] [-d dep] [-q queue] [-c calid] [-t] [-n] obs
                 to calibrate if it exists, otherwise job will fail.
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
-  -n          : no database tracking
   obsnum      : the obsid to process" 1>&2;
 exit 1;
 }
@@ -66,9 +65,6 @@ do
     t)
         tst=1
         ;;
-    n)
-        notrack=1
-        ;;
     ? | : | h)
         usage
         ;;
@@ -96,26 +92,19 @@ fi
 dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
 base="$scratch/mwasci/$USER/$project/"
 
-# look for the calibrator solutions file
-calfile=($( ls -1t ${base}/${calid}/${calid}_*_solutions.bin))
-calfile=${calfile[0]}
-
 if [[ $? != 0 ]]
 then
     echo "Could not find calibrator file"
-    echo "looked for: ${base}/${calid}/${calid}_*_solutions.bin"
+    echo "looked for latest of: ${base}/${calid}/${calid}*solutions*.bin"
     exit 1
 fi
 
 
-script="${base}queue/apply_cal_${obsnum}.sh"
-if [[ ! -z ${notrack} ]]
-then
-    template=${dbdir}/bin/apply_cal_nt.tmpl
-else
-    template=${dbdir}/bin/apply_cal.tmpl
-fi
-cat $template | sed -e "s:OBSNUM:${obsnum}:g" \
+script="${dbdir}queue/apply_cal_${obsnum}.sh"
+
+cd $dbdir
+
+cat apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:BASEDIR:${base}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
@@ -144,10 +133,7 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-if [[ -z ${notrack} ]]
-then
-    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
+track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
-fi
 
 echo "Submitted ${script} as ${jobid}"
