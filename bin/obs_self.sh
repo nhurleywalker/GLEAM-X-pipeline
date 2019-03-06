@@ -27,6 +27,7 @@ then
     account="pawsey0272"
     standardq="workq"
     absmem=60
+    scratch=/astro
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
@@ -36,6 +37,7 @@ then
 fi
 
 #initial variables
+dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
 base="$scratch/mwasci/$USER/$project/"
 queue="-p $standardq"
 dep=
@@ -82,16 +84,16 @@ fi
 
 # start the real program
 
-script="${base}queue/self_${obsnum}.sh"
-cat ${base}/bin/self.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+script="${dbdir}queue/self_${obsnum}.sh"
+cat ${dbdir}/bin/self.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:ABSMEM:${absmem}:g" \
                                  -e "s:HOST:${computer}:g" \
                                  -e "s:STANDARDQ:${standardq}:g" \
                                  -e "s:ACCOUNT:${account}:g" > ${script}
 
-output="${base}queue/logs/self_${obsnum}.o%A"
-error="${base}queue/logs/self_${obsnum}.e%A"
+output="${dbdir}queue/logs/self_${obsnum}.o%A"
+error="${dbdir}queue/logs/self_${obsnum}.e%A"
 
 sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
 if [[ ! -z ${tst} ]]
@@ -112,7 +114,7 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='self-cal' --submission_time=`date +%s` --batch_file=${script} \
+python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='self-cal' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
 echo "Submitted ${script} as ${jobid}"
