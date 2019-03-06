@@ -120,7 +120,7 @@ cat $template | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" \
-                                     -e "s:CALFILE:${calfile}:g"  > ${script}
+                                     -e "s:CALID:${calid}:g"  > ${script}
 
 output="${dbdir}queue/logs/apply_cal_${obsnum}.o%A"
 error="${dbdir}queue/logs/apply_cal_${obsnum}.e%A"
