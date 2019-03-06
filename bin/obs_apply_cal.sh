@@ -97,7 +97,7 @@ dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
 base="$scratch/mwasci/$USER/$project/"
 
 # look for the calibrator solutions file
-calfile=($( ls -1 ${base}/${calid}/${calid}_*_solutions.bin))
+calfile=($( ls -1t ${base}/${calid}/${calid}_*_solutions.bin))
 calfile=${calfile[0]}
 
 if [[ $? != 0 ]]
