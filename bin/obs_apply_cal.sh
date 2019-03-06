@@ -102,7 +102,7 @@ fi
 
 script="${dbdir}queue/apply_cal_${obsnum}.sh"
 
-cd $dbdir
+cd $dbdir/bin
 
 cat apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:BASEDIR:${base}:g" \
@@ -126,7 +126,7 @@ fi
 # submit job
 jobid=($(${sub}))
 jobid=${jobid[3]}
-taskid=0
+taskid=1
 
 # rename the err/output files as we now know the jobid
 error=`echo ${error} | sed "s/%A/${jobid}/"`

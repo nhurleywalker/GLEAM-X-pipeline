@@ -10,7 +10,7 @@ function test_fail {
 if [[ $1 != 0 ]]
 then
     cd ${base}
-    python bin/track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    python bin/track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
 }
@@ -27,7 +27,7 @@ minuv=75
 
 # Update database
 cd ${base}
-track_task.py start --jobid=${SLURM_JOBID} --start_time=`date +%s`
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 datadir=${base}/${obsnum}
 cd ${datadir}
@@ -91,7 +91,7 @@ if [[ ! -e ${obsnum}_initial-XX-image.fits ]]
 then
 ## quick n dirty image-based clean to get the initial model
 # TODO: test slow-down of doing 4 channels to preserve spectral information
-    wsclean -name ${obsnum}_initial -size ${imsize} ${imsize} -niter 40000 -threshold 0.001 -pol xx,yy,xy,yx -weight briggs ${robust} -scale ${scale:0:8} -stopnegative -joinpolarizations -j ${ncpus} -minuv-l $minuv ${obsnum}.ms
+    wsclean -name ${obsnum}_initial -size ${imsize} ${imsize} -niter 40000 -threshold 0.001 -pol xx,yy,xy,yx -weight briggs ${robust} -scale ${scale:0:8} -stop-negative -join-polarizations -minuv-l $minuv ${obsnum}.ms
     if [[ ! -e ${obsnum}_initial-XX-image.fits ]]
     then
         echo "WSClean must have seg-faulted! PANIC!"
@@ -131,4 +131,4 @@ fi
 applysolutions $caldatacolumn -copy ${obsnum}.ms ${obsnum}_self_solutions.bin
 # Re-run flagger to catch any broken channels after self-calibration
 
-track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

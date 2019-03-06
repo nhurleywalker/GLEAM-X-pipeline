@@ -114,7 +114,7 @@ fi
 # submit job
 jobid=($(${sub}))
 jobid=${jobid[3]}
-taskid=0
+taskid=1
 
 # rename the err/output files as we now know the jobid
 error=`echo ${error} | sed "s/%A/${jobid}/"`

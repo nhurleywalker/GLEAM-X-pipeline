@@ -1,0 +1,22 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p workq
+#SBATCH --account=ACCOUNT
+#SBATCH --time=00:10:00
+#SBATCH --nodes=1
+
+obsnum=OBSNUM
+dbdir=DBDIR
+datadir=DATADIR
+modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
+catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
+# Interval for ionospheric triage (in seconds)
+ts=30
+
+# start
+cd ${dbdir}
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+
+cd ${dbdir}
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

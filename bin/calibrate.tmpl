@@ -35,7 +35,7 @@ ts=30
 
 # start
 cd ${base}
-track_task.py start --jobid=${SLURM_JOBID} --taskid=0 --start_time=`date +%s`
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 calmodel=`basename $modeldir/model-$calibrator*comp_withalpha.txt`
 if [[ ! -e $modeldir/$calmodel ]]

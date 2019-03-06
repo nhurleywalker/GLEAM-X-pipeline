@@ -9,7 +9,7 @@
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${SLURM_JOBID} --taskid=0 --finish_time=`date +%s`
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
 }
@@ -19,7 +19,7 @@ base=BASEDIR
 obsnum=OBSNUM
 
 # apply calibration
-track_task.py start --jobid=${SLURM_JOBID} --taskid=0 --start_time=`date +%s`
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 cd ${base}/${obsnum}
 
@@ -31,11 +31,11 @@ if [[ $? != 0 ]]
 then
     echo "Could not find calibrator file"
     echo "looked for latest of: ${base}/${calid}/${calid}*solutions*.bin"
-    track_task.py fail --jobid=${SLURM_JOBID} --taskid=0 --finish_time=`date +%s`
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit 1
 fi
 
 applysolutions ${obsnum}.ms ${calfile}
 test_fail $?
 
-track_task.py finish --jobid=${SLURM_JOBID} --taskid=0 --finish_time=`date +%s`
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

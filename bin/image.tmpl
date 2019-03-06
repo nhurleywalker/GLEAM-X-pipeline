@@ -45,7 +45,7 @@ elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
     robust=-2.0
 elif [[ $obsnum -ge 1191580576 ]] ; then
     telescope="MWALB"
-    basescale=0.5
+    basescale=0.6
     imsize=8000
     robust=0.0
 fi
@@ -74,6 +74,9 @@ else
 fi
     # Set up the primary beam to match our observation WCS -- may be needed for peeling
 dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
+HA=`pyhead.py -p HA $metafits | awk '{print $3}'`
+ha=`echo $HA | awk 'BEGIN{FS=":"} {printf("%.0f",$1+($2/60.)+($3/3600.))}'`
+
 #cp ../pbeams/Dec${dec}_${chan}/beam-0000-xxi.fits ./testwcs.fits
 #pyhead.py -u CRVAL1 $RA ./testwcs.fits
 # For use with this later, if needed:
@@ -100,7 +103,7 @@ wsclean $multiscale -nmiter 5 -niter 1000000 \
 # create stokes iquv images
 for subchan in $subchans
 do
-    pbcorrect ${obsnum}-${subchan} image.fits ../pbeams/Dec${dec}_${chan}/beam-$subchan ${obsnum}-${subchan}
+    pbcorrect ${obsnum}-${subchan} image.fits ../pbeams/Dec${dec}_${chan}/HA${ha}/beam-$subchan ${obsnum}-${subchan}
     test_fail $?
 done
 

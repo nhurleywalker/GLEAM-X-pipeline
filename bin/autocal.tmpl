@@ -1,8 +1,8 @@
 #! /bin/bash -l
 #SBATCH --export=NONE
-#SBATCH -M galaxy
+#SBATCH -M HOST
 #SBATCH -p workq
-#SBATCH --account=mwasci
+#SBATCH --account=ACCOUNT
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
 
@@ -57,6 +57,7 @@ then
         crop_catalogue.py --ra=$RA --dec=$Dec --radius=20 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile}
         vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt
     fi
+    modeldir=.
     calmodel=local_gleam_model.txt
 else
     echo "Calibrating on $calibrator for $obsnum"
@@ -76,14 +77,14 @@ else
         test_fail 1
         exit 1
     fi
-    calmodel=$modeldir/$calmodel
+    calmodel=$calmodel
 fi
 
 cd ${datadir}/${obsnum}
 
 # Ionospheric triage
 solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-calibrate -t ${ts} -j ${cores} -m ${calmodel} -minuv 2 -maxuv 2000 ${obsnum}.ms ${solutions}
+calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 2 -maxuv 2000 ${obsnum}.ms ${solutions}
 test_fail $?
 
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
