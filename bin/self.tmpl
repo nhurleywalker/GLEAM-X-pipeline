@@ -10,7 +10,7 @@ function test_fail {
 if [[ $1 != 0 ]]
 then
     cd ${base}
-    python bin/track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
 }
@@ -26,7 +26,6 @@ subchans="MFS 0000 0001 0002 0003"
 minuv=75
 
 # Update database
-cd ${base}
 track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 datadir=${base}/${obsnum}
@@ -74,10 +73,9 @@ then
 else
     multiscale="-mgain 0.85"
 fi
-    # Set up the primary beam to match our observation WCS -- may be needed for peeling
-dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
-HA=`pyhead.py -p HA $metafits | awk '{print $3}'`
-ha=`echo $HA | awk 'BEGIN{FS=":"} {printf("%.0f",$1+($2/60.)+($3/3600.))}'`
+# Set up the primary beam to match our observation WCS -- may be needed for peeling
+#dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
+gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
 
 # Calculate min uvw in metres
 minuvm=`echo "234 * $minuv / $chan" | bc -l`
@@ -99,7 +97,8 @@ then
     fi
 fi
 # Make a primary-beam corrected model, for use NOW in calibrating
-pbcorrect ${obsnum}_initial model.fits beam-MFS ${obsnum}_initcor
+# TODO Later this will need to be updated to multichannel beams
+pbcorrect ${obsnum}_initial model.fits ../pbeams/$gp/$chan/beam ${obsnum}_initcor
 # Set Q, U, V to zero
 if [[ ! -d unused ]]
 then
@@ -110,9 +109,9 @@ mv ${obsnum}_initcor-U.fits unused/
 mv ${obsnum}_initcor-V.fits unused/
 
 # "Uncorrect" the beam
-pbcorrect -uncorrect ${obsnum}_initunc model.fits beam-MFS ${obsnum}_initcor
+pbcorrect -uncorrect ${obsnum}_initunc model.fits ../pbeams/$gp/$chan/beam ${obsnum}_initcor
 
-wsclean -predict -name ${obsnum}_initunc -size ${imsize} ${imsize} -pol xx,yy,xy,yx -weight briggs -1.0 -scale ${scale:0:8} -absmem ${absmem} -smallinversion -j ${ncpus} ${obsnum}.ms
+wsclean -predict -name ${obsnum}_initunc -size ${imsize} ${imsize} -pol xx,yy,xy,yx -weight briggs -1.0 -scale ${scale:0:8} -smallinversion ${obsnum}.ms
 
 # self-cal
 # Now using minimum baseline of 75 lambda (=250m at 88 MHz)
