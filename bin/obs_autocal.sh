@@ -49,10 +49,28 @@ then
 fi
 
 # Supercomputer options
-computer="zeus"
-account="mwasci"
-standardq="workq"
-absmem=60
+# Supercomputer options
+if [[ "${HOST:0:4}" == "zeus" ]]
+then
+    computer="zeus"
+    account="mwasci"
+    standardq="workq"
+#    absmem=60
+#    standardq="gpuq"
+elif [[ "${HOST:0:4}" == "magn" ]]
+then
+    computer="magnus"
+    account="pawsey0272"
+    standardq="workq"
+#    absmem=60
+elif [[ "${HOST:0:4}" == "athe" ]]
+then
+    computer="athena"
+    account="pawsey0272"
+    standardq="gpuq"
+#    absmem=30 # Check this
+fi
+
 dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
 queue="-p $standardq"
 datadir=/astro/mwasci/nhurleywalker/$project
