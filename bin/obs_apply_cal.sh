@@ -16,12 +16,12 @@ exit 1;
 }
 
 # Supercomputer options
-if [[ "${HOST:0:4}" == "gala" ]]
+if [[ "${HOST:0:4}" == "zeus" ]]
 then
-    computer="galaxy"
+    computer="zeus"
     account="mwasci"
     standardq="workq"
-    absmem=60
+#    absmem=60
 #    standardq="gpuq"
 #    absmem=30
 elif [[ "${HOST:0:4}" == "magn" ]]
@@ -29,13 +29,13 @@ then
     computer="magnus"
     account="pawsey0272"
     standardq="workq"
-    absmem=60
+#    absmem=60
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
     account="pawsey0272"
     standardq="gpuq"
-    absmem=30 # Check this
+#    absmem=30 # Check this
 fi
 
 #initial variables
@@ -44,7 +44,6 @@ dep=
 queue="-p $standardq"
 calid=
 tst=
-
 
 # parse args and set options
 while getopts ':td:q:c:p:' OPTION
@@ -89,7 +88,7 @@ then
 fi
 
 # Set directories
-dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
+dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 base="$scratch/mwasci/$USER/$project/"
 
 if [[ $? != 0 ]]
