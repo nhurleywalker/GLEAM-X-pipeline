@@ -49,10 +49,7 @@ then
 fi
 
 # Supercomputer options
-computer="magnus"
-account="pawsey0272"
-# Hasty hack
-computer="galaxy"
+computer="zeus"
 account="mwasci"
 standardq="workq"
 absmem=60

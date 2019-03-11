@@ -15,36 +15,15 @@ exit 1;
 }
 
 # Supercomputer options
-if [[ "${HOST:0:4}" == "gala" ]]
-then
-    computer="galaxy"
-    account="mwasci"
-    standardq="workq"
-    absmem=60
-    scratch="/astro"
-    group="/group"
-#    standardq="gpuq"
-#    absmem=30
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    computer="magnus"
-    account="pawsey0272"
-    standardq="workq"
-    absmem=60
-    scratch="/astro"
-    group="/group"
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    account="pawsey0272"
-    standardq="gpuq"
-    absmem=30 # Check this
-    scratch="/astro"
-    group="/group"
-fi
+# Harcoded for downloading
+computer="zeus"
+account="mwasci"
+standardq="copyq"
 
 #initial variables
 
+scratch="/astro"
+group="/group"
 base="$scratch/mwasci/$USER/"
 code="$group/mwasci/$USER/GLEAM-X-pipeline/"
 dep=
@@ -75,10 +54,6 @@ do
             usage ;;
   esac
 done
-
-# set the obsid to be the first non option
-#shift  "$(($OPTIND -1))"
-#obsnum=$1
 
 # if obslist is not specified or an empty file then just print help
 
