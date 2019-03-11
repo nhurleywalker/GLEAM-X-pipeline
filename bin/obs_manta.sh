@@ -15,7 +15,7 @@ exit 1;
 }
 
 # Supercomputer options
-# Harcoded for downloading
+# Hardbdird for downloading
 computer="zeus"
 account="mwasci"
 standardq="copyq"
@@ -25,7 +25,7 @@ standardq="copyq"
 scratch="/astro"
 group="/group"
 base="$scratch/mwasci/$USER/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+dbdir="$group/mwasci/$USER/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 tst=
@@ -108,14 +108,14 @@ done
 
 listbase=`basename ${obslist}`
 listbase=${listbase%%.*}
-script="${code}queue/manta_${listbase}.sh"
+script="${dbdir}queue/manta_${listbase}.sh"
 
-cat ${code}/bin/manta.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
+cat ${dbdir}/bin/manta.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:BASEDIR:${base}:g"  > ${script}
 #                                 -e "s:ACCOUNT:${account}:g"
 
-output="${code}queue/logs/manta_${listbase}.o%A"
-error="${code}queue/logs/manta_${listbase}.e%A"
+output="${dbdir}queue/logs/manta_${listbase}.o%A"
+error="${dbdir}queue/logs/manta_${listbase}.e%A"
 
 #sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
 sub="sbatch --output=${output} --error=${error} ${depend} ${queue} ${script}"
@@ -139,7 +139,7 @@ output=`echo ${output} | sed "s/%A/${jobid}/"`
 n=1
 for obsnum in $dllist
 do
-    python ${code}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='download' --submission_time=`date +%s` --batch_file=${script} \
+    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='download' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
     ((n+=1))
 done
