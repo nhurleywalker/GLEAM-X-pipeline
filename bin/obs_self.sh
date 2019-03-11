@@ -84,8 +84,21 @@ fi
 dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
 base="$scratch/mwasci/$USER/$project/"
 
-# start the real program
+# Test for existence of primary beams
+cd $base/$obsnum
+metafits=`ls -t ${obsnum}*metafits* | head -1`
+chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
+gp=`pyhead.py -p GRIDNUM $metafits | awk '{print $3}'`
 
+# TODO: enable multi-channel beams
+if [[ ! -e ../pbeams/$gp/$chan/beam-MFS.fits ]]
+then
+    echo "Primary beam for this observation not found:"
+    echo "$base/pbeams/$gp/$chan/beam-MFS.fits does not exist."
+    exit 1
+fi
+
+# start the real program
 script="${dbdir}queue/self_${obsnum}.sh"
 cat ${dbdir}/bin/self.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
