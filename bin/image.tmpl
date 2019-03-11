@@ -9,15 +9,13 @@
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    cd ${base}
-    python bin/track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
     exit $1
 fi
 }
 
 # Set version number
 version=3.0 # First GLEAM-X pipeline data reduction April 2018
-absmem=ABSMEM
 obsnum=OBSNUM
 base=BASEDIR
 # WSClean suffixes for subchannels and MFS
@@ -73,15 +71,7 @@ else
     multiscale="-mgain 0.85"
 fi
     # Set up the primary beam to match our observation WCS -- may be needed for peeling
-#dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
-#HA=`pyhead.py -p HA $metafits | awk '{print $3}'`
-#ha=`echo $HA | awk 'BEGIN{FS=":"} {printf("%.0f",$1+($2/60.)+($3/3600.))}'`
 gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
-
-#cp ../pbeams/Dec${dec}_${chan}/beam-0000-xxi.fits ./testwcs.fits
-#pyhead.py -u CRVAL1 $RA ./testwcs.fits
-# For use with this later, if needed:
-#bool=`check_src_fov.py -f testwcs.fits -s $source`
 
 #    -size ${dirtysize} ${dirtysize} \
 #    -trim ${imsize} ${imsize} \
@@ -92,7 +82,6 @@ wsclean $multiscale -nmiter 5 -niter 1000000 \
     -scale ${scale:0:8} \
     -pol XX,YY,XY,YX \
     -weight briggs ${robust} \
-    -abs-mem ${absmem} \
     -join-polarizations \
     -join-channels \
     -channels-out 4 \
