@@ -2,9 +2,10 @@
 
 usage()
 {
-echo "obs_manta.sh [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] -o list_of_observations.txt
+echo "obs_manta.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] -o list_of_observations.txt
   -d dep      : job number for dependency (afterok)
   -q queue    : job queue, default=workq
+  -p project  : project, (must be specified, no default)
   -s timeav   : time averaging in sec. default = 2 s
   -k freqav   : freq averaging in KHz. default = 40 kHz
   -t          : test. Don't submit job, just make the batch file
@@ -81,7 +82,7 @@ done
 
 # if obslist is not specified or an empty file then just print help
 
-if [[ -z ${obslist} ]] || [[ ! -s ${obslist} ]] || [[ ! -e ${obslist} ]]
+if [[ -z ${obslist} ]] || [[ ! -s ${obslist} ]] || [[ ! -e ${obslist} ]] || [[ -z $project ]]
 then
     usage
 else
