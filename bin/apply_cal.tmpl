@@ -24,7 +24,7 @@ track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 cd ${base}/${obsnum}
 
 # look for the calibrator solutions file
-calfile=($( ls -1t ${base}/${calid}/${calid}_*_solutions.bin))
+calfile=($( ls -1t ${base}/${calid}/${calid}*solutions*.bin))
 calfile=${calfile[0]}
 
 if [[ $? != 0 ]]
