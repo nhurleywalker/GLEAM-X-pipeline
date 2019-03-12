@@ -4,7 +4,7 @@ usage()
 {
 echo "obs_manta.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] -o list_of_observations.txt
   -d dep      : job number for dependency (afterok)
-  -q queue    : job queue, default=workq
+  -q queue    : job queue, default=copyq
   -p project  : project, (must be specified, no default)
   -s timeav   : time averaging in sec. default = 2 s
   -k freqav   : freq averaging in KHz. default = 40 kHz
@@ -15,7 +15,7 @@ exit 1;
 }
 
 # Supercomputer options
-# Hardbdird for downloading
+# Hardcode for downloading
 computer="zeus"
 account="mwasci"
 standardq="copyq"
