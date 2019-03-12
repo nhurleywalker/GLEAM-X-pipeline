@@ -117,4 +117,7 @@ output=`echo ${output} | sed "s/%A/${jobid}/"`
 python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='calibrate' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
-echo "Submitted ${script} as ${jobid}"
+echo "Submitted ${script} as ${jobid} Follow progress here:"
+echo $output
+echo $error
+
