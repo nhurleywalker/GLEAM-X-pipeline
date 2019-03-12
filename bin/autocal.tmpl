@@ -6,6 +6,7 @@
 #SBATCH --account=ACCOUNT
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
+#SBATCH --ntasks=NCPUS
 
 function test_fail {
 if [[ $1 != 0 ]]

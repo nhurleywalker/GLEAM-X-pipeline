@@ -55,6 +55,7 @@ then
     computer="zeus"
     account="mwasci"
     standardq="workq"
+    ncpus=28
 #    absmem=60
 #    standardq="gpuq"
 elif [[ "${HOST:0:4}" == "magn" ]]
@@ -62,12 +63,14 @@ then
     computer="magnus"
     account="pawsey0272"
     standardq="workq"
+    ncpus=40
 #    absmem=60
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
     account="pawsey0272"
     standardq="gpuq"
+    ncpus=40
 #    absmem=30 # Check this
 fi
 
@@ -90,6 +93,7 @@ script="${codedir}queue/autocal_${obsnum}.sh"
 cat ${codedir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
                                      -e "s:HOST:${computer}:g" \
+                                     -e "s:NCPUS:${ncpus}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" > ${script}
 
