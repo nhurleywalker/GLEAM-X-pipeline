@@ -2,6 +2,7 @@
 
 __author__ = "PaulHancock & Natasha Hurley-Walker"
 
+import os
 import sqlite3
 import sys
 
@@ -71,11 +72,11 @@ if __name__ == "__main__":
 
     args = ps.parse_args()
 
-    user = os.environ['USER']
+    args.user = os.environ['USER']
 
     if args.directive.lower() == 'queue':
         require(args, ['jobid', 'taskid', 'submission_time', 'obs_id', 'user', 'batch_file', 'stderr', 'stdout', 'task'])
-        queue_job(args.jobid, args.taskid, args.submission_time, args.obs_id, user, args.batch_file, args.stderr, args.stdout, args.task)
+        queue_job(args.jobid, args.taskid, args.submission_time, args.obs_id, args.user, args.batch_file, args.stderr, args.stdout, args.task)
     elif args.directive.lower() == 'start':
         require(args, ['jobid', 'taskid', 'start_time'])
         start_job(args.jobid, args.taskid, args.start_time)
