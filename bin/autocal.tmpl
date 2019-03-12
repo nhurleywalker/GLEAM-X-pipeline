@@ -1,5 +1,6 @@
 #! /bin/bash -l
 #SBATCH --export=NONE
+#SBATCH --reservation=datareduction
 #SBATCH -M HOST
 #SBATCH -p workq
 #SBATCH --account=ACCOUNT
@@ -9,7 +10,6 @@
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    cd ${dbdir}
     track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
@@ -17,7 +17,6 @@ fi
 
 cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 obsnum=OBSNUM
-dbdir=DBDIR
 datadir=DATADIR
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
@@ -25,7 +24,6 @@ catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
 ts=30
 
 # start
-cd ${dbdir}
 track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 cd ${datadir}/${obsnum}
@@ -99,5 +97,4 @@ test_fail $?
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
 test_fail $?
 
-cd ${dbdir}
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

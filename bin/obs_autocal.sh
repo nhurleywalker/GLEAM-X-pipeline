@@ -72,8 +72,9 @@ then
 fi
 
 dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
+codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 queue="-p $standardq"
-datadir=/astro/mwasci/nhurleywalker/$project
+datadir=/astro/mwasci/$USER/$project
 
 # set dependency
 if [[ ! -z ${dep} ]]
@@ -82,17 +83,18 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
-script="${dbdir}queue/autocal_${obsnum}.sh"
+script="${codedir}queue/autocal_${obsnum}.sh"
 
-cat ${dbdir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+
+#                                     -e "s:DBDIR:${dbdir}:g" \
+cat ${codedir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
-                                     -e "s:DBDIR:${dbdir}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" > ${script}
 
-output="${dbdir}queue/logs/autocal_${obsnum}.o%A"
-error="${dbdir}queue/logs/autocal_${obsnum}.e%A"
+output="${codedir}queue/logs/autocal_${obsnum}.o%A"
+error="${codedir}queue/logs/autocal_${obsnum}.e%A"
 
 sub="sbatch -M $computer --output=${output} --error=${error} ${depend} ${queue} ${script}"
 
