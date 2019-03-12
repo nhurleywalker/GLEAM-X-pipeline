@@ -19,7 +19,9 @@ cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 obsnum=OBSNUM
 datadir=DATADIR
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
+# Owned by mwaadmin, can't use this
 catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
+catfile="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
 # Interval for ionospheric triage (in time steps)
 ts=30
 
