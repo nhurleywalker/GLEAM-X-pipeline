@@ -2,7 +2,7 @@
 
 usage()
 {
-echo "obs_image.sh [-d dep] [-q queue] [-t] obsnum
+echo "obs_image.sh [-d dep] [-p project] [-q queue] [-t] obsnum
   -d dep     : job number for dependency (afterok)
   -q queue   : job queue, default=workq
   -p project : project, (must be specified, no default)
@@ -44,7 +44,7 @@ clean=
 tst=
 
 # parse args and set options
-while getopts ':td:q:' OPTION
+while getopts ':td:p:q:' OPTION
 do
     case "$OPTION" in
 	d)
