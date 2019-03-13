@@ -72,6 +72,7 @@ Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
 
 # Deep clean (for pipeline)
 #wsclean $multiscale -nmiter 5 -niter 1000000 \
+#    -mgain 0.85 \
 #    -auto-threshold $tsigma \
 #    -name ${obsnum} \
 #    -size ${imsize} ${imsize} \
@@ -87,7 +88,8 @@ Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
 #    $uvrange \
 
 # Shallow clean (for workshop)
-wsclean $multiscale -nmiter 1 -niter 100000 \
+wsclean -nmiter 1 -niter 100000 \
+    -mgain 0.85 \
     -auto-threshold 8 \
     -name ${obsnum} \
     -size ${imsize} ${imsize} \
