@@ -89,6 +89,7 @@ Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
 
 # Shallow clean (for workshop)
 wsclean -nmiter 1 -niter 100000 \
+    -scale ${scale:0:8} \
     -mgain 0.85 \
     -auto-threshold 8 \
     -name ${obsnum} \
