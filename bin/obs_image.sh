@@ -34,8 +34,11 @@ then
 #    absmem=30 # Check this
 fi
 
+scratch="/astro"
+group="/group"
 #initial variables
 base="$scratch/mwasci/$USER/GLEAMX/"
+code="$group/mwasci/$USER/GLEAM-X-pipeline/"
 queue="-p $standardq"
 dep=
 imscale=
@@ -81,15 +84,15 @@ fi
 
 # start the real program
 
-script="${base}queue/image_${obsnum}.sh"
-cat ${base}/bin/image.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+script="${code}queue/image_${obsnum}.sh"
+cat ${code}/bin/image.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:HOST:${computer}:g" \
                                  -e "s:STANDARDQ:${standardq}:g" \
                                  -e "s:ACCOUNT:${account}:g" > ${script}
 
-output="${base}queue/logs/image_${obsnum}.o%A"
-error="${base}queue/logs/image_${obsnum}.e%A"
+output="${code}queue/logs/image_${obsnum}.o%A"
+error="${code}queue/logs/image_${obsnum}.e%A"
 
 sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
 if [[ ! -z ${tst} ]]
@@ -110,7 +113,7 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='image' --submission_time=`date +%s` --batch_file=${script} \
+track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='image' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
 echo "Submitted ${script} as ${jobid}"
