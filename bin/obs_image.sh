@@ -26,7 +26,7 @@ then
     computer="magnus"
     account="pawsey0272"
     standardq="workq"
-    ncpus=40
+    ncpus=24
 #    absmem=60
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
