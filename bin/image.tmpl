@@ -1,9 +1,11 @@
 #! /bin/bash -l
+#SBATCH --reservation=datareduction
 #SBATCH --export=NONE
 #SBATCH -M HOST
 #SBATCH -p STANDARDQ
 #SBATCH --account=ACCOUNT
 #SBATCH --time=12:00:00
+#SBATCH --ntasks=NCPUS
 #SBATCH --nodes=1
 
 function test_fail {
@@ -16,10 +18,13 @@ fi
 
 # Set version number
 version=3.0 # First GLEAM-X pipeline data reduction April 2018
+cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 obsnum=OBSNUM
 base=BASEDIR
 # WSClean suffixes for subchannels and MFS
 subchans="MFS 0000 0001 0002 0003"
+# Minimum uvw for self-calibration (in lambda)
+minuv=75
 
 # Update database
 cd ${base}
@@ -58,55 +63,81 @@ scale=`echo "$basescale / $chan" | bc -l` # At least 4 pix per synth beam for ea
 lowfreq=`echo "$centfreq $bandwidth" | awk '{printf("%00d\n",$1-($2/2.)+0.5)}'`
 highfreq=`echo "$centfreq $bandwidth" | awk '{printf("%00d\n",$1+($2/2.)+0.5)}'`
 freqrange="${lowfreq}-${highfreq}"
+# Calculate min uvw in metres
+minuvm=`echo "234 * $minuv / $chan" | bc -l`
 
 # Set up position-dependent options
 RA=`pyhead.py -p RA $metafits | awk '{print $3}'`
 Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
+
+# Deep clean (for pipeline)
+#wsclean $multiscale -nmiter 5 -niter 1000000 \
+#    -auto-threshold $tsigma \
+#    -name ${obsnum} \
+#    -size ${imsize} ${imsize} \
+#    -scale ${scale:0:8} \
+#    -pol XX,YY,XY,YX \
+#    -weight briggs ${robust} \
+#    -join-polarizations \
+#    -join-channels \
+#    -channels-out 4 \
+#    -data-column CORRECTED_DATA \
+#    ${obsnum}.ms | tee wsclean.log
+
+#    $uvrange \
+
+# Shallow clean (for workshop)
+wsclean $multiscale -nmiter 1 -niter 100000 \
+    -auto-threshold 8 \
+    -name ${obsnum} \
+    -size ${imsize} ${imsize} \
+    -pol I \
+    -weight briggs ${robust} \
+    -data-column CORRECTED_DATA \
+    ${obsnum}.ms
+
+test_fail $?
+
+# Self-cal (for workshop)
+
+#calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin
+
+
+track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+
+
+# TODO: implement later
+
     # Multiscale clean original GLEAM Galactic plane, normal clean for everything else
-b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
-if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
-then
-    multiscale="-multiscale -mgain 0.6"
-else
-    multiscale="-mgain 0.85"
-fi
-    # Set up the primary beam to match our observation WCS -- may be needed for peeling
-gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
+#b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
+#if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
+#then
+#    multiscale="-multiscale -mgain 0.6"
+#else
+#    multiscale="-mgain 0.85"
+#fi
+
+# Set up the primary beam to match our observation WCS -- may be needed for peeling
+#gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
 
 #    -size ${dirtysize} ${dirtysize} \
 #    -trim ${imsize} ${imsize} \
-wsclean $multiscale -nmiter 5 -niter 1000000 \
-    -auto-threshold $tsigma \
-    -name ${obsnum} \
-    -size ${imsize} ${imsize} \
-    -scale ${scale:0:8} \
-    -pol XX,YY,XY,YX \
-    -weight briggs ${robust} \
-    -join-polarizations \
-    -join-channels \
-    -channels-out 4 \
-    -data-column CORRECTED_DATA \
-    ${obsnum}.ms | tee wsclean.log
-
-#    $uvrange \
-  test_fail $?
-
 # create stokes iquv images
+
+
 # TODO: implement multi-channel beams
 #for subchan in $subchans
 #do
 #    pbcorrect ${obsnum}-${subchan} image.fits ../pbeams/$gp/$chan/beam-$subchan ${obsnum}-${subchan}
 #    test_fail $?
 #done
-
-pbcorrect ${obsnum}-MFS image.fits ../pbeams/$gp/$chan/beam $obsnum-MFS
-
+#
+#pbcorrect ${obsnum}-MFS image.fits ../pbeams/$gp/$chan/beam $obsnum-MFS
+#
 # Rename files
-for pol in $pols
-do
-    deep="${obsnum}-MFS-${pol}-image.fits"
-    newfilename=`wsclean2gleam.py -f $deep -v $version`
-    mv $deep $newfilename
-done
-
-track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+#for pol in $pols
+#do
+#    deep="${obsnum}-MFS-${pol}-image.fits"
+#    newfilename=`wsclean2gleam.py -f $deep -v $version`
+#    mv $deep $newfilename
+#done
