@@ -38,6 +38,10 @@ parser.add_option('--alphacol',type="string", dest="alphacol",
                     help="The name of the spectral index alpha-term column (default=alpha).", default="alpha")
 parser.add_option('--betacol',type="string", dest="betacol",
                     help="The name of the spectral index curvature beta-term column (default=beta).", default="beta")
+parser.add_option('--alpha',type=float, dest="alpha",
+                    help="The value of alpha to use if there is no alpha column (default = -0.83)", default=-0.83)
+parser.add_option('--beta',type=float, dest="beta",
+                    help="The value of beta to use if there is no beta column (default = 0.0).", default=0.0)
 parser.add_option('--point', dest='point', action='store_true' ,
                     help="Output unresolved sources as point sources instead of Gaussians (default=False). Need to specify resolution, and both int and peak flux columns for this to work.", default=False)
 parser.add_option('--resolution',type=float, dest="resolution",
@@ -67,8 +71,10 @@ else:
         temp = parse_single_table(options.catalogue)
         data = temp.array
 
+if options.alphacol is None:
+    alpha = options.alpha*np.ones(shape=data[options.namecol].shape)
 if options.betacol is None:
-    beta = np.zeros(shape=data[options.namecol].shape)
+    beta = options.beta*np.ones(shape=data[options.namecol].shape)
 
 # Generate an output in Andre's sky model format
 #formatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type gaussian\n    position {RA:s} {Dec:s}\n    shape {a:s} {b:s} {pa:s}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:s} 0 0 0\n      spectral-index {{ {alpha:s} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
