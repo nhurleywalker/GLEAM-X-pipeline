@@ -17,9 +17,9 @@ parser = OptionParser(usage=usage)
 parser.add_option('--catalogue',type="string", dest="catalogue",
                     help="The filename of the catalogue you want to read in.", default=None)
 parser.add_option('--output',type="string", dest="output",
-                    help="The filename of the output (default=test.txt).", default=None)
+                    help="The filename of the output (default=test.txt).", default="test.txt")
 parser.add_option('--namecol',type="string", dest="namecol",
-                    help="The name of the Name column (default=Name).", default="Name")
+                    help="The name of the Name column (no default).", default="Name")
 parser.add_option('--racol',type="string", dest="racol",
                     help="The name of the RA column (default=ra_str).", default="ra_str")
 parser.add_option('--decol',type="string", dest="decol",
@@ -71,17 +71,28 @@ else:
         temp = parse_single_table(options.catalogue)
         data = temp.array
 
-if options.alphacol is None:
-    alpha = options.alpha*np.ones(shape=data[options.namecol].shape)
-if options.betacol is None:
-    beta = options.beta*np.ones(shape=data[options.namecol].shape)
+if options.fluxcol is None:
+    print "Must have a valid flux density column"
+    sys.exit(1)
+try:
+    names = data[options.namecol]
+except KeyError:
+    names = np.array(["J"+(data[options.racol][i][:-3]+data[options.decol][i][:-3]).replace(':','') for i in range(len(data[options.racol]))])
+try: 
+    alpha = data[options.alphacol]
+except KeyError:
+    alpha = options.alpha*np.ones(shape=data[options.fluxcol].shape)
+try:
+    beta = data[options.betacol]
+except KeyError:
+    beta = options.beta*np.ones(shape=data[options.fluxcol].shape)
 
 # Generate an output in Andre's sky model format
 #formatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type gaussian\n    position {RA:s} {Dec:s}\n    shape {a:s} {b:s} {pa:s}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:s} 0 0 0\n      spectral-index {{ {alpha:s} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
 gformatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type {shape:s}\n    position {RA:s} {Dec:s}\n    shape {a:2.1f} {b:2.1f} {pa:4.1f}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:4.7f} 0 0 0\n      spectral-index {{ {alpha:2.2f} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
 pformatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type {shape:s}\n    position {RA:s} {Dec:s}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:4.7f} 0 0 0\n      spectral-index {{ {alpha:2.2f} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
 
-shape = np.empty(shape=data[options.namecol].shape,dtype="S8")
+shape = np.empty(shape=data[options.fluxcol].shape,dtype="S8")
 shape.fill("gaussian")
 
 if options.point:
@@ -89,7 +100,7 @@ if options.point:
    indices = np.where(srcsize<options.resolution)
    shape[indices] = "point"
 
-bigzip=zip(data[options.namecol],data[options.racol],data[options.decol],data[options.acol],data[options.bcol],data[options.pacol],data[options.fluxcol],data[options.alphacol],beta,shape)
+bigzip=zip(names,data[options.racol],data[options.decol],data[options.acol],data[options.bcol],data[options.pacol],data[options.fluxcol],alpha,beta,shape)
 
 f = open(options.output,"w")
 f.write("skymodel fileformat 1.1\n")
