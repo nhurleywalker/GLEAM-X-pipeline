@@ -118,7 +118,7 @@ f.close()
 
 with open(options.output,"a") as f:
     for Name,RA,Dec,a,b,pa,flux,alpha,beta,shape in bigzip:
-        if RAstr:
+        if rastr is True:
             coords = SkyCoord(RA, Dec, frame="fk5", unit=(u.hour, u.deg))
         else:
             coords = SkyCoord(RA, Dec, frame="fk5", unit=(u.deg, u.deg))
