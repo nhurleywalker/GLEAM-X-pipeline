@@ -43,7 +43,7 @@ parser.add_option('--alpha',type=float, dest="alpha",
 parser.add_option('--beta',type=float, dest="beta",
                     help="The value of beta to use if there is no beta column (default = 0.0).", default=0.0)
 parser.add_option('--point', dest='point', action='store_true' ,
-                    help="Output unresolved sources as point sources instead of Gaussians (default=False). Need to specify resolution, and both int and peak flux columns for this to work.", default=False)
+                    help="Output unresolved sources as point sources instead of Gaussians (default=False). Need to specify resolution, and both int and peak flux columns for this to work, or have blank major/minor axis columns to indicate unresolved sources.", default=False)
 parser.add_option('--resolution',type=float, dest="resolution",
                     help="The int/peak value below which a source is considered unresolved (default=1.2).", default=1.2)
 parser.add_option('--intflux',type="string", dest="intflux",
@@ -96,8 +96,15 @@ shape = np.empty(shape=data[options.fluxcol].shape,dtype="S8")
 shape.fill("gaussian")
 
 if options.point:
-   srcsize = data[options.intflux]/data[options.peakflux]
-   indices = np.where(srcsize<options.resolution)
+   try:
+       srcsize = data[options.intflux]/data[options.peakflux]
+       intpeak = True
+   except KeyError:
+       intpeak = False
+   if intpeak is True:
+       indices = np.where(srcsize<options.resolution)
+   else:
+       indices = np.where(np.isnan(options.acol))
    shape[indices] = "point"
 
 bigzip=zip(names,data[options.racol],data[options.decol],data[options.acol],data[options.bcol],data[options.pacol],data[options.fluxcol],alpha,beta,shape)
