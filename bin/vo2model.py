@@ -98,12 +98,8 @@ shape.fill("gaussian")
 if options.point:
    try:
        srcsize = data[options.intflux]/data[options.peakflux]
-       intpeak = True
-   except KeyError:
-       intpeak = False
-   if intpeak is True:
        indices = np.where(srcsize<options.resolution)
-   else:
+   except KeyError:
        indices = np.where(np.isnan(options.acol))
    shape[indices] = "point"
 
