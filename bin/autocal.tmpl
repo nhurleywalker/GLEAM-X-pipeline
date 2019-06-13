@@ -48,7 +48,7 @@ then
     if [[ ! -e "local_gleam_model.txt" ]]
     then
         /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=20 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200
-        /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 -decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
+        /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=.
     calmodel=local_gleam_model.txt
