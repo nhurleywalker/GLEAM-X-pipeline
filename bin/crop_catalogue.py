@@ -6,6 +6,7 @@ import astropy.units as u
 import numpy as np
 
 from beam_value_at_radec import beam_value
+from beam_value_at_radec import parse_metafits
 
 from astropy.io import fits
 from optparse import OptionParser
@@ -59,7 +60,8 @@ indices = np.intersect1d(alphacut,indices)
 
 if options.attenuate:
     if options.metafits:
-        x,y = beam_value(data[options.racol][indices],data[options.decol][indices],options.metafits)
+        t, delays, freq = parse_metafits(options.metafits)
+        x,y = beam_value(data[options.racol][indices], data[options.decol][indices], t, delays, freq)
 # This might be more correct for Stokes values, but I'm not sure it's what I want...
 #        i = (x**2 + y**2)/2
 # Also, at some point, I would like to save the full Jones matrix into the source model
