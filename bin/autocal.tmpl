@@ -1,12 +1,11 @@
 #! /bin/bash -l
 #SBATCH --export=NONE
-#SBATCH --reservation=datareduction
 #SBATCH -M HOST
 #SBATCH -p workq
 #SBATCH --account=ACCOUNT
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=NCPUS
+TASKLINE
 
 function test_fail {
 if [[ $1 != 0 ]]
@@ -23,6 +22,7 @@ modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 # Owned by mwaadmin, can't use this
 catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
 catfile="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
+catfile="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
 # Interval for ionospheric triage (in time steps)
 ts=30
 
@@ -48,7 +48,7 @@ then
     if [[ ! -e "local_gleam_model.txt" ]]
     then
         crop_catalogue.py --ra=$RA --dec=$Dec --radius=20 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile}
-        vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt
+        /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 -decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=.
     calmodel=local_gleam_model.txt
@@ -77,7 +77,7 @@ cd ${datadir}/${obsnum}
 
 # Ionospheric triage
 solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 2 -maxuv 2000 ${obsnum}.ms ${solutions}
+calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 20 -maxuv 2000 ${obsnum}.ms ${solutions}
 test_fail $?
 
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
@@ -93,7 +93,7 @@ test_fail $?
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
 
 # calibrate
-calibrate -j ${cores} -m ${calmodel} -minuv 2 -maxuv 2000 ${obsnum}.ms ${solutions}
+calibrate -j ${cores} -m ${calmodel} -minuv 20 -maxuv 2000 ${obsnum}.ms ${solutions}
 test_fail $?
 
 # plot calibration solutions
