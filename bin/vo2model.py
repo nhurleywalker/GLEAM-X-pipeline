@@ -100,7 +100,7 @@ if options.point:
        srcsize = data[options.intflux]/data[options.peakflux]
        indices = np.where(srcsize<options.resolution)
    except KeyError:
-       indices = np.where(np.isnan(options.acol))
+       indices = np.where(np.isnan(data[options.acol]))
    shape[indices] = "point"
 
 bigzip=zip(names,data[options.racol],data[options.decol],data[options.acol],data[options.bcol],data[options.pacol],data[options.fluxcol],alpha,beta,shape)
