@@ -9,6 +9,8 @@ import numpy as np
 #tables and votables
 import astropy.io.fits as fits
 from astropy.io.votable import parse_single_table
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 
 from optparse import OptionParser
 
@@ -87,6 +89,11 @@ try:
 except KeyError:
     beta = options.beta*np.ones(shape=data[options.fluxcol].shape)
 
+if type(data[options.racol][0]) == str:
+    rastr = True
+else:
+    rastr = False
+
 # Generate an output in Andre's sky model format
 #formatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type gaussian\n    position {RA:s} {Dec:s}\n    shape {a:s} {b:s} {pa:s}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:s} 0 0 0\n      spectral-index {{ {alpha:s} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
 gformatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type {shape:s}\n    position {RA:s} {Dec:s}\n    shape {a:2.1f} {b:2.1f} {pa:4.1f}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:4.7f} 0 0 0\n      spectral-index {{ {alpha:2.2f} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
@@ -111,12 +118,18 @@ f.close()
 
 with open(options.output,"a") as f:
     for Name,RA,Dec,a,b,pa,flux,alpha,beta,shape in bigzip:
-        RA = replace(RA,":","h",1)
-        RA = replace(RA,":","m",1)
-        RA = RA+"s"
-        Dec = replace(Dec,":","d",1)
-        Dec = replace(Dec,":","m",1)
-        Dec = Dec+"s"
+        if RAstr:
+            coords = SkyCoord(RA, Dec, frame="fk5", unit=(u.hour, u.deg))
+        else:
+            coords = SkyCoord(RA, Dec, frame="fk5", unit=(u.deg, u.deg))
+#            RA = replace(RA,":","h",1)
+#            RA = replace(RA,":","m",1)
+#            RA = RA+"s"
+#            Dec = replace(Dec,":","d",1)
+#            Dec = replace(Dec,":","m",1)
+#            Dec = Dec+"s"
+        RA = coords.ra.to_string(u.hour)
+        Dec = coords.dec.to_string(u.deg)
         if shape=="gaussian":
             f.write(gformatter.format(Name=Name,RA=RA,Dec=Dec,a=a,b=b,pa=pa,flux=flux,alpha=alpha,beta=beta,freq=options.freq,shape=shape))
         elif shape=="point":
