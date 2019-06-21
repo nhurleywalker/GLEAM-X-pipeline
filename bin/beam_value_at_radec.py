@@ -1,4 +1,4 @@
-#!/pawsey/cle60up05/apps/gcc/4.8.5/python/2.7.14/bin/python
+#!/usr/bin/env python
 
 import sys
 import os,logging,datetime,platform
@@ -9,8 +9,8 @@ from astropy.wcs import WCS
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
-from mwapy import ephem_utils
-from mwapy.pb.primary_beam import MWA_Tile_full_EE
+#from mwapy import ephem_utils
+from mwa_pb.primary_beam import MWA_Tile_full_EE
 import argparse
 
 # configure the logging
