@@ -92,18 +92,23 @@ minuvm=`echo "234 * $minuv / $chan" | bc -l`
 
 
 # Initial clean
-if [[ ! -e ${obsnum}_initial-image.fits ]]
+if [[ ! -e ${obsnum}_initial-MFS-image.fits ]]
 then
     wsclean -j $cores -apply-primary-beam -mwa-path /group/mwa/software/mwa_pb/mwa_pb/mwa_pb/data/ -name ${obsnum}_initial -size ${imsize} ${imsize} -nmiter 1 -niter 40000 -threshold 0.01 -pol I -weight briggs ${robust} -scale ${scale:0:8} -stopnegative -mgain 0.85 -channels-out 4 -join-channels ${obsnum}.ms
 fi
 
 # Self-cal -- using the now-populated MODEL column
-### TODO Come back and add a test to check that the image exists
+if [[ ! -e ${obsnum}_initial-MFS-image.fits ]]
+then
+    echo "Initial image did not generate! Something wrong with WSClean?"
+    test_fail $?
+fi
+
 ### TODO Make the caldatacolumn dependent on whether you've peeled
 calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
 aocal_plot.py --refant=127 ${obsnum}_self_solutions.bin
-
 flaggedchans=`grep "gains to NaN" calibrate.log | awk '{printf("%03d\n",$2)}' | sort | uniq | wc -l`
+
 if [[ $flaggedchans -gt 200 || ! -s ${obsnum}_self_solutions.bin ]]
 then
     echo "More than a third of the channels were flagged!"
