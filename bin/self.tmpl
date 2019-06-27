@@ -5,6 +5,7 @@
 #SBATCH --account=ACCOUNT
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
+TASKLINE
 
 function test_fail {
 if [[ $1 != 0 ]]
@@ -19,16 +20,19 @@ fi
 version=3.0 # First GLEAM-X pipeline data reduction April 2018
 absmem=ABSMEM
 obsnum=OBSNUM
-base=BASEDIR
+datadir=DATADIR
 # WSClean suffixes for subchannels and MFS
 subchans="MFS 0000 0001 0002 0003"
-# Minimum uvw for self-calibration (in lambda)
+# Minimum baseline of 75 lambda (=250m at 88 MHz) for self-calibration
 minuv=75
+
+# Number of cores
+cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 
 # Update database
 track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
-datadir=${base}/${obsnum}
+datadir=${datadir}/${obsnum}
 cd ${datadir}
 
 metafits=`ls -t ${obsnum}*metafits* | head -1`
@@ -65,69 +69,50 @@ freqrange="${lowfreq}-${highfreq}"
 # Set up position-dependent options
 RA=`pyhead.py -p RA $metafits | awk '{print $3}'`
 Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
-    # Multiscale clean original GLEAM Galactic plane, normal clean for everything else
-b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
-if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
-then
-    multiscale="-multiscale -mgain 0.6"
-else
-    multiscale="-mgain 0.85"
-fi
-# Set up the primary beam to match our observation WCS -- may be needed for peeling
-#dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
-gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
+# Multiscale clean original GLEAM Galactic plane, normal clean for everything else
+#b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
+#if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
+#then
+#    multiscale="-multiscale -mgain 0.6"
+#else
+#    multiscale="-mgain 0.85"
+#fi
 
 # Calculate min uvw in metres
 minuvm=`echo "234 * $minuv / $chan" | bc -l`
 
+### TODO Relying on John's PB script to come through here
+# Set up the primary beam to match our observation WCS -- may be needed for peeling
+#dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
+#gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
 #cp ../pbeams/Dec${dec}_${chan}/beam-0000-xxi.fits ./testwcs.fits
 #pyhead.py -u CRVAL1 $RA ./testwcs.fits
 # For use with this later, if needed:
 #bool=`check_src_fov.py -f testwcs.fits -s $source`
 
-if [[ ! -e ${obsnum}_initial-XX-image.fits ]]
+
+# Initial clean
+if [[ ! -e ${obsnum}_initial-image.fits ]]
 then
-## quick n dirty image-based clean to get the initial model
-# TODO: test slow-down of doing 4 channels to preserve spectral information
-    wsclean -name ${obsnum}_initial -size ${imsize} ${imsize} -niter 40000 -threshold 0.001 -pol xx,yy,xy,yx -weight briggs ${robust} -scale ${scale:0:8} -stop-negative -join-polarizations -minuv-l $minuv ${obsnum}.ms
-    if [[ ! -e ${obsnum}_initial-XX-image.fits ]]
-    then
-        echo "WSClean must have seg-faulted! PANIC!"
-        exit 1
-    fi
+    wsclean -j $cores -apply-primary-beam -mwa-path /group/mwa/software/mwa_pb/mwa_pb/mwa_pb/data/ -name ${obsnum}_initial -size ${imsize} ${imsize} -nmiter 1 -niter 40000 -threshold 0.01 -pol I -weight briggs ${robust} -scale ${scale:0:8} -stopnegative -mgain 0.85 -channels-out 4 -join-channels ${obsnum}.ms
 fi
-# Make a primary-beam corrected model, for use NOW in calibrating
-# TODO Later this will need to be updated to multichannel beams
-pbcorrect ${obsnum}_initial model.fits ../pbeams/$gp/$chan/beam ${obsnum}_initcor
-# Set Q, U, V to zero
-if [[ ! -d unused ]]
-then
-    mkdir unused
-fi
-mv ${obsnum}_initcor-Q.fits unused/
-mv ${obsnum}_initcor-U.fits unused/
-mv ${obsnum}_initcor-V.fits unused/
 
-# "Uncorrect" the beam
-pbcorrect -uncorrect ${obsnum}_initunc model.fits ../pbeams/$gp/$chan/beam ${obsnum}_initcor
-
-wsclean -predict -name ${obsnum}_initunc -size ${imsize} ${imsize} -pol xx,yy,xy,yx -weight briggs -1.0 -scale ${scale:0:8} -smallinversion ${obsnum}.ms
-
-# self-cal
-# Now using minimum baseline of 75 lambda (=250m at 88 MHz)
-calibrate -j ${ncpus} -minuv $minuvm -a 0.001 0.0001 -p phases.txt gains.txt $caldatacolumn ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
-
+# Self-cal -- using the now-populated MODEL column
+### TODO Come back and add a test to check that the image exists
+### TODO Make the caldatacolumn dependent on whether you've peeled
+calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
 aocal_plot.py --refant=127 ${obsnum}_self_solutions.bin
 
 flaggedchans=`grep "gains to NaN" calibrate.log | awk '{printf("%03d\n",$2)}' | sort | uniq | wc -l`
 if [[ $flaggedchans -gt 200 || ! -s ${obsnum}_self_solutions.bin ]]
 then
     echo "More than a third of the channels were flagged!"
-    echo "Will not apply calibration solutions or clean any more deeply."
-    exit 1
+    echo "Do not apply these calibration solutions."
+    mv ${obsnum}_self_solutions.bin ${obsnum}_self_solutions.bad
 fi
 
-applysolutions $caldatacolumn -copy ${obsnum}.ms ${obsnum}_self_solutions.bin
-# Re-run flagger to catch any broken channels after self-calibration
+### TODO Sort out the logic for chaining applysolutions and imaging
+
+### TODO Re-run flagger to catch any broken channels after self-calibration
 
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

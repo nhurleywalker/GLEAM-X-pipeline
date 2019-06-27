@@ -13,27 +13,31 @@ exit 1;
 }
 
 # Supercomputer options
-if [[ "${HOST:0:4}" == "gala" ]]
+if [[ "${HOST:0:4}" == "zeus" ]]
 then
-    computer="galaxy"
+    computer="zeus"
     account="mwasci"
     standardq="workq"
-    absmem=60
+    ncpus=28
+    taskline="#SBATCH --ntasks=${ncpus}"
+#    absmem=60
 #    standardq="gpuq"
-#    absmem=30
 elif [[ "${HOST:0:4}" == "magn" ]]
 then
     computer="magnus"
     account="pawsey0272"
     standardq="workq"
-    absmem=60
-    scratch=/astro
+    ncpus=48
+    taskline=""
+#    absmem=60
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
     account="pawsey0272"
     standardq="gpuq"
-    absmem=30 # Check this
+    ncpus=40
+    taskline=""
+#    absmem=30 # Check this
 fi
 
 #initial variables
@@ -82,27 +86,30 @@ fi
 
 # Set directories
 dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
-base="$scratch/mwasci/$USER/$project/"
+codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
+queue="-p $standardq"
+datadir=/astro/mwasci/$USER/$project
 
-# Test for existence of primary beams
-cd $base/$obsnum
+cd $datadir/$obsnum
 metafits=`ls -t ${obsnum}*metafits* | head -1`
 chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
-gp=`pyhead.py -p GRIDNUM $metafits | awk '{print $3}'`
 
-# TODO: enable multi-channel beams
-if [[ ! -e ../pbeams/$gp/$chan/beam-MFS.fits ]]
-then
-    echo "Primary beam for this observation not found:"
-    echo "$base/pbeams/$gp/$chan/beam-MFS.fits does not exist."
-    exit 1
-fi
+# TODO: replace with John's code
+# Test for existence of primary beams
+#gp=`pyhead.py -p GRIDNUM $metafits | awk '{print $3}'`
+#if [[ ! -e ../pbeams/$gp/$chan/beam-MFS.fits ]]
+#then
+#    echo "Primary beam for this observation not found:"
+#    echo "$base/pbeams/$gp/$chan/beam-MFS.fits does not exist."
+#    exit 1
+#fi
 
 # start the real program
 script="${dbdir}queue/self_${obsnum}.sh"
 cat ${dbdir}/bin/self.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
-                                 -e "s:BASEDIR:${base}:g" \
+                                 -e "s:DATADIR:${datadir}:g" \
                                  -e "s:ABSMEM:${absmem}:g" \
+                                 -e "s:TASKLINE:${taskline}:g" \
                                  -e "s:HOST:${computer}:g" \
                                  -e "s:STANDARDQ:${standardq}:g" \
                                  -e "s:ACCOUNT:${account}:g" > ${script}
@@ -132,4 +139,7 @@ output=`echo ${output} | sed "s/%A/${jobid}/"`
 python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='self-cal' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
-echo "Submitted ${script} as ${jobid}"
+echo "Submitted ${script} as ${jobid} Follow progress here:"
+echo $output
+echo $error
+
