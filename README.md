@@ -16,12 +16,27 @@ Scratch directory (do processing here): /astro/mwasci/$USER/
 - a project directory you name for yourself ($project in subsequent code)
 - in each project directory, a set of obsids (usually $obsid in subsequent code)
 
-## scripts and templates
+## Scripts and templates
 Templates for scripts are `bin/*.tmpl`, these are modified by the `bin/obs_*.sh` scripts and the completed script is then put in `queue/<obsid>_*.sh` and submitted to SLURM. Whichever cluster you are logged in to will be the one your jobs are submitted to. Time allocation "pawsey0272" is used on Magnus and project "mwasci" is used on Zeus.
 
 ## track_task.py
 Used by the following scripts to track the submission/start/finish/fail of each of the jobs.
 Not intended for use outside of these scripts.
+
+## Example workflow
+
+A typical workflow might look like:
+   - Look on the MWA metadata pages for a set of observations of interest: http://ws.mwatelescope.org/admin/observation/observationsetting/ or http://ws.mwatelescope.org/metadata/find
+   - Download the list of observation IDs to a text file
+   - Go to /astro/mwasci/$USER/ and create a project directory with whatever pithy name you feel is appropriate
+   - Put the text file there, and then run obs_manta.sh on it to download that list of observations
+   - Once they have downloaded, for each observation, run obs_autocal.sh
+   - Look at the calibraton solutions, and if they generally look OK, for each observation, run obs_apply_cal.sh to apply them
+   - Run obs_self.sh on each one to perform self-calibration
+   - Look at the self-calibration solutions; if they look good, apply them (obs_apply_cal.sh)
+   - Then run some deep imaging via obs_image.sh.
+
+## Detailed script descriptions
 
 ### obs_manta.sh
 Use the [ASVO-mwa](https://asvo.mwatelescope.org) service to do the cotter conversion and then download the resulting measurement set.
