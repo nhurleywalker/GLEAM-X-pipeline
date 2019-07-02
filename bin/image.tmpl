@@ -1,5 +1,4 @@
 #! /bin/bash -l
-#SBATCH --reservation=datareduction
 #SBATCH --export=NONE
 #SBATCH -M HOST
 #SBATCH -p STANDARDQ
@@ -11,7 +10,7 @@
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
 }
@@ -25,10 +24,14 @@ base=BASEDIR
 subchans="MFS 0000 0001 0002 0003"
 # Minimum uvw for self-calibration (in lambda)
 minuv=75
+# S/N Level at which to choose masked pixels for deepclean
+msigma=3
+# S/N Threshold at which to stop cleaning
+tsigma=1
 
 # Update database
 cd ${base}
-track_task.py start --jobid=${SLURM_JOBID} --start_time=`date +%s`
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 datadir=${base}/${obsnum}
 cd ${datadir}
@@ -70,55 +73,50 @@ minuvm=`echo "234 * $minuv / $chan" | bc -l`
 RA=`pyhead.py -p RA $metafits | awk '{print $3}'`
 Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
 
-# Deep clean (for pipeline)
-#wsclean $multiscale -nmiter 5 -niter 1000000 \
-#    -mgain 0.85 \
-#    -auto-threshold $tsigma \
-#    -name ${obsnum} \
-#    -size ${imsize} ${imsize} \
-#    -scale ${scale:0:8} \
+# Multiscale clean original GLEAM Galactic plane, normal clean for everything else
+b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
+if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
+then
+    multiscale="-multiscale -mgain 0.6"
+else
+    multiscale="-mgain 0.85"
+fi
+
+### TODO: John's primary beam code to go here
 #    -pol XX,YY,XY,YX \
-#    -weight briggs ${robust} \
 #    -join-polarizations \
-#    -join-channels \
-#    -channels-out 4 \
-#    -data-column CORRECTED_DATA \
-#    ${obsnum}.ms | tee wsclean.log
 
-#    $uvrange \
-
-# Shallow clean (for workshop)
-wsclean -nmiter 1 -niter 100000 \
-    -scale ${scale:0:8} \
-    -mgain 0.85 \
-    -auto-threshold 8 \
-    -name ${obsnum} \
+# Deep clean (for pipeline)
+wsclean $multiscale \
+    -nmiter 5 \
+    -niter 10000000 \
+    -apply-primary-beam \
+    -mwa-path /group/mwa/software/mwa_pb/mwa_pb/mwa_pb/data/ \
+    -auto-mask $msigma \
+    -auto-threshold $tsigma \
+    -name ${obsnum}_deep \
     -size ${imsize} ${imsize} \
-    -pol I \
+    -scale ${scale:0:8} \
     -weight briggs ${robust} \
+    -pol I \
+    -join-channels \
+    -channels-out 4 \
     -data-column CORRECTED_DATA \
-    ${obsnum}.ms
+    ${obsnum}.ms | tee wsclean.log
+
+### TODO fix wsclean2gleam.py so it more cleverly handles lack of polarisation
+# Rename files
+#for subchan in $subchans
+#do
+#    deep="${obsnum}_deep-$subchan-image.fits"
+#    newfilename=`wsclean2gleam.py -f $deep -v $version`
+#    mv $deep $newfilename
+#done
 
 test_fail $?
 
-# Self-cal (for workshop)
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
 
-#calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin
-
-
-track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
-
-
-# TODO: implement later
-
-    # Multiscale clean original GLEAM Galactic plane, normal clean for everything else
-#b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
-#if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
-#then
-#    multiscale="-multiscale -mgain 0.6"
-#else
-#    multiscale="-mgain 0.85"
-#fi
 
 # Set up the primary beam to match our observation WCS -- may be needed for peeling
 #gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
@@ -137,10 +135,16 @@ track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
 #
 #pbcorrect ${obsnum}-MFS image.fits ../pbeams/$gp/$chan/beam $obsnum-MFS
 #
-# Rename files
-#for pol in $pols
-#do
-#    deep="${obsnum}-MFS-${pol}-image.fits"
-#    newfilename=`wsclean2gleam.py -f $deep -v $version`
-#    mv $deep $newfilename
-#done
+#    $uvrange \
+
+## Shallow clean (for workshop)
+#wsclean -nmiter 1 -niter 100000 \
+#    -scale ${scale:0:8} \
+#    -mgain 0.85 \
+#    -auto-threshold 8 \
+#    -name ${obsnum} \
+#    -size ${imsize} ${imsize} \
+#    -pol I \
+#    -weight briggs ${robust} \
+#    -data-column CORRECTED_DATA \
+#    ${obsnum}.ms
