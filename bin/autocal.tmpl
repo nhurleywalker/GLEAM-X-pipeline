@@ -24,7 +24,10 @@ catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
 catfile="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
 catfile="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
 # Interval for ionospheric triage (in time steps)
-ts=30
+# Typically we have 2-minute observations which have been averaged to 4s
+# So in total they contain 30 time steps
+# Do do useful ionospheric differencing we need to compare the start and the end
+ts=10
 
 # start
 track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
@@ -48,7 +51,7 @@ then
 
     if [[ ! -e "local_gleam_model.txt" ]]
     then
-        /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=20 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200
+        /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200
         /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=.
@@ -85,7 +88,8 @@ maxuvm=`echo "234 / ($chan + 11)" | bc -l`
 
 # Ionospheric triage
 solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
+calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
+#calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
 test_fail $?
 
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
@@ -101,7 +105,8 @@ test_fail $?
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
 
 # calibrate
-calibrate -j ${cores} -m ${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
+#calibrate -j ${cores} -m ${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
+calibrate -j ${cores} -m ${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
 test_fail $?
 
 # plot calibration solutions
