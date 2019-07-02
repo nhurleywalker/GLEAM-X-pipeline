@@ -92,9 +92,8 @@ do
     elif [[ $obsnum -ge 1191580576 ]] ; then
         telescope="MWALB"
         basescale=0.5
-# Testing ionospheric effects with bright sources
         freqres=40
-        timeres=1
+        timeres=4
     fi
     if [[ -d ${obsnum}/${obsnum}.ms ]]
     then
