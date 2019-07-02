@@ -56,6 +56,7 @@ then
     account="mwasci"
     standardq="workq"
     ncpus=28
+    taskline="#SBATCH --ntasks=${ncpus}"
 #    absmem=60
 #    standardq="gpuq"
 elif [[ "${HOST:0:4}" == "magn" ]]
@@ -63,7 +64,8 @@ then
     computer="magnus"
     account="pawsey0272"
     standardq="workq"
-    ncpus=40
+    ncpus=48
+    taskline=""
 #    absmem=60
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
@@ -71,6 +73,7 @@ then
     account="pawsey0272"
     standardq="gpuq"
     ncpus=40
+    taskline=""
 #    absmem=30 # Check this
 fi
 
@@ -88,12 +91,11 @@ fi
 
 script="${codedir}queue/autocal_${obsnum}.sh"
 
-
 #                                     -e "s:DBDIR:${dbdir}:g" \
 cat ${codedir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
                                      -e "s:HOST:${computer}:g" \
-                                     -e "s:NCPUS:${ncpus}:g" \
+                                     -e "s:TASKLINE:${taskline}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" > ${script}
 
