@@ -39,7 +39,7 @@ A typical workflow might look like:
 ## Detailed script descriptions
 
 ### obs_manta.sh
-Use the [ASVO-mwa](https://asvo.mwatelescope.org) service to do the cotter conversion and then download the resulting measurement set.
+Use the [ASVO-mwa](https://asvo.mwatelescope.org) service to do the cotter conversion and then download the resulting measurement set. No matter which cluster the jobs are submitted from, they will always run on the Zeus copyq.
 
 usage:
 ```
