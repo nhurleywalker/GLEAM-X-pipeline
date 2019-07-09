@@ -1,6 +1,6 @@
 # GLEAM-X-pipeline
 
-The goal of this pipeline is to reduce the data observed as part of the GLEAM-X project (G0008), but it is also applicable to many other MWA datasets. The pipeline is written for the Pawsey Magnus and Zeus systems which uses a SLURM job scheduler. It borrows significantly from the MWA-Fast-Transients pipeline written by Paul Hancock and Gemma Anderson: https://github.com/PaulHancock/MWA-fast-image-transients.
+The goal of this pipeline is to reduce the data observed as part of the GLEAM-X project (G0008), but it is also applicable to many other MWA datasets. The pipeline is written for the Pawsey Magnus and Zeus systems which use a SLURM job scheduler. It borrows significantly from the MWA-Fast-Transients pipeline written by Paul Hancock and Gemma Anderson: https://github.com/PaulHancock/MWA-fast-image-transients.
 
 ## Credits
 Please credit Natasha Hurley-Walker, Paul Hancock, and Gemma Anderson if you use this code, or incorporate it into your own workflow. Please acknowledge the use of this code by citing this repository, and until we have a publication accepted on this work, we request that we be added as co-authors on papers that rely on this code.
@@ -39,7 +39,7 @@ A typical workflow might look like:
 ## Detailed script descriptions
 
 ### obs_manta.sh
-Use the [ASVO-mwa](https://asvo.mwatelescope.org) service to do the cotter conversion and then download the resulting measurement set.
+Use the [ASVO-mwa](https://asvo.mwatelescope.org) service to do the cotter conversion and then download the resulting measurement set. No matter which cluster the jobs are submitted from, they will always run on the Zeus copyq.
 
 usage:
 ```
