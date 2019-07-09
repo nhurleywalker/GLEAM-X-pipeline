@@ -10,7 +10,7 @@ import sqlite3
 __author__ = "PaulHancock & Natasha Hurley-Walker"
 
 # Append the service name to this base URL, eg 'con', 'obs', etc.
-BASEURL = 'http://mwa-metadata01.pawsey.org.au/metadata/'
+BASEURL = 'http://ws.mwatelescope.org/metadata/'
 dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
 
 # Function to call a JSON web service and return a dictionary: This function by Andrew Williams
