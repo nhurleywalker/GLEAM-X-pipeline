@@ -77,7 +77,7 @@ then
 #    absmem=30 # Check this
 fi
 
-dbdir="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/"
+dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 queue="-p $standardq"
 datadir=/astro/mwasci/$USER/$project

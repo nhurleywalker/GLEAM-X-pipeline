@@ -21,8 +21,8 @@ datadir=DATADIR
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 # Owned by mwaadmin, can't use this
 catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
-catfile="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
-catfile="/group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
+catfile="/group/mwasci/$USER/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
+catfile="/group/mwasci/$USER/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
 # Interval for ionospheric triage (in time steps)
 # Typically we have 2-minute observations which have been averaged to 4s
 # So in total they contain 30 time steps
@@ -51,8 +51,8 @@ then
 
     if [[ ! -e "local_gleam_model.txt" ]]
     then
-        /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200
-        /group/mwasci/nhurleywalker/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
+        /group/mwasci/$USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200
+        /group/mwasci/$USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=.
     calmodel=local_gleam_model.txt
