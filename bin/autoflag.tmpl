@@ -1,0 +1,41 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p workq
+#SBATCH --account=ACCOUNT
+#SBATCH --time=01:00:00
+#SBATCH --nodes=1
+TASKLINE
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+# start
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+
+#cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
+
+obsnum=OBSNUM
+datadir=DATADIR
+
+cd ${datadir}/${obsnum}
+#metafits="${obsnum}.metafits"
+#if [[ ! -e ${metafits} ]]
+#then
+#    wget "http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=${obsnum}" -O ${metafits}
+#    test_fail $?
+#fi
+
+# Rx8 has a fibre problem on night of 2019-06-17
+if [[ $obsnum -ge 1244798800 ]] && [[ $obsnum -le 1244849032 ]]
+then
+    flagantennae ${obsnum}.ms 48 49 50 51 52 53 54 55
+fi
+
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+
