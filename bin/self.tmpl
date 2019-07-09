@@ -94,7 +94,7 @@ minuvm=`echo "234 * $minuv / $chan" | bc -l`
 # Initial clean
 if [[ ! -e ${obsnum}_initial-MFS-image.fits ]]
 then
-    wsclean -j $cores -apply-primary-beam -mwa-path /group/mwa/software/mwa_pb/mwa_pb/mwa_pb/data/ -name ${obsnum}_initial -size ${imsize} ${imsize} -nmiter 1 -niter 40000 -threshold 0.01 -pol I -weight briggs ${robust} -scale ${scale:0:8} -stopnegative -mgain 0.85 -channels-out 4 -join-channels ${obsnum}.ms
+    wsclean -j $cores -apply-primary-beam -mwa-path /group/mwa/software/mwa_pb/master/mwa_pb/data/ -name ${obsnum}_initial -size ${imsize} ${imsize} -nmiter 1 -niter 40000 -threshold 0.01 -pol I -weight briggs ${robust} -scale ${scale:0:8} -stopnegative -mgain 0.85 -channels-out 4 -join-channels ${obsnum}.ms
 fi
 
 # Self-cal -- using the now-populated MODEL column
