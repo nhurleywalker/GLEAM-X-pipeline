@@ -39,6 +39,15 @@ fi
 scratch="/astro"
 group="/group"
 
+#initial variables
+base="$scratch/mwasci/$USER/$project/"
+code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+queue="-p $standardq"
+dep=
+imscale=
+pixscale=
+clean=
+tst=
 # parse args and set options
 while getopts ':td:p:q:' OPTION
 do
@@ -60,15 +69,6 @@ do
 	    ;;
   esac
 done
-#initial variables
-base="$scratch/mwasci/$USER/$project/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
-queue="-p $standardq"
-dep=
-imscale=
-pixscale=
-clean=
-tst=
 # set the obsid to be the first non option
 shift  "$(($OPTIND -1))"
 obsnum=$1
