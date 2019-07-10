@@ -40,8 +40,6 @@ scratch="/astro"
 group="/group"
 
 #initial variables
-base="$scratch/mwasci/$USER/$project/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
 queue="-p $standardq"
 dep=
 imscale=
@@ -73,7 +71,11 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
+base="$scratch/mwasci/$USER/$project/"
+code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+
 # if obsid is empty then just print help
+
 if [[ -z ${obsnum} ]] || [[ -z $project ]] || [[ ! -d ${base} ]]
 then
     usage
