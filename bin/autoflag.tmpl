@@ -31,11 +31,21 @@ cd ${datadir}/${obsnum}
 #    test_fail $?
 #fi
 
+# Most long-baseline observations have problems with these two antennas
+# Set up telescope-configuration-dependent options
+if [[ $obsnum -gt 1151402936 ]]
+    flags="76 80 "
+fi
+
+
+
 # Rx8 has a fibre problem on night of 2019-06-17
 if [[ $obsnum -ge 1244798800 ]] && [[ $obsnum -le 1244849032 ]]
 then
-    flagantennae ${obsnum}.ms 48 49 50 51 52 53 54 55
+    flags="$flags 48 49 50 51 52 53 54 55"
 fi
+
+flagantennae ${obsnum}.ms $flags
 
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
 
