@@ -60,6 +60,8 @@ fi
 chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
 bandwidth=`pyhead.py -p BANDWDTH ${metafits} | awk '{print $3}'`
 centfreq=`pyhead.py -p FREQCENT ${metafits} | awk '{print $3}'`
+chans=`pyhead.py -p CHANNELS ${metafits} | awk '{print $3}' | sed "s/,/ /g"`
+chans=($chans)
     # Pixel scale
 scale=`echo "$basescale / $chan" | bc -l` # At least 4 pix per synth beam for each channel
     # Naming convention for output files
@@ -82,16 +84,36 @@ else
     multiscale="-mgain 0.85"
 fi
 
-### TODO: John's primary beam code to go here
-#    -pol XX,YY,XY,YX \
-#    -join-polarizations \
+# Create a template image that has all the same properties as our eventual WSClean image
+new_fk5_template.py --ra $RA --dec $Dec --nx $imsize --ny $imsize --pixscale ${scale:0:8} --output=${obsnum}_template.fits
+
+# Hardcoding John's PB script location for now
+# Also hardcoding creating four sub-band beams
+pols="XX XXi XY XYi YX YXi YY YYi"
+
+for n in {0..3}
+do
+    i=$((n * 6))
+    cstart=${chans[$i]}
+    j=$((i + 5))
+    cend=${chans[$j]}
+    if [[ ! -e ${obsnum}_000${n}-${pol}-beam.fits ]]
+    then
+        python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_jones.py ${obsnum} _template.fits ${obsnum}_000${n}- -c $cstart-$cend --wsclean_names --beam_path /group/mwasci/pb_lookup/gleam_jones.hdf5
+    fi
+    for pol in $pols
+    do
+        ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_deep-000${n}-beam-${pol}.fits
+    done
+done
+
 
 # Deep clean (for pipeline)
 wsclean $multiscale \
     -nmiter 5 \
     -niter 10000000 \
+    -reuse-primary-beam \
     -apply-primary-beam \
-    -mwa-path /group/mwa/software/mwa_pb/master/mwa_pb/data/ \
     -auto-mask $msigma \
     -auto-threshold $tsigma \
     -name ${obsnum}_deep \
@@ -116,26 +138,6 @@ wsclean $multiscale \
 test_fail $?
 
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
-
-
-# Set up the primary beam to match our observation WCS -- may be needed for peeling
-#gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
-
-#    -size ${dirtysize} ${dirtysize} \
-#    -trim ${imsize} ${imsize} \
-# create stokes iquv images
-
-
-# TODO: implement multi-channel beams
-#for subchan in $subchans
-#do
-#    pbcorrect ${obsnum}-${subchan} image.fits ../pbeams/$gp/$chan/beam-$subchan ${obsnum}-${subchan}
-#    test_fail $?
-#done
-#
-#pbcorrect ${obsnum}-MFS image.fits ../pbeams/$gp/$chan/beam $obsnum-MFS
-#
-#    $uvrange \
 
 ## Shallow clean (for workshop)
 #wsclean -nmiter 1 -niter 100000 \

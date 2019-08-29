@@ -59,6 +59,8 @@ fi
 chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
 bandwidth=`pyhead.py -p BANDWDTH ${metafits} | awk '{print $3}'`
 centfreq=`pyhead.py -p FREQCENT ${metafits} | awk '{print $3}'`
+chans=`pyhead.py -p CHANNELS ${metafits} | awk '{print $3}' | sed "s/,/ /g"`
+chans=($chans)
     # Pixel scale
 scale=`echo "$basescale / $chan" | bc -l` # At least 4 pix per synth beam for each channel
     # Naming convention for output files
@@ -81,20 +83,48 @@ Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
 # Calculate min uvw in metres
 minuvm=`echo "234 * $minuv / $chan" | bc -l`
 
-### TODO Relying on John's PB script to come through here
-# Set up the primary beam to match our observation WCS -- may be needed for peeling
-#dec=`echo $Dec | awk '{printf("%.0f",$1)}'`
-#gp=`pyhead.py GRIDNUM ${metafits} | awk '{print $3}'`
-#cp ../pbeams/Dec${dec}_${chan}/beam-0000-xxi.fits ./testwcs.fits
-#pyhead.py -u CRVAL1 $RA ./testwcs.fits
-# For use with this later, if needed:
-#bool=`check_src_fov.py -f testwcs.fits -s $source`
+# Create a template image that has all the same properties as our eventual WSClean image
+new_fk5_template.py --ra $RA --dec $Dec --nx $imsize --ny $imsize --pixscale ${scale:0:8} --output=${obsnum}_template.fits
 
+# Hardcoding John's PB script location for now
+# Also hardcoding creating four sub-band beams
+pols="XX XXi XY XYi YX YXi YY YYi"
+
+for n in {0..3}
+do
+    i=$((n * 6))
+    cstart=${chans[$i]}
+    j=$((i + 5))
+    cend=${chans[$j]}
+    if [[ ! -e ${obsnum}_000${n}-${pol}-beam.fits ]]
+    then
+        python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_jones.py ${obsnum} _template.fits ${obsnum}_000${n}- -c $cstart-$cend --wsclean_names --beam_path /group/mwasci/pb_lookup/gleam_jones.hdf5
+    fi
+    for pol in $pols
+    do
+        ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_initial-000${n}-beam-${pol}.fits
+    done
+done
 
 # Initial clean
 if [[ ! -e ${obsnum}_initial-MFS-image.fits ]]
 then
-    wsclean -j $cores -apply-primary-beam -mwa-path /group/mwa/software/mwa_pb/master/mwa_pb/data/ -name ${obsnum}_initial -size ${imsize} ${imsize} -nmiter 1 -niter 40000 -threshold 0.01 -pol I -weight briggs ${robust} -scale ${scale:0:8} -stopnegative -mgain 0.85 -channels-out 4 -join-channels ${obsnum}.ms
+    wsclean -j $cores \
+        -apply-primary-beam \
+        -reuse-primary-beam \
+        -name ${obsnum}_initial \
+        -size ${imsize} ${imsize} \
+        -nmiter 1 \
+        -niter 40000 \
+        -threshold 0.01 \
+        -pol I \
+        -weight briggs ${robust} \
+        -scale ${scale:0:8} \
+        -stopnegative \
+        -mgain 0.85 \
+        -channels-out 4 \
+        -join-channels \
+        ${obsnum}.ms
 fi
 
 # Self-cal -- using the now-populated MODEL column
