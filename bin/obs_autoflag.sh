@@ -85,7 +85,6 @@ datadir=/astro/mwasci/$USER/$project
 # set dependency
 if [[ ! -z ${dep} ]]
 then
-    echo "Depends on ${dep}"
     depend="--dependency=afterok:${dep}"
 fi
 
@@ -102,7 +101,7 @@ cat ${codedir}bin/autoflag.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
 output="${codedir}queue/logs/autoflag_${obsnum}.o%A"
 error="${codedir}queue/logs/autoflag_${obsnum}.e%A"
 
-sub="sbatch -M $computer --output=${output} --error=${error} ${depend} ${queue} ${script}"
+sub="sbatch -M $computer --output=${output} --error=${error} --begin=now+120 ${depend} ${queue} ${script}"
 
 if [[ ! -z ${tst} ]]
 then
