@@ -84,8 +84,38 @@ else
     multiscale="-mgain 0.85"
 fi
 
+# Check whether the phase centre has already changed
+current=`chgcentre ${obsnum}.ms`
+if [[ $current == *"shift"* ]]
+then
+    echo "Detected that this measurement set has already had its phase centre changed. Not shifting."
+else
+    # Determine whether to shift the pointing centre to be more optimally-centred on the peak of the primary beam sensitivity
+    coords=`python /group/mwasci/$USER/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
+    echo "Optimally shifting co-ordinates of measurement set to $coords, with zenith shiftback."
+    chgcentre ${obsnum}.ms $coords
+    # Now shift the pointing centre to point straight up, which approximates minw without making the phase centre rattle around
+    chgcentre -zenith -shiftback ${obsnum}.ms
+fi
+
 # Create a template image that has all the same properties as our eventual WSClean image
-new_fk5_template.py --ra $RA --dec $Dec --nx $imsize --ny $imsize --pixscale ${scale:0:8} --output=${obsnum}_template.fits
+if [[ ! -e ${obsnum}_template.fits ]]
+then
+    wsclean -mgain 1.0 \
+        -nmiter 1 \
+        -niter 0 \
+        -name ${obsnum}_template \
+        -size ${imsize} ${imsize} \
+        -scale ${scale:0:8} \
+        -pol XX \
+        -data-column CORRECTED_DATA \
+        -channel-range 4 5 \
+        -interval 4 5 \
+        -nwlayers ${cores} \
+        $obsnum.ms
+    rm ${obsnum}_template-dirty.fits
+    mv ${obsnum}_template-image.fits ${obsnum}_template.fits
+fi
 
 # Hardcoding John's PB script location for now
 # Also hardcoding creating four sub-band beams
