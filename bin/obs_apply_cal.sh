@@ -75,9 +75,9 @@ shift  "$(($OPTIND -1))"
 obsnum=$1
 
 set -uo pipefail
-# if obsid is empty then just print help
+# if obsid or calid is empty then just print help
 
-if [[ -z ${obsnum} ]]
+if [[ -z ${obsnum} || -z ${calid} ]]
 then
     usage
 fi
