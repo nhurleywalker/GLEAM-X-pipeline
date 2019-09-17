@@ -12,7 +12,7 @@ dep=($(obs_autocal.sh -p $project -q $queue -d $depend $obsnum))
 depend=${dep[3]}
 echo "cal jobid: $depend"
 
-dep=($(obs_apply_cal.sh -p $project -q $queue -d $depend $obsnum))
+dep=($(obs_apply_cal.sh -p $project -q $queue -d $depend -c $obsnum $obsnum))
 depend=${dep[3]}
 echo "apply-cal jobid: $depend"
 
@@ -20,7 +20,7 @@ dep=($(obs_self.sh -p $project -q $queue -d $depend $obsnum))
 depend=${dep[3]}
 echo "self-cal jobid: $depend"
 
-dep=($(obs_apply_cal.sh -p $project -q $queue -d $depend $obsnum))
+dep=($(obs_apply_cal.sh -p $project -q $queue -d $depend -c $obsnum $obsnum))
 depend=${dep[3]}
 echo "apply-cal jobid: $depend"
 
