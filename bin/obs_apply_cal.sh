@@ -77,7 +77,7 @@ obsnum=$1
 set -uo pipefail
 # if obsid or calid is empty then just print help
 
-if [[ -z ${obsnum} || -z ${calid} ]]
+if [[ -z ${obsnum} ]] || [[ -z ${calid} ]]
 then
     usage
 fi
