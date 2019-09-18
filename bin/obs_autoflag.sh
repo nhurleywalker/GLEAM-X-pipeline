@@ -4,7 +4,7 @@
 
 usage()
 {
-echo "obs_autoflag.sh [-d dep] [-q queue] [-t] obsnum
+echo "obs_autoflag.sh [-p project] [-d dep] [-q queue] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
   -q queue   : job queue, default=workq
