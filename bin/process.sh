@@ -55,14 +55,10 @@ code="$group/mwasci/$USER/GLEAM-X-pipeline/"
 
 script="${code}queue/process_${obsnum}.sh"
 
-if [[ -d $scratch/mwasci/$USER/$project/$obsnum/$obsnum.ms ]]
-then
+cat ${code}/bin/chain.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+                                 -e "s:PROJECT:${project}:g" \
+                                 -e "s:QUEUE:${standardq}:g" \
+                                  > ${script}
 
-    cat ${code}/bin/chain.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
-                                     -e "s:PROJECT:${project}:g" \
-                                     -e "s:QUEUE:${standardq}:g" \
-                                      > ${script}
-
-    chmod +x ${script}
-    ${script}
-fi
+chmod +x ${script}
+${script}

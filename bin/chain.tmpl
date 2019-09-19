@@ -4,6 +4,10 @@ obsnum=OBSNUM
 project=PROJECT
 queue=QUEUE
 
+dep=($(obs_cotter.sh -p $project -q $queue $obsnum))
+depend=${dep[3]}
+echo "cotter jobid: $depend"
+
 dep=($(obs_autoflag.sh -p $project -q $queue $obsnum))
 depend=${dep[3]}
 echo "flag jobid: $depend"
