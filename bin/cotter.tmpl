@@ -10,8 +10,7 @@ TASKLINE
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    cd ${datadir}
-    python bin/track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
 }
@@ -23,8 +22,7 @@ fres=FRES
 memory=MEMORY
 
 # start task
-cd ${datadir}
-python bin/track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 cd ${datadir}
 
@@ -48,16 +46,19 @@ else
     flagfiles=""
 fi
 
+if [[ ! -d ${obsnum}.ms ]]
+then
 # Use 80% of the memory
-cotter ${flagfiles} -absmem ${memory} -timeres ${tres} -freqres ${fres} -allowmissing \
+    cotter ${flagfiles} -absmem ${memory} -timeres ${tres} -freqres ${fres} -allowmissing \
     -edgewidth 80 -m ${obsnum}_metafits_ppds.fits -o ${obsnum}.ms *gpubox*.fits 
 
-test_fail $?
-
-if [[ -d ${obsnum}.ms ]]
-then 
-     rm *gpubox*fits *.zip *.mwaf ${obsnum}_metafits_ppds.fits
+    test_fail $?
+    if [[ -d ${obsnum}.ms ]]
+    then 
+         rm *gpubox*fits *.zip *.mwaf ${obsnum}_metafits_ppds.fits
+    fi
+else
+    echo "Cotter has already run for ${obsnum}.ms"
 fi
 
-cd ${datadir}
-python bin/track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
