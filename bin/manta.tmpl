@@ -7,7 +7,6 @@
 #SBATCH --nodes=1
 
 base=BASEDIR
-
 obslist=OBSLIST
 
 # start download
@@ -52,6 +51,10 @@ do
             fi
         fi
         cd ../
+    elif [[ -e ${obsnum}_vis.zip]]
+    then
+        echo "${obsnum}_vis.zip downloaded successfully; now run cotter."
+        track_task.py finish --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
     else
         echo "${obsnum}_ms.zip failed to download."
         track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`

@@ -3,53 +3,40 @@
 #SBATCH -M HOST
 #SBATCH -p STANDARDQ
 #SBATCH --account=ACCOUNT
-#SBATCH --time=04:00:00
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
-
+TASKLINE
 
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    cd ${base}
-    python bin/track_task.py fail --jobid=${SLURM_JOBID} --finish_time=`date +%s`
+    cd ${datadir}
+    python bin/track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
 }
 
-base=BASEDIR
-datadir=${base}/processing
-
+datadir=DATADIR
 obsnum=OBSNUM
 tres=TRES
 fres=FRES
-
+memory=MEMORY
 
 # start task
-cd ${base}
-python bin/track_task.py start --jobid=${SLURM_JOBID} --start_time=`date +%s`
+cd ${datadir}
+python bin/track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
-# expected number of files from the archive
-nfiles=`sqlite3 ${base}/db/MWA-GRB.sqlite "SELECT nfiles FROM observation WHERE obs_id=${obsnum};"`
+cd ${datadir}
 
-cd ${datadir}/${obsnum}
-# count the number of files that we have (but not the flag files)
-files=`ls ${obsnum}_*{gpubox,ppds}*.fits 2>/dev/null | wc -l`
-
-# if nfiles is non-zero then we ensure we have that many files
-# nfiles is zero if we aren't tracking the obsid in the database
-if [[ ! -z ${nfiles} ]]
-then 
-    #quit if we are missing files
-    if [[ ${nfiles} -eq ${files} ]]
-    then
-        echo "Found ${files}/${nfiles} files"
-    elif [[ ${nfiles} -eq ${files}+1 ]]
-    then
-        echo "Found ${files} fits files, assuming the missing file is flags"
-    else
-        echo "expecting ${nfiles} files but only found ${files}"
-        test_fail 1
-    fi
+if [[ -e ${obsnum}_vis.zip ]]
+then
+    mkdir ${obsnum}
+    cd ${obsnum}
+    mv ../${obsnum}_vis.zip ./
+    unzip ${obsnum}_vis.zip
+    rm ${obsnum}_vis.zip
+else
+    cd ${obsnum}
 fi
 
 zipflag="${obsnum}_flags.zip"
@@ -61,17 +48,16 @@ else
     flagfiles=""
 fi
 
-# allow missing files since we already checked this above.
-cotter ${flagfiles} -timeres ${tres} -freqres ${fres} -allowmissing \
+# Use 80% of the memory
+cotter ${flagfiles} -absmem ${memory} -timeres ${tres} -freqres ${fres} -allowmissing \
     -edgewidth 80 -m ${obsnum}_metafits_ppds.fits -o ${obsnum}.ms *gpubox*.fits 
 
 test_fail $?
 
-if [[ -d OBSNUM.ms ]]
+if [[ -d ${obsnum}.ms ]]
 then 
      rm *gpubox*fits *.zip *.mwaf ${obsnum}_metafits_ppds.fits
 fi
 
-cd ${base}
-python bin/track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
-
+cd ${datadir}
+python bin/track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

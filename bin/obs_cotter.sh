@@ -2,7 +2,8 @@
 
 usage()
 {
-echo "obs_cotter.sh [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] obsnum
+echo "obs_cotter.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] obsnum
+  -p project : project, no default
   -d dep      : job number for dependency (afterok)
   -q queue    : job queue, default=workq
   -s timeav   : time averaging in sec. default = 2 s
@@ -14,53 +15,52 @@ exit 1;
 }
 
 # Supercomputer options
-if [[ "${HOST:0:4}" == "gala" ]]
+if [[ "${HOST:0:4}" == "zeus" ]]
 then
-    computer="galaxy"
+    computer="zeus"
     account="mwasci"
     standardq="workq"
-    absmem=60
-#    standardq="gpuq"
-#    absmem=30
+    absmem=120
+    memory=110
+    ncpus=28
+    taskline="#SBATCH --ntasks=${ncpus}"
 elif [[ "${HOST:0:4}" == "magn" ]]
 then
     computer="magnus"
     account="pawsey0272"
     standardq="workq"
     absmem=60
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    account="pawsey0272"
-    standardq="gpuq"
-    absmem=30 # Check this
+    memory=55
+    ncpus=48
+    taskline=""
 fi
 
 #initial variables
 
-base="$scratch/mwasci/$USER/GLEAMX/"
 dep=
-queue="-p $standardq"
+queue=
 tst=
 timeav=
 freqav=
 
 # parse args and set options
-while getopts ':td:s:k:' OPTION
+while getopts ':tp:d:q:s:k:' OPTION
 do
     case "$OPTION" in
+    p)
+        project=${OPTARG} ;;
     d)
         dep=${OPTARG} ;;
 	q)
-	    queue="-p ${OPTARG}" ;;
+	    queue="${OPTARG}" ;;
 	s)
 	    timeav=${OPTARG} ;;
 	k)
 	    freqav=${OPTARG} ;;
-        t)
-            tst=1 ;;
-        ? | : | h)
-            usage ;;
+    t)
+        tst=1 ;;
+    ? | : | h)
+        usage ;;
   esac
 done
 
@@ -70,39 +70,52 @@ obsnum=$1
 
 # if obsid is empty then just print help
 
-if [[ -z ${obsnum} ]]
+if [[ -z ${obsnum} ]] 
 then
     usage
 fi
 
-if [[ ! -z ${timeav} ]]
+if [[ -z ${timeav} ]]
 then
     timeav=2
 fi
 
-if [[ ! -z ${freqav} ]]
+if [[ -z ${freqav} ]]
 then
     freqav=40
 fi
 
 if [[ ! -z ${dep} ]]
 then
-depend="--dependency=afterok:${dep}"
+    depend="--dependency=afterok:${dep}"
 fi
 
-script="${base}queue/cotter_${obsnum}.sh"
-cat ${base}/bin/cotter.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+if [[ -z ${queue} ]]
+then
+    queue="-p $standardq"
+else
+    queue="-p $queue"
+fi
+
+dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
+codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
+datadir=/astro/mwasci/$USER/$project
+
+script="${codedir}queue/cotter_${obsnum}.sh"
+cat ${codedir}bin/cotter.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+                                  -e "s:DATADIR:${datadir}:g" \
+                                  -e "s:TASKLINE:${taskline}:g" \
                                   -e "s:TRES:${timeav}:g" \
                                   -e "s:FRES:${freqav}:g" \
-                                  -e "s:BASEDIR:${base}:g" \
+                                  -e "s:MEMORY:${memory}:g" \
                                   -e "s:HOST:${computer}:g" \
                                   -e "s:STANDARDQ:${standardq}:g" \
                                   -e "s:ACCOUNT:${account}:g" > ${script}
 
-output="${base}queue/logs/cotter_${obsnum}.o%A"
-error="${base}queue/logs/cotter_${obsnum}.e%A"
+output="${codedir}queue/logs/cotter_${obsnum}.o%A"
+error="${codedir}queue/logs/cotter_${obsnum}.e%A"
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+sub="sbatch -M $computer --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -121,7 +134,9 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-python ${base}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='cotter' --submission_time=`date +%s` --batch_file=${script} \
+python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='cotter' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
-echo "Submitted ${script} as ${jobid}"
+echo "Submitted ${script} as ${jobid} Follow progress here:"
+echo $output
+echo $error

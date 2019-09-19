@@ -8,6 +8,7 @@ echo "obs_manta.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t
   -p project  : project, (must be specified, no default)
   -s timeav   : time averaging in sec. default = 2 s
   -k freqav   : freq averaging in KHz. default = 40 kHz
+  -g          : download gpubox fits files instead of measurement sets
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
   -o obslist  : the list of obsids to process" 1>&2;
@@ -29,11 +30,12 @@ dbdir="$group/mwasci/$USER/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 tst=
+gpubox=
 timeav=
 freqav=
 
 # parse args and set options
-while getopts ':td:p:s:k:o:' OPTION
+while getopts ':tgd:p:s:k:o:' OPTION
 do
     case "$OPTION" in
     d)
@@ -50,6 +52,8 @@ do
 	    obslist=${OPTARG} ;;
     t)
         tst=1 ;;
+    g)
+        gpubox=1 ;;
         ? | : | h)
             usage ;;
   esac
@@ -99,8 +103,14 @@ do
     then
         echo "${obsnum}/${obsnum}.ms already exists. I will not download it again."
     else
-# start download
-        echo "obs_id=${obsnum}, job_type=c, timeres=${timeres}, freqres=${freqres}, edgewidth=80, conversion=ms, allowmissing=true, flagdcchannels=true" >>  ${obslist}_manta.tmp
+        if [[ -z ${gpubox} ]]
+        then
+            echo "obs_id=${obsnum}, job_type=c, timeres=${timeres}, freqres=${freqres}, edgewidth=80, conversion=ms, allowmissing=true, flagdcchannels=true" >>  ${obslist}_manta.tmp
+            stem="ms"
+        else
+            echo "obs_id=${obsnum}, job_type=d, download_type=vis" >>  ${obslist}_manta.tmp
+            stem="vis"
+        fi
         dllist=$dllist"$obsnum "
     fi
 done
@@ -110,6 +120,7 @@ listbase=${listbase%%.*}
 script="${dbdir}queue/manta_${listbase}.sh"
 
 cat ${dbdir}/bin/manta.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
+                                 -e "s:STEM:${stem}:g"  \
                                  -e "s:BASEDIR:${base}:g"  > ${script}
 #                                 -e "s:ACCOUNT:${account}:g"
 
