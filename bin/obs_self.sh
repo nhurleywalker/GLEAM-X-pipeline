@@ -90,20 +90,6 @@ codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 queue="-p $standardq"
 datadir=/astro/mwasci/$USER/$project
 
-cd $datadir/$obsnum
-metafits=`ls -t ${obsnum}*metafits* | head -1`
-chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
-
-# TODO: replace with John's code
-# Test for existence of primary beams
-#gp=`pyhead.py -p GRIDNUM $metafits | awk '{print $3}'`
-#if [[ ! -e ../pbeams/$gp/$chan/beam-MFS.fits ]]
-#then
-#    echo "Primary beam for this observation not found:"
-#    echo "$base/pbeams/$gp/$chan/beam-MFS.fits does not exist."
-#    exit 1
-#fi
-
 # start the real program
 script="${dbdir}queue/self_${obsnum}.sh"
 cat ${dbdir}/bin/self.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
