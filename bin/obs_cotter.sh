@@ -2,12 +2,10 @@
 
 usage()
 {
-echo "obs_cotter.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] obsnum
+echo "obs_cotter.sh [-p project] [-d dep] [-q queue] [-t] obsnum
   -p project : project, no default
   -d dep      : job number for dependency (afterok)
   -q queue    : job queue, default=workq
-  -s timeav   : time averaging in sec. default = 2 s
-  -k freqav   : freq averaging in KHz. default = 40 kHz
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
   obsnum      : the obsid to process" 1>&2;
@@ -40,11 +38,9 @@ fi
 dep=
 queue=
 tst=
-timeav=
-freqav=
 
 # parse args and set options
-while getopts ':tp:d:q:s:k:' OPTION
+while getopts ':tp:d:q:' OPTION
 do
     case "$OPTION" in
     p)
@@ -53,10 +49,6 @@ do
         dep=${OPTARG} ;;
 	q)
 	    queue="${OPTARG}" ;;
-	s)
-	    timeav=${OPTARG} ;;
-	k)
-	    freqav=${OPTARG} ;;
     t)
         tst=1 ;;
     ? | : | h)
@@ -75,16 +67,6 @@ then
     usage
 fi
 
-if [[ -z ${timeav} ]]
-then
-    timeav=2
-fi
-
-if [[ -z ${freqav} ]]
-then
-    freqav=40
-fi
-
 if [[ ! -z ${dep} ]]
 then
     depend="--dependency=afterok:${dep}"
@@ -101,12 +83,29 @@ dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 datadir=/astro/mwasci/$USER/$project
 
+if [[ $obsnum -lt 1151402936 ]] ; then
+    telescope="MWA128T"
+    basescale=1.1
+    freqres=40
+    timeres=4
+elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
+    telescope="MWAHEX"
+    basescale=2.0
+    freqres=40
+    timeres=8
+elif [[ $obsnum -ge 1191580576 ]] ; then
+    telescope="MWALB"
+    basescale=0.5
+    freqres=40
+    timeres=4
+fi
+
 script="${codedir}queue/cotter_${obsnum}.sh"
 cat ${codedir}bin/cotter.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                   -e "s:DATADIR:${datadir}:g" \
                                   -e "s:TASKLINE:${taskline}:g" \
-                                  -e "s:TRES:${timeav}:g" \
-                                  -e "s:FRES:${freqav}:g" \
+                                  -e "s:TRES:${timeres}:g" \
+                                  -e "s:FRES:${freqres}:g" \
                                   -e "s:MEMORY:${memory}:g" \
                                   -e "s:HOST:${computer}:g" \
                                   -e "s:STANDARDQ:${standardq}:g" \
