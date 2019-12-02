@@ -1,0 +1,52 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH --ntasks=1
+#SBATCH --time=00:23:00
+#SBATCH --account=ACCOUNT
+#SBATCH --export=NONE
+#SBATCH --partition=gpuq
+
+module load shifter
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+obsnum=OBSNUM
+base=BASEDIR
+# Which style of images to examine?
+option=OPTION
+
+# Update database
+cd ${base}
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+
+datadir=${base}/${obsnum}
+cd ${datadir}
+
+ls ${obsnum}_${option}-????-image.fits > ${obsnum}_cnn.csv
+
+shifter pull trettelbach/pytorch_astro:latest
+shifter run trettelbach/pytorch_astro:latest python /group/mwasci/trettelbach/paper/cnn_gleam_inference.py "/group/mwasci/trettelbach/paper/" "${datadir}/${obsnum}_cnn.csv" 0
+
+# See if we find any RFI in the images
+rfifound=0
+for file in ${obsnum}_${option}-????-image.fits
+do
+    rfi=`pyhead.py -p RFI $file | awk '{print $3}'`
+    if (( $(echo "$rfi > 0.5" | bc -l) ))
+    then
+        rfifound=1
+    fi
+done
+
+# If so, run the flagging routines
+if [[ $rfifound -eq 1 ]]
+then
+    RFIFIND
+fi
