@@ -1,11 +1,10 @@
 #! /bin/bash -l
 #SBATCH --export=NONE
 #SBATCH -M HOST
-#SBATCH -p workq
+#SBATCH --partition=STANDARDQ
 #SBATCH --account=ACCOUNT
 #SBATCH --time=01:00:00
 #SBATCH --nodes=1
-TASKLINE
 
 function test_fail {
 if [[ $1 != 0 ]]
@@ -21,21 +20,23 @@ track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 #cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 
 obsnum=OBSNUM
-datadir=DATADIR
-option=OPTION
+base=BASEDIR
 
-cd ${datadir}/${obsnum}
+cd ${base}/${obsnum}
 
-nbands=`ls ${obsnum}_${option}-????-image.fits | wc -l`
 n=0
-for file in ${obsnum}_${option}-????-image.fits
+for file in ${obsnum}_rfi-????-image.fits
 do
     rfi=`pyhead.py -p RFI $file | awk '{print $3}'`
 # TODO: tweak until the threshold is right
     if (( $(echo "$rfi > 0.5" |bc -l) ))
     then
-        flags="$n,$flags"
+        flags="$n $flags"
     fi
+    ((n+=1))
 done
+
+flagsubbands ${obsnum}.ms ${n} ${flags%?}
+
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
 

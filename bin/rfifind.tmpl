@@ -99,7 +99,4 @@ wsclean -mgain 1.0 \
     ${obsnum}.ms | tee wsclean.log
 test_fail $?
 
-# submit the radiance job to see if we found anything
-RFIFIND
-
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

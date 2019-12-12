@@ -5,7 +5,7 @@
 #SBATCH --time=00:23:00
 #SBATCH --account=ACCOUNT
 #SBATCH --export=NONE
-#SBATCH --partition=gpuq
+#SBATCH --partition=STANDARDQ
 
 module load shifter
 
@@ -23,15 +23,16 @@ base=BASEDIR
 option=OPTION
 
 # Update database
-cd ${base}
 track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 datadir=${base}/${obsnum}
 cd ${datadir}
 
-ls ${obsnum}_${option}-????-image.fits > ${obsnum}_cnn.csv
+ls $datadir/${obsnum}_${option}-????-image.fits > ${obsnum}_cnn.csv
 
-shifter pull trettelbach/pytorch_astro:latest
+export PYTHON_EGG_CACHE=/tmp
+#sg $PAWSEY_PROJECT -c 'shifter pull trettelbach/pytorch_astro:latest'
+#shifter pull trettelbach/pytorch_astro:latest
 shifter run trettelbach/pytorch_astro:latest python /group/mwasci/trettelbach/paper/cnn_gleam_inference.py "/group/mwasci/trettelbach/paper/" "${datadir}/${obsnum}_cnn.csv" 0
 
 # See if we find any RFI in the images
@@ -45,8 +46,13 @@ do
     fi
 done
 
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+
 # If so, run the flagging routines
 if [[ $rfifound -eq 1 ]]
 then
-    RFIFIND
+# Triggers "afterok"
+    exit 0
+else
+    exit 1
 fi

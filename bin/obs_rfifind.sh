@@ -85,42 +85,84 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
+# We need to run everything on Zeus so that RADIANCE can use the gpuq
+# And other things can be dependent on it
 
-# Set up all the other scripts that will run if RADIANCE finds some RFI
-# Everything has to run on the Zeus GPUQ
+# 0) Run RADIANCE on the standard images
+output="${code}queue/logs/raddeep_${obsnum}.o%A"
+error="${code}queue/logs/raddeep_${obsnum}.e%A"
+script="${code}queue/raddeep_${obsnum}.sh"
+cat ${code}/bin/radiance.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+                                 -e "s:BASEDIR:${base}:g" \
+                                 -e "s:OPTION:deep:g" \
+                                 -e "s:HOST:zeus:g" \
+                                 -e "s:STANDARDQ:gpuq:g" \
+                                 -e "s:ACCOUNT:${account}:g" \
+                                 -e "s:OUTPUT:${output}:g"\
+                                 -e "s:ERROR:${error}:g" > ${script}
 
+dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}))
+depend=${dep[3]}
+echo "Radiance1 jobid: $depend"
+
+# rename the err/output files as we now know the jobid
+jobid=$depend
+error=`echo ${error} | sed "s/%A/${jobid}/"`
+output=`echo ${output} | sed "s/%A/${jobid}/"`
+
+# record submission
+taskid=1
+track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='rfifind' --submission_time=`date +%s` --batch_file=${script} \
+                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+
+echo "Submitted ${script} as ${jobid}. Follow progress here:"
+echo $output
+echo $error
 
 # 1) the RFI-finding imaging
 script="${code}queue/rfifind_${obsnum}.sh"
 output="${code}queue/logs/rfifind_${obsnum}.o%A"
 error="${code}queue/logs/rfifind_${obsnum}.e%A"
 # The script that will run on the results: radiance
-rfifind="sbatch -M zeus ${code}queue/radrfi_${obsnum}.sh"
 cat ${code}/bin/rfifind.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
-                                 -e "s:RFIFIND:${rfifind}:g" \
                                  -e "s:NCPUS:${ncpus}:g" \
                                  -e "s:HOST:zeus:g" \
                                  -e "s:STANDARDQ:workq:g" \
-                                 -e "s:ACCOUNT${account}:g" \
+                                 -e "s:ACCOUNT:${account}:g" \
                                  -e "s:OUTPUT:${output}:g"\
                                  -e "s:ERROR:${error}:g" > ${script}
+
+dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} --dependency=afterok:${depend} ${queue} ${script}))
+depend=${dep[3]}
+error=`echo ${error} | sed "s/%A/${depend}/"`
+output=`echo ${output} | sed "s/%A/${depend}/"`
+echo "RFI-Find jobid: $depend"
+echo "Submitted ${script} as ${depend}. Follow progress here:"
+echo $output
+echo $error
 
 # 2) another run of RADIANCE to test the RFI imaging images
 script="${code}queue/radrfi_${obsnum}.sh"
 output="${code}queue/logs/radrfi_${obsnum}.o%A"
 error="${code}queue/logs/radrfi_${obsnum}.e%A"
-# The script that depends on whether rfi is found: this time, we do flagging
-rfifind="sbatch -M zeus ${code}queue/flagsubs_${obsnum}.sh"
 cat ${code}/bin/radiance.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:OPTION:rfi:g" \
-                                 -e "s:RFIFIND:${rfifind}:g" \
                                  -e "s:HOST:zeus:g" \
                                  -e "s:STANDARDQ:gpuq:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:OUTPUT:${output}:g"\
                                  -e "s:ERROR:${error}:g" > ${script}
+
+dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} --dependency=afterok:${depend} ${queue} ${script}))
+depend=${dep[3]}
+error=`echo ${error} | sed "s/%A/${depend}/"`
+output=`echo ${output} | sed "s/%A/${depend}/"`
+echo "Radiance2 jobid: $depend"
+echo "Submitted ${script} as ${depend}. Follow progress here:"
+echo $output
+echo $error
 
 # 3) flagging the sub-bands depending on the output from RADIANCE
 script="${code}queue/flagsubs_${obsnum}.sh"
@@ -134,45 +176,25 @@ cat ${code}/bin/flagsubs.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:OUTPUT:${output}:g"\
                                  -e "s:ERROR:${error}:g" > ${script}
 
-# 0) Run RADIANCE on the standard images
-output="${code}queue/logs/raddeep_${obsnum}.o%A"
-error="${code}queue/logs/raddeep_${obsnum}.e%A"
-script="${code}queue/raddeep_${obsnum}.sh"
-# Has to run on Zeus GPUq
-# The script that depends on whether rfi is found: if so, we do rfi imaging
-rfifind="sbatch -M zeus ${code}queue/rfifind_${obsnum}.sh"
-cat ${code}/bin/radiance.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
-                                 -e "s:BASEDIR:${base}:g" \
-                                 -e "s:OPTION:deep:g" \
-                                 -e "s:RFIFIND:${rfifind}:g" \
-                                 -e "s:HOST:zeus:g" \
-                                 -e "s:STANDARDQ:gpuq:g" \
-                                 -e "s:ACCOUNT:${account}:g" \
-                                 -e "s:OUTPUT:${output}:g"\
-                                 -e "s:ERROR:${error}:g" > ${script}
-
-sub="sbatch -M zeus --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
-if [[ ! -z ${tst} ]]
-then
-    echo "script is ${script}"
-    echo "submit via:"
-    echo "${sub}"
-    exit 0
-fi
-    
-# submit job
-jobid=($(${sub}))
-jobid=${jobid[3]}
-taskid=1
-
-# rename the err/output files as we now know the jobid
-error=`echo ${error} | sed "s/%A/${jobid}/"`
-output=`echo ${output} | sed "s/%A/${jobid}/"`
-
-# record submission
-track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='rfifind' --submission_time=`date +%s` --batch_file=${script} \
-                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
-
-echo "Submitted ${script} as ${jobid}. Follow progress here:"
+dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} --dependency=afterok:${depend} ${queue} ${script}))
+depend=${dep[3]}
+error=`echo ${error} | sed "s/%A/${depend}/"`
+output=`echo ${output} | sed "s/%A/${depend}/"`
+echo "Flagging jobid: $depend"
+echo "Submitted ${script} as ${depend}. Follow progress here:"
 echo $output
 echo $error
+
+#if [[ ! -z ${tst} ]]
+#then
+#    echo "script is ${script}"
+#    echo "submit via:"
+#    echo "${sub}"
+#    exit 0
+#fi
+#    
+## submit job
+#jobid=($(${sub}))
+#jobid=${jobid[3]}
+#taskid=1
+
