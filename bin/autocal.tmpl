@@ -101,8 +101,8 @@ maxuvm=`echo "234 / ($chan + 11)" | bc -l`
 
 # Ionospheric triage
 solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
-#calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
+#calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
+calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
 test_fail $?
 
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
@@ -118,8 +118,8 @@ test_fail $?
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
 
 # calibrate
-#calibrate -j ${cores} -m ${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
-calibrate -j ${cores} -m ${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
+calibrate -j ${cores} -m ${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
+#calibrate -j ${cores} -m ${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
 test_fail $?
 
 # plot calibration solutions
