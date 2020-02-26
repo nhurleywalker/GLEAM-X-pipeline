@@ -1,0 +1,29 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p workq
+#SBATCH --account=ACCOUNT
+#SBATCH --time=01:00:00
+#SBATCH --nodes=1
+TASKLINE
+
+obsnum=OBSNUM
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
+
+module load python-casacore
+
+CASA_LOCATION=/group/mwasci/nhurleywalker/code/casa-release-5.1.2-4.el7/bin/casa
+
+cd ${obsnum}
+python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
+baselines=$(cat baselines_to_flag.txt)
+${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
