@@ -23,6 +23,8 @@ modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
 catfile="/group/mwasci/$USER/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
 catfile="/group/mwasci/$USER/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
+# Minimum baseline of 75 lambda (=250m at 88 MHz) for calibration
+minuv=75
 # Interval for ionospheric triage (in time steps)
 # Typically we have 2-minute observations which have been averaged to 4s
 # So in total they contain 30 time steps
@@ -92,17 +94,18 @@ else
     echo "Detected that this measurement set has not yet had its phase centre changed. Not shifting."
 fi
 
-# Maximum uv range for calibration based on GLEAM-based sky model
-# In wavelengths, maximum 128T baseline at 200MHz was 1667 lambda long
-# calibrate takes a maximum uv range in metres, i.e. multiply 1667 by the wavelength of the highest frequency
-# 300/1.28 * 1667 = 390000
+# uv range for calibration based on GLEAM-based sky model
+# Calibrate takes a maximum uv range in metres
 # Calculate min uvw in metres
+minuvm=`echo "234 * $minuv / $chan" | bc -l`
+# In wavelengths, maximum 128T baseline at 200MHz was 1667 lambda long
+# 300/1.28 * 1667 = 390000
+# Calculate max uvw in metres
 maxuvm=`echo "390000 / ($chan + 11)" | bc -l`
 
 # Ionospheric triage
 solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-#calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
-calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
+calibrate -t ${ts} -j ${cores} -m $modeldir/${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
 test_fail $?
 
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
@@ -118,8 +121,7 @@ test_fail $?
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
 
 # calibrate
-calibrate -j ${cores} -m ${calmodel} -minuv 200 -maxuv $maxuvm ${obsnum}.ms ${solutions}
-#calibrate -j ${cores} -m ${calmodel} -minuv 200 ${obsnum}.ms ${solutions}
+calibrate -j ${cores} -m ${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
 test_fail $?
 
 # plot calibration solutions
