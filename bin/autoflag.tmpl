@@ -31,25 +31,91 @@ cd ${datadir}/${obsnum}
 #    test_fail $?
 #fi
 
-# Most long-baseline observations have problems with these two antennas
 # Set up telescope-configuration-dependent options
-if [[ $obsnum -gt 1151402936 ]]
+
+# Rx6 has a fibre problem on the nights of 2014-03-03 to 06
+if [[ ${obsnum} -ge 1077880432 ]] && [[ ${obsnum} -le 1078175704 ]]
 then
-    flags="76 80 "
+    flags="$flags 40 41 42 43 44 45 46 47"
 fi
 
+# Tile 54 is AAVS or otherwise broken for September 2014
+# Tiles 81 and 85 are intermittently broken for the same period
+if [[ ${obsnum} -gt 1090000000 ]] && [[ ${obsnum} -lt 1110000000 ]]
+then
+    flags="$flags 35 56 60"
+fi
 
+# Receiver 15 is broken for June 2014
+if [[ ${obsnum} -gt 1086300000 ]] && [[ ${obsnum} -lt 1087200000 ]]
+then
+   flags="$flags 112 113 114 115 116 117 118 119"
+fi
+
+# Tile index 107 is broken for night of 2014-12-17
+if [[ $obsnum -ge 1102813728 ]] && [[ $obsnum -le 1102892032 ]]
+then
+    flags="$flags 107"
+fi
+
+# Tile index 56 is broken for night of 2015-03-31
+if [[ $obsnum -ge 1111654944 ]] && [[ $obsnum -le 1111879432 ]]
+then
+    flags="$flags 56"
+fi
+
+# Rx14 is broken on the night of 2015-07-05
+if [[ $obsnum -ge 1120120344 ]] && [[ $obsnum -le 1120175880 ]]
+then
+    flags="$flags 104 105 106 107 108 109 110 111"
+fi
+
+# Rx6 and all of Tiles 71 and 101 are bad for the 2016 July GLEAM data
+if [[ ${obsnum} -gt 1153600000 ]] && [[ ${obsnum} -lt 1157000000 ]]
+then
+    flags="$flags 40 41 42 43 44 45 46 47 48 72"
+fi
+
+# Most long-baseline observations have problems with these two antennas
+if [[ $obsnum -gt 1151402936 ]]
+then
+    flags="$flags 76 80"
+fi
+
+# In January 2018, tile indices 60, 63, and 84 do not look good
+if [[ ${obsnum} -gt 1198800128 ]] && [[ $obsnum -lt 1201400000 ]]
+then
+    flags="$flags 60 63 84"
+fi
+
+# Rx7 still broken on 2018-03-01, and tile indices 60 and 63 also behave weirdly -- one polarisation has totally different calibration, as if it's not pointing correctly
+if [[ $obsnum -ge 1203937000 ]] && [[ $obsnum -le 1203975000 ]]
+then
+    flags="$flags 48 49 50 51 52 53 54 55 60 63"
+fi
+
+# Rx7 has third fibre problem on night of 2018-03-02
+if [[ ${obsnum} -ge 1204002512 ]] && [[ $obsnum -le 1204066544 ]]
+then
+    flags="$flags 48 49 50 51 52 53 54 55"
+fi
+
+# Tile index 22 is broken on the night of 2018-05-19
+if [[ $obsnum -ge 1210723232 ]] && [[ $obsnum -le 1210809392 ]]
+then
+    flags="$flags 22"
+fi
+
+# Tile indices 72 and 84 look identically weird on 2018-05-20
+if [[ $obsnum -ge 1210817656 ]] && [[ $obsnum -le 1210895560 ]]
+then
+    flags="$flags 72 84"
+fi
 
 # Rx7 has a fibre problem on nights of 2019-01-08 and 2019-06-17
 if [[ $obsnum -ge 1244798800 ]] && [[ $obsnum -le 1244849032 ]]
 then
     flags="$flags 48 49 50 51 52 53 54 55"
-fi
-
-# Tile indices 60 and 63 also behave weirdly -- one polarisation has totally different calibration, as if it's not pointing correctly
-if [[ $obsnum -ge 1203937000 ]] && [[ $obsnum -le 1203975000 ]]
-then
-    flags="$flags 48 49 50 51 52 53 54 55 60 63"
 fi
 
 if [[ ! -z ${flags} ]]
