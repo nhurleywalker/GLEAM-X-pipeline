@@ -19,9 +19,10 @@ then
     computer="zeus"
     account="mwasci"
     standardq="gpuq"
-# 28 cores, 256GB RAM, and 4 GPUs on Zeus gpuq nodes; therefore we ask for 1/4 of a node
-    ncpus=7
-    memory=64
+# 28 cores, 256GB RAM, and 4 GPUs on Zeus gpuq nodes; we should use a job-packing script to split in four
+# But at the moment we cannot! So we just ask for the whole node
+    ncpus=28
+    memory=256
 elif [[ "${HOST:0:4}" == "magn" ]] || [[ "${HOST:0:4}" == "topa" ]]
 then
     computer="topaz"
