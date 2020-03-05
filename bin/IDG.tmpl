@@ -5,7 +5,7 @@ dbdir=DBDIR
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    ${dbdir}/track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    ${dbdir}/bin/track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
     exit $1
 fi
 }
@@ -34,7 +34,7 @@ tsigma=1
 
 # Update database
 cd ${base}
-${dbdir}/track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+${dbdir}/bin/track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 obss=($(sort $obslist))
 num=${#obss[@]}
@@ -152,4 +152,4 @@ wsclean -mgain 0.8 \
     $mslist
 test_fail $?
 
-${dbdir}/track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+${dbdir}/bin/track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
