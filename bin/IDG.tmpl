@@ -67,7 +67,7 @@ minuvm=`echo "234 * $minuv / $chan" | bc -l`
 
 MWAPATH=/opt/mwa/mwa_pb/src/mwa_pb/data/
 
-for obsnum in $obss
+for obsnum in ${obss[@]}
 do
     cd ${obsnum}
     # Check whether the phase centre has been changed using shiftback
@@ -85,7 +85,7 @@ do
     cd ../
 done
 
-for obsnum in $obss ; do mslist="$obsnum/$obsnum.ms $mslist" ; done
+for obsnum in ${obss[@]} ; do mslist="$obsnum/$obsnum.ms $mslist" ; done
 
 if $self
 then
@@ -108,7 +108,7 @@ then
         -data-column CORRECTED_DATA \
         $mslist
 
-    for obsnum in $obss
+    for obsnum in ${obss[@]}
     do
         cd $obsnum
         calibrate -j ${cores} -absmem ${memory} -minuv $minuvm ${obsnum}.ms ${obsnum}_postidg_solutions.bin | tee idg_calibrate.log
