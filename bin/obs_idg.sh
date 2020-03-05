@@ -9,7 +9,8 @@ echo "obs_idg.sh [-p project] [-d dep] [-q queue] [-s] [-t] -o list_of_observati
   -s          : perform self-calibration after one round of IDG (default = False)
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
-  -o obslist  : the list of obsids to process" 1>&2;
+  -o obslist  : the list of obsids to process.
+                Job and output image names will be based on the name of this file." 1>&2;
 exit 1;
 }
 
