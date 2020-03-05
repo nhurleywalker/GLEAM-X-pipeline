@@ -1,0 +1,20 @@
+#!/bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH --job-name=JOBNAME
+#SBATCH --account=ACCOUNT
+#SBATCH --nodes=1
+#SBATCH --gres=gpu:1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=NCPUS
+#SBATCH --mem=MEMORYgb
+#SBATCH -p gpuq
+#SBATCH --time=12:00:00
+
+module load singularity
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+cd BASEDIR
+
+singularity exec -B /astro/mwasci/tvernstrom:/home/tvernstrom /astro/mwasci/tvernstrom/MWA1cc_102_3.simg DBDIRqueue/idg_JOBNAME.sh
