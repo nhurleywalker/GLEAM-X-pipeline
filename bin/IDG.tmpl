@@ -72,8 +72,8 @@ MWAPATH=/opt/mwa/mwa_pb/src/mwa_pb/data/
 
 # All observations must be phased to the same point, otherwise IDG will give nonsense results
 # We will use the middle observation of the (already-sorted) list to define the phase centre
-ra=`pyhead.py -p RA $middle/$middle.metafits`
-dec=`pyhead.py -p Dec $middle/$middle.metafits`
+ra=`pyhead.py -p RA $middle/$middle.metafits | awk '{print $3}'`
+dec=`pyhead.py -p Dec $middle/$middle.metafits | awk '{print $3}'`
 coords=`dc_to_sg.py $ra $dec`
 
 for obsnum in ${obss[@]}
