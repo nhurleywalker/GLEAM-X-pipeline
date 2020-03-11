@@ -100,16 +100,16 @@ then
     flags="$flags 48 49 50 51 52 53 54 55"
 fi
 
+# Tile indices 72 and 84 have zero amplitudes during May 2018
+if [[ $obsnum -ge 1210700000 ]] && [[ $obsnum -le 1210895560 ]]
+then
+    flags="$flags 72 84"
+fi
+
 # Tile index 22 is broken on the night of 2018-05-19
 if [[ $obsnum -ge 1210723232 ]] && [[ $obsnum -le 1210809392 ]]
 then
     flags="$flags 22"
-fi
-
-# Tile indices 72 and 84 look identically weird on 2018-05-20
-if [[ $obsnum -ge 1210817656 ]] && [[ $obsnum -le 1210895560 ]]
-then
-    flags="$flags 72 84"
 fi
 
 # Rx7 has a fibre problem on nights of 2019-01-08 and 2019-06-17
