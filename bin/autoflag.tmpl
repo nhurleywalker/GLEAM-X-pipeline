@@ -88,16 +88,10 @@ then
     flags="$flags 60 63 84"
 fi
 
-# Rx7 still broken on 2018-03-01, and tile indices 60 and 63 also behave weirdly -- one polarisation has totally different calibration, as if it's not pointing correctly
-if [[ $obsnum -ge 1203937000 ]] && [[ $obsnum -le 1203975000 ]]
+# Rx7 broken on 2018-03-01/02, and tile indices 60 and 63 also behave weirdly -- one polarisation has totally different calibration, as if it's not pointing correctly. Tile 101 also throws off calibration for some observations.
+if [[ $obsnum -ge 1203937000 ]] && [[ $obsnum -le 1204066544 ]]
 then
-    flags="$flags 48 49 50 51 52 53 54 55 60 63"
-fi
-
-# Rx7 has third fibre problem on night of 2018-03-02
-if [[ ${obsnum} -ge 1204002512 ]] && [[ $obsnum -le 1204066544 ]]
-then
-    flags="$flags 48 49 50 51 52 53 54 55"
+    flags="$flags 48 49 50 51 52 53 54 55 60 63 101"
 fi
 
 # Tile indices 72 and 84 have zero amplitudes during May 2018
