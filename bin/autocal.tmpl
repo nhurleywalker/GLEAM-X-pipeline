@@ -65,6 +65,8 @@ else
     if [[ ! -e $modeldir/$calmodel ]]
     then
         calmodel=`basename $modeldir/model-$calibrator*point-source.txt`
+    else
+        calmodel=$modeldir/$calmodel
     fi
     if [[ ! -e $modeldir/$calmodel ]]
     then
@@ -76,7 +78,6 @@ else
         test_fail 1
         exit 1
     fi
-    calmodel=$calmodel
 fi
 
 cd ${datadir}/${obsnum}
