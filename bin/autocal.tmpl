@@ -61,14 +61,9 @@ then
 else
     echo "Calibrating on $calibrator for $obsnum"
 
-    calmodel=`basename $modeldir/model-$calibrator*comp_withalpha.txt`
-    if [[ ! -e $modeldir/$calmodel ]]
-    then
-        calmodel=`basename $modeldir/model-$calibrator*point-source.txt`
-    else
-        calmodel=$modeldir/$calmodel
-    fi
-    if [[ ! -e $calmodel ]]
+    calmodel=`ls -t $modeldir/model-$calibrator*comp_withalpha.txt | head -1`
+
+    if [[ -z $calmodel ]]
     then
         echo "No calibrator model available for $calibrator in $modeldir."
         cd $modeldir
