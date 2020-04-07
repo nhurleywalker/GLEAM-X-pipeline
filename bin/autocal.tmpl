@@ -68,7 +68,7 @@ else
     else
         calmodel=$modeldir/$calmodel
     fi
-    if [[ ! -e $modeldir/$calmodel ]]
+    if [[ ! -e $calmodel ]]
     then
         echo "No calibrator model available for $calibrator in $modeldir."
         cd $modeldir
