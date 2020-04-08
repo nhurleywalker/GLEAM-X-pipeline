@@ -44,7 +44,7 @@ fi
 
 calibrator=$( pyhead.py -p CALIBSRC $metafits | awk '{print $3}' )
 
-if [[ $calibrator == "None" ]] || [[ $calibrator == "open" ]]
+if [[ $calibrator == "None" ]] || [[ $calibrator == "open" ]] || [[ $calibrator == 3C444 ]] || [[ $calibrator == HydA ]] || [[ $calibrator == VirA ]]
 then
     echo "Running infield calibration for $obsnum"
     RA=$( pyhead.py -p RA $metafits | awk '{print $3}' )
@@ -56,6 +56,7 @@ then
         /group/mwasci/$USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200
         /group/mwasci/$USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
+    modeldir=./
     calmodel=local_gleam_model.txt
 else
     echo "Calibrating on $calibrator for $obsnum"
@@ -71,6 +72,8 @@ else
         echo "Use the name as it is specified in the observing database, e.g. HydA for Hydra A."
         test_fail 1
         exit 1
+    else
+        $calmodel=`basename $calmodel`
     fi
 fi
 
@@ -100,7 +103,7 @@ maxuvm=`echo "390000 / ($chan + 11)" | bc -l`
 
 # Ionospheric triage
 solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-calibrate -t ${ts} -j ${cores} -m ${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
+calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
 test_fail $?
 
 aocal_plot.py --refant=127 --amp_max=2 ${solutions}
@@ -116,7 +119,7 @@ test_fail $?
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
 
 # calibrate
-calibrate -j ${cores} -m ${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
+calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
 test_fail $?
 
 # plot calibration solutions
