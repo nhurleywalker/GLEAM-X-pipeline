@@ -44,7 +44,7 @@ fi
 
 calibrator=$( pyhead.py -p CALIBSRC $metafits | awk '{print $3}' )
 
-if [[ $calibrator == "None" ]] || [[ $calibrator == "open" ]] || [[ $calibrator == 3C444 ]] || [[ $calibrator == HydA ]] || [[ $calibrator == VirA ]]
+if [[ $calibrator == "None" ]] || [[ $calibrator == "open" ]] || [[ $calibrator == 3C444 ]] || [[ $calibrator == HydA ]] || [[ $calibrator == VirA ]] || [[ $calibrator == PKS2356-61 ]]
 then
     echo "Running infield calibration for $obsnum"
     RA=$( pyhead.py -p RA $metafits | awk '{print $3}' )
