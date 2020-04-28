@@ -43,7 +43,7 @@ shift  "$(($OPTIND -1))"
 obsnum=$1
 
 # if obsid or project are empty then just pring help
-if [[ -z ${obsnum} || -z ${project} ]]
+if [[ -z ${obsnum} ]] || [[ -z ${project} ]]
 then
     usage
 fi
@@ -53,7 +53,7 @@ fi
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="mwasci"
+    account="pawsey0272"
     standardq="workq"
     ncpus=28
     taskline="#SBATCH --ntasks=${ncpus}"
@@ -90,7 +90,6 @@ fi
 
 script="${codedir}queue/autoflag_${obsnum}.sh"
 
-#                                     -e "s:DBDIR:${dbdir}:g" \
 cat ${codedir}bin/autoflag.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
                                      -e "s:HOST:${computer}:g" \

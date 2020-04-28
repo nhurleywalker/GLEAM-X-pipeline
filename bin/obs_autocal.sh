@@ -53,7 +53,7 @@ fi
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="mwasci"
+    account="pawsey0272"
     standardq="workq"
     ncpus=28
     taskline="#SBATCH --ntasks=${ncpus}"
@@ -85,7 +85,6 @@ datadir=/astro/mwasci/$USER/$project
 # set dependency
 if [[ ! -z ${dep} ]]
 then
-    echo "Depends on ${dep}"
     depend="--dependency=afterok:${dep}"
 fi
 
@@ -125,7 +124,7 @@ output=`echo ${output} | sed "s/%A/${jobid}/"`
 python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='calibrate' --submission_time=`date +%s` --batch_file=${script} \
                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
-echo "Submitted ${script} as ${jobid} Follow progress here:"
+echo "Submitted ${script} as ${jobid} . Follow progress here:"
 echo $output
 echo $error
 

@@ -52,7 +52,7 @@ fi
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="mwasci"
+    account="pawsey0272"
     standardq="workq"
     ncpus=28
     taskline="#SBATCH --ntasks=${ncpus}"

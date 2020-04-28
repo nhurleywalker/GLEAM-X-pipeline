@@ -19,7 +19,7 @@ exit 1;
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="mwasci"
+    account="pawsey0272"
     standardq="workq"
 #    absmem=60
 #    standardq="gpuq"

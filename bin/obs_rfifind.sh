@@ -16,10 +16,7 @@ exit 1;
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-# mwasci is SLAMMED -- used pawsey0272
     account="pawsey0272"
-#    account="mwasci"
-#    standardq="workq"
     ncpus=28
 #    absmem=60
 #    standardq="gpuq"

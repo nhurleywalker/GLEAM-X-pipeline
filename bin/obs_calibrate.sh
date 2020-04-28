@@ -17,7 +17,7 @@ exit 1;
 if [[ "${HOST:0:4}" == "gala" ]]
 then
     computer="galaxy"
-    account="mwasci"
+    account="pawsey0272"
     standardq="workq"
     absmem=60
 #    standardq="gpuq"
