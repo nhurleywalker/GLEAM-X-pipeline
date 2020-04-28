@@ -6,8 +6,8 @@ echo "obs_manta.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t
   -d dep      : job number for dependency (afterok)
   -q queue    : job queue, default=copyq
   -p project  : project, (must be specified, no default)
-  -s timeav   : time averaging in sec. default = 2 s
-  -k freqav   : freq averaging in KHz. default = 40 kHz
+  -s timeres  : time resolution in sec. default = 2 s
+  -k freqres  : freq resolution in KHz. default = 40 kHz
   -g          : download gpubox fits files instead of measurement sets
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
@@ -31,8 +31,8 @@ dep=
 queue="-p $standardq"
 tst=
 gpubox=
-timeav=
-freqav=
+timeres=
+freqres=
 
 # parse args and set options
 while getopts ':tgd:p:s:k:o:' OPTION
@@ -45,9 +45,9 @@ do
 	q)
 	    queue="-p ${OPTARG}" ;;
 	s)
-	    timeav=${OPTARG} ;;
+	    timeres=${OPTARG} ;;
 	k)
-	    freqav=${OPTARG} ;;
+	    freqres=${OPTARG} ;;
 	o)
 	    obslist=${OPTARG} ;;
     t)
@@ -86,18 +86,18 @@ do
     if [[ $obsnum -lt 1151402936 ]] ; then
         telescope="MWA128T"
         basescale=1.1
-        freqres=40
-        timeres=4
+        if [[ -z $freqres ]] ; then freqres=40 ; fi
+        if [[ -z $timeres ]] ; then timeres=4 ; fi
     elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
         telescope="MWAHEX"
         basescale=2.0
-        freqres=40
-        timeres=8
+        if [[ -z $freqres ]] ; then freqres=40 ; fi
+        if [[ -z $timeres ]] ; then timeres=8 ; fi
     elif [[ $obsnum -ge 1191580576 ]] ; then
         telescope="MWALB"
         basescale=0.5
-        freqres=40
-        timeres=4
+        if [[ -z $freqres ]] ; then freqres=40 ; fi
+        if [[ -z $timeres ]] ; then timeres=4 ; fi
     fi
     if [[ -d ${obsnum}/${obsnum}.ms ]]
     then
