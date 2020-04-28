@@ -25,6 +25,8 @@ datadir=DATADIR
 subchans="MFS 0000 0001 0002 0003"
 # Minimum baseline of 75 lambda (=250m at 88 MHz) for self-calibration
 minuv=75
+# Depth of cleaning for initial images
+tsigma=3
 
 # Number of cores
 cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
@@ -97,7 +99,7 @@ else
     chgcentre -zenith -shiftback ${obsnum}.ms
 fi
 
-# Create a template image that has all the same properties as our eventual WSClean image
+# Create a template image that has the same WCS as our eventual WSClean image
 if [[ ! -e ${obsnum}_template.fits ]]
 then
     wsclean -mgain 1.0 \
@@ -146,11 +148,10 @@ then
         -size ${imsize} ${imsize} \
         -nmiter 1 \
         -niter 40000 \
-        -threshold 0.01 \
+        -threshold ${tsigma} \
         -pol I \
         -weight briggs ${robust} \
         -scale ${scale:0:8} \
-        -stop-negative \
         -mgain 0.85 \
         -channels-out 4 \
         -join-channels \
