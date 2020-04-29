@@ -6,6 +6,8 @@ echo "obs_cotter.sh [-p project] [-d dep] [-q queue] [-t] obsnum
   -p project : project, no default
   -d dep      : job number for dependency (afterok)
   -q queue    : job queue, default=workq
+  -s timeres  : time resolution in sec. default = 2 s
+  -k freqres  : freq resolution in KHz. default = 40 kHz
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
   obsnum      : the obsid to process" 1>&2;
@@ -37,6 +39,8 @@ fi
 
 dep=
 queue=
+timeres=
+freqres=
 tst=
 
 # parse args and set options
@@ -49,6 +53,10 @@ do
         dep=${OPTARG} ;;
 	q)
 	    queue="${OPTARG}" ;;
+    s)
+        timeres=${OPTARG} ;;
+    k)
+        freqres=${OPTARG} ;;
     t)
         tst=1 ;;
     ? | : | h)
@@ -86,18 +94,18 @@ datadir=/astro/mwasci/$USER/$project
 if [[ $obsnum -lt 1151402936 ]] ; then
     telescope="MWA128T"
     basescale=1.1
-    freqres=40
-    timeres=4
+    if [[ -z $freqres ]] ; then freqres=40 ; fi
+    if [[ -z $timeres ]] ; then timeres=4 ; fi
 elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
     telescope="MWAHEX"
     basescale=2.0
-    freqres=40
-    timeres=8
+    if [[ -z $freqres ]] ; then freqres=40 ; fi
+    if [[ -z $timeres ]] ; then timeres=8 ; fi
 elif [[ $obsnum -ge 1191580576 ]] ; then
     telescope="MWALB"
     basescale=0.5
-    freqres=40
-    timeres=4
+    if [[ -z $freqres ]] ; then freqres=40 ; fi
+    if [[ -z $timeres ]] ; then timeres=4 ; fi
 fi
 
 script="${codedir}queue/cotter_${obsnum}.sh"
