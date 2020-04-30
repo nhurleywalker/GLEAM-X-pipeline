@@ -44,7 +44,7 @@ freqres=
 tst=
 
 # parse args and set options
-while getopts ':tp:d:q:' OPTION
+while getopts ':ts:k:p:d:q:' OPTION
 do
     case "$OPTION" in
     p)
