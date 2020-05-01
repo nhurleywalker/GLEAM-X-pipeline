@@ -3,7 +3,7 @@
 #SBATCH -M HOST
 #SBATCH -p workq
 #SBATCH --account=ACCOUNT
-#SBATCH --time=05:00:00
+#SBATCH --time=12:00:00
 #SBATCH --nodes=1
 TASKLINE
 
@@ -53,7 +53,7 @@ then
 
     if [[ ! -e "local_gleam_model.txt" ]]
     then
-        /group/mwasci/$USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200
+        /group/mwasci/$USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot local_gleam_model.png
         /group/mwasci/$USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=./
@@ -112,8 +112,8 @@ test_fail $?
 aocal_diff.py --metafits=$metafits --names $solutions
 test_fail $?
 
-iono_update.py --ionocsv ${obsnum}_ionodiff.csv
-test_fail $?
+#iono_update.py --ionocsv ${obsnum}_ionodiff.csv
+#test_fail $?
 
 # At the moment, assume that the ionosphere is OK, and derive some real solutions
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
