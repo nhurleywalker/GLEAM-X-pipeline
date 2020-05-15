@@ -7,6 +7,10 @@
 #SBATCH --nodes=1
 TASKLINE
 
+source /group/mwasci/$USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
+module load python-casacore
+
 datadir=DATADIR
 obsnum=OBSNUM
 
@@ -19,8 +23,6 @@ fi
 }
 
 cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
-
-module load python-casacore
 
 CASA_LOCATION=/group/mwasci/nhurleywalker/code/casa-release-5.1.2-4.el7/bin/casa
 

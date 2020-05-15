@@ -6,6 +6,8 @@
 #SBATCH --time=06:00:00
 #SBATCH --nodes=1
 
+source /group/mwasci/$USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
 function test_fail {
 if [[ $1 != 0 ]]
 then
