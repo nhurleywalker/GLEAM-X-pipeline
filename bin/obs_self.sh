@@ -2,10 +2,10 @@
 
 usage()
 {
-echo "obs_self.sh [-p project] [-d dep] [-q queue] [-t] obsnum
+echo "obs_self.sh [-p project] [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
-  -q queue   : job queue, default=workq
+  -a account : computing account, default pawsey0272
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process" 1>&2;
@@ -16,7 +16,6 @@ exit 1;
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="pawsey0272"
     standardq="workq"
     ncpus=28
     taskline="#SBATCH --ntasks=${ncpus}"
@@ -25,7 +24,6 @@ then
 elif [[ "${HOST:0:4}" == "magn" ]]
 then
     computer="magnus"
-    account="pawsey0272"
     standardq="workq"
     ncpus=48
     taskline=""
@@ -33,7 +31,6 @@ then
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
-    account="pawsey0272"
     standardq="gpuq"
     ncpus=40
     taskline=""
@@ -41,7 +38,6 @@ then
 fi
 
 #initial variables
-queue="-p $standardq"
 dep=
 imscale=
 pixscale=
@@ -49,15 +45,15 @@ clean=
 tst=
 
 # parse args and set options
-while getopts ':td:q:p:' OPTION
+while getopts ':td:a:p:' OPTION
 do
     case "$OPTION" in
 	d)
 	    dep=${OPTARG}
 	    ;;
-	q)
-	    queue="-p ${OPTARG}"
-	    ;;
+    a)
+        account=${OPTARG}
+        ;;
     p)
         project=${OPTARG}
         ;;
@@ -84,6 +80,11 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
+if [[ -z ${account} ]]
+then
+    account=pawsey0272
+fi
+
 # Set directories
 dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
@@ -92,6 +93,7 @@ datadir=/astro/mwasci/$USER/$project
 
 # start the real program
 script="${dbdir}queue/self_${obsnum}.sh"
+#cat ${dbdir}/bin/cheap_self.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
 cat ${dbdir}/bin/self.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:DATADIR:${datadir}:g" \
                                  -e "s:ABSMEM:${absmem}:g" \

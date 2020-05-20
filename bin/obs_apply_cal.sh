@@ -2,10 +2,10 @@
 
 usage()
 {
-echo "obs_apply_cal.sh [-p project] [-d dep] [-q queue] [-c calid] [-t] [-n] obsnum
+echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-t] obsnum
   -p project  : project, no default
   -d dep      : job number for dependency (afterok)
-  -q queue    : job queue, default=gpuq
+  -a account : computing account, default pawsey0272
   -c calid    : obsid for calibrator.
                 project/calid/calid_*_solutions.bin will be used
                 to calibrate if it exists, otherwise job will fail.
@@ -19,7 +19,6 @@ exit 1;
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="pawsey0272"
     standardq="workq"
 #    absmem=60
 #    standardq="gpuq"
@@ -27,13 +26,11 @@ then
 elif [[ "${HOST:0:4}" == "magn" ]]
 then
     computer="magnus"
-    account="pawsey0272"
     standardq="workq"
 #    absmem=60
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
-    account="pawsey0272"
     standardq="gpuq"
 #    absmem=30 # Check this
 fi
@@ -46,7 +43,7 @@ calid=
 tst=
 
 # parse args and set options
-while getopts ':td:q:c:p:' OPTION
+while getopts ':td:a:c:p:' OPTION
 do
     case "$OPTION" in
     d)
@@ -55,9 +52,9 @@ do
 	c)
 	    calid=${OPTARG}
 	    ;;
-	q)
-	    queue="-p ${OPTARG}"
-	    ;;
+    a)
+        account=${OPTARG}
+        ;;
     p)
         project=${OPTARG}
         ;;
@@ -85,6 +82,11 @@ fi
 if [[ ! -z ${dep} ]]
 then
     dep="--dependency=afterok:${dep}"
+fi
+
+if [[ -z ${account} ]]
+then
+    account=pawsey0272
 fi
 
 # Set directories

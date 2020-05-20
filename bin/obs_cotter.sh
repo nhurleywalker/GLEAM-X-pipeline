@@ -2,10 +2,10 @@
 
 usage()
 {
-echo "obs_cotter.sh [-p project] [-d dep] [-q queue] [-t] obsnum
+echo "obs_cotter.sh [-p project] [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -d dep      : job number for dependency (afterok)
-  -q queue    : job queue, default=workq
+  -a account : computing account, default pawsey0272
   -s timeres  : time resolution in sec. default = 2 s
   -k freqres  : freq resolution in KHz. default = 40 kHz
   -t          : test. Don't submit job, just make the batch file
@@ -18,7 +18,6 @@ exit 1;
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="pawsey0272"
     standardq="workq"
     absmem=120
     memory=110
@@ -27,7 +26,6 @@ then
 elif [[ "${HOST:0:4}" == "magn" ]]
 then
     computer="magnus"
-    account="pawsey0272"
     standardq="workq"
     absmem=60
     memory=55
@@ -38,21 +36,20 @@ fi
 #initial variables
 
 dep=
-queue=
 timeres=
 freqres=
 tst=
 
 # parse args and set options
-while getopts ':ts:k:p:d:q:' OPTION
+while getopts ':ts:k:p:d:a:' OPTION
 do
     case "$OPTION" in
     p)
         project=${OPTARG} ;;
     d)
         dep=${OPTARG} ;;
-	q)
-	    queue="${OPTARG}" ;;
+    a)
+        account=${OPTARG} ;;
     s)
         timeres=${OPTARG} ;;
     k)
@@ -80,13 +77,12 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
-if [[ -z ${queue} ]]
+if [[ -z ${account} ]]
 then
-    queue="-p $standardq"
-else
-    queue="-p $queue"
+    account=pawsey0272
 fi
 
+queue="-p $standardq"
 dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 datadir=/astro/mwasci/$USER/$project
