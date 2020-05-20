@@ -4,10 +4,10 @@
 
 usage()
 {
-echo "obs_autocal.sh [-d dep] [-q queue] [-t] obsnum
+echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
+  -a account : computing account, default pawsey0272
   -d dep     : job number for dependency (afterok)
-  -q queue   : job queue, default=workq
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process" 1>&2;
@@ -18,15 +18,15 @@ dep=
 tst=
 
 # parse args and set options
-while getopts ':td:q:p:' OPTION
+while getopts ':ta:d:p:' OPTION
 do
     case "$OPTION" in
 	d)
 	    dep=${OPTARG}
 	    ;;
-	q)
-	    queue="-p ${OPTARG}"
-	    ;;
+    a)
+        account=${OPTARG}
+        ;;
 	p)
 	    project=${OPTARG}
 	    ;;
@@ -48,12 +48,15 @@ then
     usage
 fi
 
-# Supercomputer options
+if [[ -z ${account} ]]
+then
+    account=pawsey0272
+fi
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="pawsey0272"
     standardq="workq"
     ncpus=28
     taskline="#SBATCH --ntasks=${ncpus}"
@@ -62,7 +65,6 @@ then
 elif [[ "${HOST:0:4}" == "magn" ]]
 then
     computer="magnus"
-    account="pawsey0272"
     standardq="workq"
     ncpus=48
     taskline=""
@@ -70,7 +72,6 @@ then
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
-    account="pawsey0272"
     standardq="gpuq"
     ncpus=40
     taskline=""

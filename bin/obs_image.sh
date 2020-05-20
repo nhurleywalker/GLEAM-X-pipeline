@@ -2,9 +2,9 @@
 
 usage()
 {
-echo "obs_image.sh [-d dep] [-p project] [-q queue] [-t] obsnum
+echo "obs_image.sh [-d dep] [-p project] [-a account] [-t] obsnum
   -d dep     : job number for dependency (afterok)
-  -q queue   : job queue, default=workq
+  -a account : computing account, default pawsey0272
   -p project : project, (must be specified, no default)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
@@ -16,7 +16,6 @@ exit 1;
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
     computer="zeus"
-    account="pawsey0272"
     standardq="workq"
     ncpus=28
 #    absmem=60
@@ -24,14 +23,12 @@ then
 elif [[ "${HOST:0:4}" == "magn" ]]
 then
     computer="magnus"
-    account="pawsey0272"
     standardq="workq"
     ncpus=24
 #    absmem=60
 elif [[ "${HOST:0:4}" == "athe" ]]
 then
     computer="athena"
-    account="pawsey0272"
     standardq="gpuq"
 #    absmem=30 # Check this
 fi
@@ -47,15 +44,15 @@ pixscale=
 clean=
 tst=
 # parse args and set options
-while getopts ':td:p:q:' OPTION
+while getopts ':td:a:p:' OPTION
 do
     case "$OPTION" in
 	d)
 	    dep=${OPTARG}
 	    ;;
-	q)
-	    queue="-p ${OPTARG}"
-	    ;;
+    a)
+        account=${OPTARG}
+        ;;
     p)
         project=${OPTARG}
         ;;
@@ -84,6 +81,11 @@ fi
 if [[ ! -z ${dep} ]]
 then
     depend="--dependency=afterok:${dep}"
+fi
+
+if [[ -z ${account} ]]
+then
+    account=pawsey0272
 fi
 
 # start the real program
