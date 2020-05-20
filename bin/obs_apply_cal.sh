@@ -38,7 +38,6 @@ fi
 #initial variables
 scratch=/astro
 dep=
-queue="-p $standardq"
 calid=
 tst=
 
@@ -90,6 +89,7 @@ then
 fi
 
 # Set directories
+queue="-p $standardq"
 dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
 base="$scratch/mwasci/$USER/$project/"
 

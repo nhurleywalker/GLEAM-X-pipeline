@@ -37,7 +37,6 @@ scratch="/astro"
 group="/group"
 
 #initial variables
-queue="-p $standardq"
 dep=
 imscale=
 pixscale=
@@ -68,6 +67,7 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
+queue="-p $standardq"
 base="$scratch/mwasci/$USER/$project/"
 code="$group/mwasci/$USER/GLEAM-X-pipeline/"
 
