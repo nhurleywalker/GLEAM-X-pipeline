@@ -2,40 +2,32 @@
 
 obsnum=OBSNUM
 project=PROJECT
-queue=QUEUE
+account=ACCOUNT
 
-dep=($(obs_cotter.sh -p $project -q $queue $obsnum))
-depend=${dep[3]}
-echo "cotter jobid: $depend"
+#dep=($(obs_cotter.sh -p $project -a $account $obsnum))
+#depend=${dep[3]}
+#echo "cotter jobid: $depend"
 
-dep=($(obs_autoflag.sh -p $project -q $queue -d $depend $obsnum))
+dep=($(obs_autoflag.sh -p $project -a $account $obsnum))
 depend=${dep[3]}
 echo "flag jobid: $depend"
 
-dep=($(obs_autocal.sh -p $project -q $queue -d $depend $obsnum))
+dep=($(obs_autocal.sh -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "cal jobid: $depend"
 
-dep=($(obs_apply_cal.sh -p $project -q $queue -d $depend -c $obsnum $obsnum))
+dep=($(obs_apply_cal.sh -p $project -a $account -d $depend -c $obsnum $obsnum))
 depend=${dep[3]}
 echo "apply-cal jobid: $depend"
 
-dep=($(obs_uvflag.sh -p $project -q $queue -d $depend $obsnum))
+dep=($(obs_uvflag.sh -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "uv-flag jobid: $depend"
 
-dep=($(obs_self.sh -p $project -q $queue -d $depend $obsnum))
-depend=${dep[3]}
-echo "self-cal jobid: $depend"
+#dep=($(obs_self.sh -p $project -a $account -d $depend $obsnum))
+#depend=${dep[3]}
+#echo "self-cal jobid: $depend"
 
-dep=($(obs_apply_cal.sh -p $project -q $queue -d $depend -c $obsnum $obsnum))
-depend=${dep[3]}
-echo "apply-cal jobid: $depend"
-
-dep=($(obs_uvflag.sh -p $project -q $queue -d $depend $obsnum))
-depend=${dep[3]}
-echo "uv-flag jobid: $depend"
-
-dep=($(obs_image.sh -p $project -q $queue -d $depend $obsnum))
-depend=${dep[3]}
-echo "imaging jobid: $depend"
+#dep=($(obs_image.sh -p $project -a $account -d $depend $obsnum))
+#depend=${dep[3]}
+#echo "imaging jobid: $depend"

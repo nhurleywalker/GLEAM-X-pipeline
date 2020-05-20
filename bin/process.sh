@@ -4,8 +4,8 @@
 
 usage()
 {
-echo "process.sh [-p project] [-q queue] obsnum
-  -q queue   : job queue, default=workq
+echo "process.sh [-p project] [-a account] obsnum
+  -a account : computing account, default pawsey0272
   -p project : project, (must be specified, no default)
   obsnum     : the obsid to process" 1>&2;
 exit 1;
@@ -14,24 +14,12 @@ exit 1;
 scratch="/astro"
 group="/group"
 
-# Supercomputer options
-if [[ "${HOST:0:4}" == "zeus" ]]
-then
-    standardq="workq"
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    standardq="workq"
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    standardq="gpuq"
-fi
-
 # parse args and set options
-while getopts ':p:q:' OPTION
+while getopts ':p:a:' OPTION
 do
     case "$OPTION" in
-    q)
-        standardq="${OPTARG}"
+    a)
+        account=${OPTARG}
         ;;
     p)
         project=${OPTARG}
@@ -50,14 +38,18 @@ then
     usage
 fi
 
+if [[ -z ${account} ]]
+then
+    account=pawsey0272
+fi
+
 base="$scratch/mwasci/$USER/$project/"
 code="$group/mwasci/$USER/GLEAM-X-pipeline/"
-
 script="${code}queue/process_${obsnum}.sh"
 
 cat ${code}/bin/chain.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:PROJECT:${project}:g" \
-                                 -e "s:QUEUE:${standardq}:g" \
+                                 -e "s:ACCOUNT:${account}:g" \
                                   > ${script}
 
 chmod +x ${script}
