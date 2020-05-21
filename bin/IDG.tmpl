@@ -1,6 +1,6 @@
 #! /bin/bash -l
 
-set -eux
+set -ux
 
 dbdir=DBDIR
 
@@ -16,6 +16,7 @@ fi
 version=4.0 # First IDG pipeline Feb 2020
 cores=NCPUS
 memory=MEMORY
+jobname=JOBNAME
 base=BASEDIR
 self=SELFCAL
 obslist=OBSLIST
@@ -33,6 +34,8 @@ minuv=75
 msigma=3
 # S/N Threshold at which to stop cleaning
 tsigma=1
+# Set max separation for flux_warp crossmatch as ~ 1 beamwidth:
+separation=$(echo "120/3600" | bc -l)
 
 # Update database
 cd ${base}
@@ -70,31 +73,22 @@ minuvm=`echo "234 * $minuv / $chan" | bc -l`
 
 MWAPATH=/opt/mwa/mwa_pb/src/mwa_pb/data/
 
-# All observations must be phased to the same point, otherwise IDG will give nonsense results
-# We will use the middle observation of the (already-sorted) list to define the phase centre
-ra=`pyhead.py -p RA $middle/$middle.metafits | awk '{print $3}'`
-dec=`pyhead.py -p Dec $middle/$middle.metafits | awk '{print $3}'`
-coords=`dc_to_sg.py $ra $dec`
-
-for obsnum in ${obss[@]}
-do
-    cd ${obsnum}
-    chgcentre ${obsnum}.ms $coords
-    cd ../
-done
-
 mslist=""
-for obsnum in ${obss[@]} ; do mslist="$obsnum/$obsnum.ms $mslist" ; done
+for obsnum in ${obss[@]} ; do mslist="$mslist $obsnum/$obsnum.ms" ; done
+
 
 if $self
 then
     wsclean -mgain 0.8 \
+        -aterm-config ${jobname}_aterm.config \
+        -aterm-kernel-size 32 \
         -abs-mem ${memory} \
         -use-idg -idg-mode hybrid \
-        -nmiter 1 \
+        -nmiter 2 \
         -j ${cores} \
+        -join-channels \
+        -channels-out 4 \
         -niter 10000000 \
-        -grid-with-beam \
         -mwa-path ${MWAPATH} \
         -auto-threshold $msigma \
         -name ${imageprefix} \
@@ -102,8 +96,6 @@ then
         -scale ${scale:0:8} \
         -weight briggs ${robust} \
         -pol I \
-        -join-channels \
-        -channels-out 4 \
         -data-column CORRECTED_DATA \
         $mslist
 
@@ -121,6 +113,7 @@ then
             mv ${obsnum}_postidg_solutions.bin ${obsnum}_postidg_solutions.bad
         else
             applysolutions ${obsnum}.ms ${obsnum}_postidg_solutions.bin
+            exit 1
         fi
         cd ../
     done
@@ -131,12 +124,13 @@ then
 fi
 
 wsclean -mgain 0.8 \
+    -aterm-config ${jobname}_aterm.config \
+    -aterm-kernel-size 32 \
     -use-idg -idg-mode hybrid \
     -abs-mem ${memory} \
     -nmiter 5 \
     -j ${cores} \
     -niter 10000000 \
-    -grid-with-beam \
     -mwa-path ${MWAPATH} \
     -auto-mask $msigma \
     -auto-threshold $tsigma \

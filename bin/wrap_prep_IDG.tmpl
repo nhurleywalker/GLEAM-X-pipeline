@@ -1,0 +1,45 @@
+#!/bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH --job-name=JOBNAME
+#SBATCH --account=ACCOUNT
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=2gb
+#SBATCH --time=00:10:00
+#SBATCH --output=WRAP_OUTPUT
+#SBATCH --error=WRAP_ERROR
+
+source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
+output=IDG_OUTPUT
+error=IDG_ERROR
+srun_script=SRUN_SCRIPT
+obslist=OBSLIST
+dbdir=DBDIR
+basedir=BASEDIR
+
+#submit IDG job
+sub_srun="sbatch -M COMPUTER --output=${output} --error=${error} ${srun_script}"
+jobid=($(${sub_srun}))
+jobid=${jobid[3]}
+
+# rename the err/output files as we now know the jobid
+error=`echo ${error} | sed "s/%A/${jobid}/"`
+output=`echo ${output} | sed "s/%A/${jobid}/"`
+
+# record submission
+cd $basedir
+list=`cat $obslist`
+n=1
+for obsnum in $list
+do
+    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='idg' --submission_time=`date +%s` --batch_file=${main_script} \
+                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+done
+
+echo "Submitted ${srun_script} and ${main_script} as ${jobid}. Follow progress here:"
+echo $output
+echo $error
+

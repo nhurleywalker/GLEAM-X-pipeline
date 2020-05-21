@@ -1,0 +1,9 @@
+# This is a test parset, comments are possible like this 
+aterms = [ dldm, beam] 
+dldm.images = [ SCREENS ]
+dldm.update_interval = 1
+# The window parameter is new since 2.7 
+# It supports tukey, hann or rectangular. If not specified, rectangular is used. 
+dldm.window = hann
+# MWA beams are typically assumed to be fixed for the entire observation
+beam.update_interval = 300
