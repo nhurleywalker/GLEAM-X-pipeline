@@ -78,7 +78,7 @@ then
     echo "Detected that this measurement set has already had its phase centre changed. Not shifting."
 else
     # Determine whether to shift the pointing centre to be more optimally-centred on the peak of the primary beam sensitivity
-    coords=`python /group/mwasci/$USER/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
+    coords=`python /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
     echo "Optimally shifting co-ordinates of measurement set to $coords, with zenith shiftback."
     chgcentre ${obsnum}.ms $coords
     # Now shift the pointing centre to point straight up, which approximates minw without making the phase centre rattle around

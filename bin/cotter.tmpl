@@ -7,7 +7,7 @@
 #SBATCH --nodes=1
 TASKLINE
 
-source /group/mwasci/$USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 function test_fail {
 if [[ $1 != 0 ]]

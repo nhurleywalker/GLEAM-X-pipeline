@@ -7,7 +7,7 @@
 #SBATCH --nodes=1
 TASKLINE
 
-source /group/mwasci/$USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 module load python-casacore
 
@@ -27,6 +27,10 @@ cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 CASA_LOCATION=/group/mwasci/nhurleywalker/code/casa-release-5.1.2-4.el7/bin/casa
 
 cd $datadir/${obsnum}
-python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
+# HACK FOR HIGHZ
+#python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
+python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
 baselines=$(cat baselines_to_flag.txt)
-${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
+# HACK FOR HIGHZ
+#${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
+${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 

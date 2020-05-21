@@ -7,7 +7,7 @@
 #SBATCH --nodes=1
 TASKLINE
 
-source /group/mwasci/$USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 function test_fail {
 if [[ $1 != 0 ]]
@@ -23,8 +23,8 @@ datadir=DATADIR
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 # Owned by mwaadmin, can't use this
 catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
-catfile="/group/mwasci/$USER/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
-catfile="/group/mwasci/$USER/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
+catfile="/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
+catfile="/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
 # Minimum baseline of 75 lambda (=250m at 88 MHz) for calibration
 minuv=75
 # Interval for ionospheric triage (in time steps)
@@ -55,8 +55,8 @@ then
 
     if [[ ! -e "local_gleam_model.txt" ]]
     then
-        /group/mwasci/$USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot local_gleam_model.png
-        /group/mwasci/$USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot local_gleam_model.png
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=./
     calmodel=local_gleam_model.txt
@@ -87,7 +87,7 @@ current=`chgcentre ${obsnum}.ms`
 if [[ $current == *"shift"* ]]
 then
     echo "Detected that this measurement set has undergone a denormal shift; this must be undone before calibration."
-    coords=`python /group/mwasci/$USER/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
+    coords=`python /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
     echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
     chgcentre ${obsnum}.ms $coords
 else
@@ -103,19 +103,20 @@ minuvm=`echo "234 * $minuv / $chan" | bc -l`
 # Calculate max uvw in metres
 maxuvm=`echo "390000 / ($chan + 11)" | bc -l`
 
+# HACK TO NOT BOTHER FOR HIGHZ
 # Ionospheric triage
-solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
-test_fail $?
-
-aocal_plot.py --refant=127 --amp_max=2 ${solutions}
-test_fail $?
-
-aocal_diff.py --metafits=$metafits --names $solutions
-test_fail $?
-
-iono_update.py --ionocsv ${obsnum}_ionodiff.csv
-test_fail $?
+#solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
+#calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
+#test_fail $?
+#
+#aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+#test_fail $?
+#
+#aocal_diff.py --metafits=$metafits --names $solutions
+#test_fail $?
+#
+#iono_update.py --ionocsv ${obsnum}_ionodiff.csv
+#test_fail $?
 
 # At the moment, assume that the ionosphere is OK, and derive some real solutions
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
