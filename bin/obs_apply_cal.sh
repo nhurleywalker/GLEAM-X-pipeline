@@ -40,6 +40,7 @@ scratch=/astro
 dep=
 calid=
 tst=
+account=
 
 # parse args and set options
 while getopts ':td:a:c:p:' OPTION
