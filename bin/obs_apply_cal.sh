@@ -9,6 +9,8 @@ echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-t] obsnum
   -c calid    : obsid for calibrator.
                 project/calid/calid_*_solutions.bin will be used
                 to calibrate if it exists, otherwise job will fail.
+  -z          : Debugging mode: create a new CORRECTED_DATA column
+                instead of applying to the DATA column
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
   obsnum      : the obsid to process" 1>&2;
@@ -41,9 +43,10 @@ dep=
 calid=
 tst=
 account=
+debug=
 
 # parse args and set options
-while getopts ':td:a:c:p:' OPTION
+while getopts ':tzd:a:c:p:' OPTION
 do
     case "$OPTION" in
     d)
@@ -57,6 +60,9 @@ do
         ;;
     p)
         project=${OPTARG}
+        ;;
+    z)
+        debug=1
         ;;
     t)
         tst=1
@@ -111,6 +117,7 @@ cat apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" \
+                                     -e "s:DEBUG:${debug}:g" \
                                      -e "s:CALID:${calid}:g"  > ${script}
 
 output="${dbdir}queue/logs/apply_cal_${obsnum}.o%A"
