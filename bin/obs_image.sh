@@ -2,10 +2,12 @@
 
 usage()
 {
-echo "obs_image.sh [-d dep] [-p project] [-a account] [-t] obsnum
+echo "obs_image.sh [-d dep] [-p project] [-a account] [-z] [-t] obsnum
   -d dep     : job number for dependency (afterok)
   -a account : computing account, default pawsey0272
   -p project : project, (must be specified, no default)
+  -z         : Debugging mode: image the CORRECTED_DATA column
+                instead of imaging the DATA column
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process" 1>&2;
@@ -42,8 +44,9 @@ imscale=
 pixscale=
 clean=
 tst=
+debug=
 # parse args and set options
-while getopts ':td:a:p:' OPTION
+while getopts ':tzd:a:p:' OPTION
 do
     case "$OPTION" in
 	d)
@@ -54,6 +57,9 @@ do
         ;;
     p)
         project=${OPTARG}
+        ;;
+    z)
+        debug=1
         ;;
 	t)
 	    tst=1
@@ -96,6 +102,7 @@ cat ${code}/bin/image.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:NCPUS:${ncpus}:g" \
                                  -e "s:HOST:${computer}:g" \
                                  -e "s:STANDARDQ:${standardq}:g" \
+                                 -e "s:DEBUG:${debug}:g" \
                                  -e "s:ACCOUNT:${account}:g" > ${script}
 
 output="${code}queue/logs/image_${obsnum}.o%A"
