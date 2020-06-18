@@ -45,7 +45,7 @@ clean=
 tst=
 
 # parse args and set options
-while getopts ':td:a:p:' OPTION
+while getopts ':tzd:a:p:' OPTION
 do
     case "$OPTION" in
 	d)
