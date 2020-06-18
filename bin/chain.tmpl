@@ -4,7 +4,8 @@ obsnum=OBSNUM
 project=PROJECT
 account=ACCOUNT
 
-#dep=($(obs_cotter.sh -p $project -a $account $obsnum))
+# Only need to run cotter if you downloaded the raw visibility data
+#dep=($(obs_cotter.sh -s 2 -k 40 -p $project -a $account $obsnum))
 #depend=${dep[3]}
 #echo "cotter jobid: $depend"
 
@@ -24,10 +25,19 @@ dep=($(obs_uvflag.sh -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "uv-flag jobid: $depend"
 
+# No longer recommend self-cal as part of routine processing
 #dep=($(obs_self.sh -p $project -a $account -d $depend $obsnum))
 #depend=${dep[3]}
 #echo "self-cal jobid: $depend"
 
-#dep=($(obs_image.sh -p $project -a $account -d $depend $obsnum))
+#dep=($(obs_apply_cal.sh -p $project -a $account -d $depend -c $obsnum $obsnum))
 #depend=${dep[3]}
-#echo "imaging jobid: $depend"
+#echo "apply-cal jobid: $depend"
+
+#dep=($(obs_uvflag.sh -p $project -a $account -d $depend $obsnum))
+#depend=${dep[3]}
+#echo "uv-flag jobid: $depend"
+
+dep=($(obs_image.sh -p $project -a $account -d $depend $obsnum))
+depend=${dep[3]}
+echo "imaging jobid: $depend"
