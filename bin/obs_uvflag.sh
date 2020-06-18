@@ -8,6 +8,8 @@ echo "obs_uvflag.sh [-p project] [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
   -a account : computing account, default pawsey0272
+  -z         : Debugging mode: flag the CORRECTED_DATA column
+                instead of flagging the DATA column
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process" 1>&2;
@@ -16,9 +18,10 @@ exit 1;
 
 dep=
 tst=
+debug=
 
 # parse args and set options
-while getopts ':ta:d:p:' OPTION
+while getopts ':tza:d:p:' OPTION
 do
     case "$OPTION" in
 	d)
@@ -29,6 +32,9 @@ do
         ;;
 	p)
 	    project=${OPTARG}
+	    ;;
+	z)
+	    debug=1
 	    ;;
 	t)
 	    tst=1
@@ -97,11 +103,13 @@ cat ${codedir}bin/uvflag.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:TASKLINE:${taskline}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
+                                     -e "s:DEBUG:${debug}:g" \
                                      -e "s:ACCOUNT:${account}:g" > ${script}
 
 output="${codedir}queue/logs/uvflag_${obsnum}.o%A"
 error="${codedir}queue/logs/uvflag_${obsnum}.e%A"
 
+#sub="sbatch -M $computer --output=${output} --error=${error} --begin=now+3hours ${depend} ${queue} ${script}"
 sub="sbatch -M $computer --output=${output} --error=${error} ${depend} ${queue} ${script}"
 
 if [[ ! -z ${tst} ]]
