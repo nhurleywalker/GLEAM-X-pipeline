@@ -2,7 +2,7 @@
 
 usage()
 {
-echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-t] obsnum
+echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-z] [-t] obsnum
   -p project  : project, no default
   -d dep      : job number for dependency (afterok)
   -a account : computing account, default pawsey0272

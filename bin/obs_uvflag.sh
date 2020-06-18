@@ -4,7 +4,7 @@
 
 usage()
 {
-echo "obs_uvflag.sh [-p project] [-d dep] [-a account] [-t] obsnum
+echo "obs_uvflag.sh [-p project] [-d dep] [-a account] [-z] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
   -a account : computing account, default pawsey0272
