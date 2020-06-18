@@ -39,7 +39,7 @@ then
 fi
 
 # If in debugging mode, apply to the CORRECTED_DATA column
-if [[ ! -z debug ]]
+if [[ ! -z $debug ]]
 then
     applysolutions ${obsnum}.ms ${calfile}
 # If in production mode, apply to the DATA column
