@@ -3,7 +3,7 @@
 #SBATCH -M HOST
 #SBATCH -p workq
 #SBATCH --account=ACCOUNT
-#SBATCH --time=12:00:00
+#SBATCH --time=02:00:00
 #SBATCH --nodes=1
 TASKLINE
 
@@ -31,7 +31,7 @@ MWAPATH=/group/mwa/software/mwa_pb/mwa_pb/mwa_pb/data/
 # Minimum baseline of 75 lambda (=250m at 88 MHz) for calibration
 minuv=75
 
-# Perform ionospheric triage? (Blank means yes, 1 means no)
+# Perform ionospheric triage? (1 means yes, blank means no)
 ion=IONOTEST
 # Interval for ionospheric triage (in time steps)
 # Typically we have 2-minute observations which have been averaged to 4s
