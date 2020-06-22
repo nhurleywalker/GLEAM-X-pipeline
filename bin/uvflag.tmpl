@@ -28,7 +28,7 @@ cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 CASA_LOCATION=/group/mwasci/nhurleywalker/code/casa-release-5.1.2-4.el7/bin/casa
 
 cd $datadir/${obsnum}
-if [[ ! -z $debug ]]
+if [[ -z $debug ]]
 then
     python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
     baselines=$(cat baselines_to_flag.txt)
