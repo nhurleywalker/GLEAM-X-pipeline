@@ -13,7 +13,7 @@ dep=($(obs_autoflag.sh -p $project -a $account $obsnum))
 depend=${dep[3]}
 echo "flag jobid: $depend"
 
-dep=($(obs_autocal.sh -p $project -a $account -d $depend $obsnum))
+dep=($(obs_autocal.sh -i -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "cal jobid: $depend"
 
