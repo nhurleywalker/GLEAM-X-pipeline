@@ -41,3 +41,8 @@ echo "uv-flag jobid: $depend"
 dep=($(obs_image.sh -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "imaging jobid: $depend"
+
+dep=($(obs_postimage.sh -p $project -a $account -d $depend $obsnum))
+depend=${dep[3]}
+echo "post-processing jobid: $depend"
+
