@@ -40,9 +40,6 @@ group="/group"
 
 #initial variables
 dep=
-imscale=
-pixscale=
-clean=
 tst=
 debug=
 # parse args and set options
