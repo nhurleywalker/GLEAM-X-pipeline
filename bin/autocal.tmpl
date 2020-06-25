@@ -5,6 +5,7 @@
 #SBATCH --account=ACCOUNT
 #SBATCH --time=02:00:00
 #SBATCH --nodes=1
+#SBATCH --qos=high
 TASKLINE
 
 source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
@@ -59,13 +60,13 @@ then
     Dec=$( pyhead.py -p DEC $metafits | awk '{print $3}' )
     chan=$( pyhead.py -p CENTCHAN $metafits | awk '{print $3}' )
 
-    if [[ ! -e "local_gleam_model.txt" ]]
+    if [[ ! -e "${obsnum}_local_gleam_model.txt" ]]
     then
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot local_gleam_model.png
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot ${obsnum}_local_gleam_model.png
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=${obsnum}_cropped_catalogue.fits --point --output=${obsnum}_local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=.
-    calmodel=local_gleam_model.txt
+    calmodel=${obsnum}_local_gleam_model.txt
 else
     echo "Calibrating on $calibrator for $obsnum"
     calmodel=`ls -t $modeldir/model-$calibrator*comp_withalpha.txt | head -1`
