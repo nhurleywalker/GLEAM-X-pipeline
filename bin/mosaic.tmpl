@@ -1,0 +1,128 @@
+#!/bin/bash -l
+#SBATCH --account=ACCOUNT
+#SBATCH --partition=workq
+#SBATCH --time=12:00:00
+#SBATCH --nodes=1
+#SBATCH --array=0-4
+
+source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
+base=BASEDIR
+obslist=OBSLIST
+
+cd ${base}
+obss=($(sort $obslist))
+
+n=0
+for obsnum in ${obss[@]}
+do
+    track_task.py start --jobid=${SLURM_JOBID} --taskid=$n --start_time=`date +%s`
+    ((n+=1))
+done
+
+num=${#obss[@]}
+last=${obss[-1]}
+middle=${obss[$((num / 2))]}
+
+# Use the middle observation of the sorted list to define the centre of the mosaic
+metafits=`ls -1 $middle/*metafits* | head -1`
+ra=`pyhead.py -p RA ${metafits} | awk '{print $3}'`
+dec=`pyhead.py -p DEC ${metafits} | awk '{print $3}'`
+# Assume user has been smart and all observations have the same central channel
+chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
+
+subchans=(0000 0001 0002 0003 MFS)
+subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
+
+# Define output mosaic name as the first part of the input text file
+outname=`echo ${obslist} | awk 'BEGIN {FS="_"} {print $1}'`
+
+# Create the image list -- use a temporary name for now
+tmp=${obslist%.txt}_temp_${subchan}.txt
+if [[ -e $tmp ]] ; then rm $tmp ; fi
+for obsnum in ${obss[@]}
+do
+    if [[ -e ${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits ]]
+    then
+        echo "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits" >> $tmp
+        example=${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits
+    fi
+done
+
+# Use an image that exists to get the frequency range
+if [[ ! -z $example ]]
+then
+    del=`pyhead.py -p CDELT3 $example | awk '{print $3/2}'`
+    mid=`pyhead.py -p CRVAL3 $example | awk '{print $3}'`
+    low=`echo $mid $del | awk '{printf "%03.0f",($1-$2)/1e6}'`
+    high=`echo $mid $del | awk '{printf "%03.0fMHz",($1+$2)/1e6 }'`
+else
+    "No images found!"
+    exit 1
+fi
+
+# Finish setting up output filenames by including the frequencies over which we integrate
+outname="${outname}_${low}-${high}.fits"
+# Also use this to define the list of images to be used
+imagelist=${outname%.fits}.list
+# And the swarp template name
+template=${outname%.fits}.template
+# And some temporary output and weight output maps
+imageout=${outname%.fits}_temp.fits
+weightout=${outname%.fits}_weight.fits
+
+if [[ ! -d mosaics ]]
+then
+    mkdir mosaics
+fi
+
+# Move the temporary image list to the mosaic directory and rename
+mv $tmp mosaics/$imagelist
+cd mosaics/
+
+# Was going to generate the xsize like this but it's too complicated with all the projection effects
+#first=`head -1 $imagelist`
+#last=`tail -1 $imagelist`
+#rastart=`pyhead.py -p CRVAL1 $first`
+#raend=`pyhead.py -p CRVAL1 $last`
+
+# Create a swarp template file
+cat /group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/mosaics/weight.swarp.tmpl \
+    | sed "s;OUTIMAGE;${imageout};" \
+    | sed "s;OUTWEIGHT;${weightout};" \
+    | sed "s;RACENT;${ra};" \
+    | sed "s;DECENT;${dec};" > $template
+
+if [[ ! -e $outname ]]
+then
+    echo "Generating mosaic ${outname} for ${obslist} subband $subchan."
+    swarp -c $template @${imagelist}
+    if [[ -e ${imageout} ]]
+    then
+        fits_trim.py ${imageout} ${outname}
+        pyhead.py -u FREQ $mid ${outname}
+    else
+        echo "Could not generate mosaic ${outname} for ${obslist} subband ${subchan}"
+        exit 1
+    fi
+    rm ${imageout} ${weightout}
+else
+    echo "Mosaic ${outname} for ${obslist} subband $subchan already created."
+fi
+
+# Record whether mosaicking was successful
+n=0
+if [[ -e $outname ]]
+then
+    for obsnum in ${obss[@]}
+    do
+        track_task.py finish --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+        ((n+=1))
+    done
+else
+    for obsnum in ${obss[@]}
+    do
+        track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+        ((n+=1))
+    done
+fi
