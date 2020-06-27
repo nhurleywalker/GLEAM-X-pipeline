@@ -31,7 +31,7 @@ cd $datadir/${obsnum}
 if [[ -z $debug ]]
 then
     python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
-    if [[ ! -s baselines_to_flag.txt ]]
+    if [[ -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
         ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
