@@ -22,6 +22,7 @@ depend=${dep[3]}
 echo "apply-cal jobid: $depend"
 
 dep=($(obs_uvflag.sh -p $project -a $account -d $depend $obsnum))
+#dep=($(obs_uvflag.sh -p $project -a $account $obsnum))
 depend=${dep[3]}
 echo "uv-flag jobid: $depend"
 
