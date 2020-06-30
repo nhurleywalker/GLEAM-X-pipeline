@@ -6,13 +6,14 @@
 #SBATCH --time=03:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=NCPUS
+#SBATCH --qos=high
 
 # Makes fits_warp parallelisation work on Zeus
 KMP_INIT_AT_FORK=false
 # Sub-channels
 subchans="0000 0001 0002 0003 MFS"
 # flux_warp method
-method=mean
+method=scaled
 # Sky model
 MODEL_CATALOGUE="/group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/models/skymodel_only_alpha_sparse_unresolved.fits"
 # Set max separation for flux_warp crossmatch as ~ 1' -- unlikely that the ionosphere would be that brutal
@@ -63,7 +64,7 @@ do
              ${MODEL_CATALOGUE} \
              --separation ${separation} \
              --exclusion_zone ${exclusion} \
-             --outname ./${obsnum}_xm.fits \
+             --outname ./${obsnum}_${subchan}_xm.fits \
              --threshold 0.5 \
              --nmax 5000 \
              --coords ${coords} \
@@ -80,7 +81,7 @@ do
 #            python /astro/mwasci/nhurleywalker/NGC2663/mosaics/fits_warp.py --incat ./${obsnum}_isolated.fits --refcat /group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/skymodel_only_alpha.fits --xm ./${obsnum}_xm.fits
             if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp.fits ]]
             then
-                fits_warp.py --xm ./${obsnum}_xm.fits \
+                fits_warp.py --xm ./${obsnum}_${subchan}_xm.fits \
                              --suffix warp \
                              --infits ./${obsnum}_deep-${subchan}-image-pb.fits \
                              --ra1 old_ra --dec1 old_dec \
@@ -91,7 +92,7 @@ do
             fi
 
             time flux_warp \
-                     ${obsnum}_xm.fits \
+                     ${obsnum}_${subchan}_xm.fits \
                      ${obsnum}_deep-${subchan}-image-pb_warp.fits \
                      --mode ${method} \
                      --freq ${freqq} \
