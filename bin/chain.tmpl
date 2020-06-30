@@ -5,11 +5,12 @@ project=PROJECT
 account=ACCOUNT
 
 # Only need to run cotter if you downloaded the raw visibility data
-#dep=($(obs_cotter.sh -s 2 -k 40 -p $project -a $account $obsnum))
+#dep=($(obs_cotter.sh -s 4 -k 40 -p $project -a $account $obsnum))
 #depend=${dep[3]}
 #echo "cotter jobid: $depend"
 
 dep=($(obs_autoflag.sh -p $project -a $account $obsnum))
+#dep=($(obs_autoflag.sh -p $project -d $depend -a $account $obsnum))
 depend=${dep[3]}
 echo "flag jobid: $depend"
 
