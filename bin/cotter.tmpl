@@ -50,14 +50,20 @@ fi
 
 if [[ ! -d ${obsnum}.ms ]]
 then
+    if [[ -e ${obsnum}_metafits_ppds.fits ]]
+    then
+        metafits=${obsnum}_metafits_ppds.fits
+    else
+        metafits=${obsnum}.metafits
+    fi
 # Use 80% of the memory
     cotter ${flagfiles} -absmem ${memory} -timeres ${tres} -freqres ${fres} -allowmissing \
-    -edgewidth 80 -m ${obsnum}_metafits_ppds.fits -o ${obsnum}.ms *gpubox*.fits 
+    -edgewidth 80 -m ${metafits} -o ${obsnum}.ms *gpubox*.fits 
 
     test_fail $?
     if [[ -d ${obsnum}.ms ]]
     then 
-         rm *gpubox*fits *.zip *.mwaf ${obsnum}_metafits_ppds.fits
+         rm *gpubox*fits *.zip *.mwaf ${metafits}
     fi
 else
     echo "Cotter has already run for ${obsnum}.ms"
