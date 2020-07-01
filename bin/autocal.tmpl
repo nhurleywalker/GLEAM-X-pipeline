@@ -44,7 +44,7 @@ track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 cd ${datadir}/${obsnum}
 metafits="${obsnum}.metafits"
-if [[ ! -e ${metafits} ]]
+if [[ ! -e ${metafits} ]] || [[ ! -s ${metafits} ]]
 then
     wget -O ${metafits} http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
     test_fail $?
