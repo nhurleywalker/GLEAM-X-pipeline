@@ -47,7 +47,7 @@ cd ${datadir}/${obsnum}
 metafits="${obsnum}.metafits"
 if [[ ! -e ${metafits} ]]
 then
-    wget "http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=${obsnum}" -O ${metafits}
+    wget -O ${metafits} http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
     test_fail $?
 fi
 
