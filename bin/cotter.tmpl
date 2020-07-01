@@ -50,11 +50,10 @@ fi
 
 if [[ ! -d ${obsnum}.ms ]]
 then
-    if [[ -e ${obsnum}_metafits_ppds.fits ]]
+    metafits=${obsnum}.metafits
+    if [[ ! -e ${metafits} ]]
     then
-        metafits=${obsnum}_metafits_ppds.fits
-    else
-        metafits=${obsnum}.metafits
+        wget -O ${metafits} http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
     fi
 # Use 80% of the memory
     cotter ${flagfiles} -absmem ${memory} -timeres ${tres} -freqres ${fres} -allowmissing \
