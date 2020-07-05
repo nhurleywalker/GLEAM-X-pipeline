@@ -44,19 +44,19 @@ do
     then
         echo "Can't warp ${obsnum} -- only $nsrc sources -- probably a horrible image"
     else
-        if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp.fits ]]
+        RA=$( pyhead.py -p RA ${obsnum}.metafits | awk '{print $3}' )
+        Dec=$( pyhead.py -p DEC ${obsnum}.metafits | awk '{print $3}' )
+        chan=$( pyhead.py -p CENTCHAN ${obsnum}.metafits | awk '{print $3}' )
+        mid=$( pyhead.py -p CRVAL3 ${obsnum}_deep-${subchan}-image-pb.fits | awk '{print $3}' )
+        freqq=`echo $mid | awk '{printf "%03.0f",($1)/1e6}'`
+
+        # Roughly the centre and radius of the image:
+        coords="$RA $Dec"
+        # TODO make this dependent on CENTCHAN
+        radius=50. #24.8
+
+        if [[ ! -e ${obsnum}_${subchan}_xm.fits ]]
         then
-            RA=$( pyhead.py -p RA ${obsnum}.metafits | awk '{print $3}' )
-            Dec=$( pyhead.py -p DEC ${obsnum}.metafits | awk '{print $3}' )
-            chan=$( pyhead.py -p CENTCHAN ${obsnum}.metafits | awk '{print $3}' )
-            mid=$( pyhead.py -p CRVAL3 ${obsnum}_deep-${subchan}-image-pb.fits | awk '{print $3}' )
-            freqq=`echo $mid | awk '{printf "%03.0f",($1)/1e6}'`
-
-            # Roughly the centre and radius of the image:
-            coords="$RA $Dec"
-            # TODO make this dependent on CENTCHAN
-            radius=50. #24.8
-
             # Match the image catalogue to the model table:
             match_catalogues \
              ${obsnum}_deep-${subchan}-image-pb_comp.fits \
@@ -75,48 +75,46 @@ do
              -F "int_flux" \
              --eflux "err_int_flux" \
              --localrms "local_rms"
+        fi
 
-#            stilts tmatch1 matcher=sky values="ra dec" params=600 action=keep0 in=${obsnum}_deep-${subchan}-image-pb_comp.fits out=${obsnum}_isolated.fits
-#            python /astro/mwasci/nhurleywalker/NGC2663/mosaics/fits_warp.py --incat ./${obsnum}_isolated.fits --refcat /group/mwasci/nhurleywalker/GLEAM-X-pipeline/models/skymodel_only_alpha.fits --xm ./${obsnum}_xm.fits
-            if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp.fits ]]
-            then
-                fits_warp.py --xm ./${obsnum}_${subchan}_xm.fits \
-                             --suffix warp \
-                             --infits ./${obsnum}_deep-${subchan}-image-pb.fits \
-                             --ra1 old_ra --dec1 old_dec \
-                             --ra2 RAJ2000 --dec2 DEJ2000 \
-                             --plot \
-                             --cores NCPUS
- # --signal peak_flux --noise local_rms --SNR 10
-            fi
-
-            time flux_warp \
-                     ${obsnum}_${subchan}_xm.fits \
-                     ${obsnum}_deep-${subchan}-image-pb_warp.fits \
-                     --mode ${method} \
-                     --freq ${freqq} \
-                     --threshold 0.5 \
-                     --nmax 400 \
-                     --flux_key "flux" \
-                     --smooth 5.0 \
-                     --ignore_magellanic \
-                     --localrms_key "local_rms" \
-                     --add-to-header \
-                 --ra_key "RAJ2000" \
-                 --dec_key "DEJ2000" \
-                 --index "alpha" \
-                 --curvature "beta" \
-                     --ref_flux_key "S_200" \
-                     --ref_freq 200.0 \
-                     --alpha -0.77 \
-                     --plot \
-                     --cmap "gnuplot2" \
-                 --update-bscale \
-                 --order 2 \
-                 --ext png \
-                 --nolatex
-        else
-            echo "${obsnum}_deep-${subchan}-image-pb_warp.fits already created"
+        if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp.fits ]]
+        then
+            fits_warp.py --xm ./${obsnum}_${subchan}_xm.fits \
+                         --suffix warp \
+                         --infits ./${obsnum}_deep-${subchan}-image-pb.fits \
+                         --ra1 old_ra --dec1 old_dec \
+                         --ra2 RAJ2000 --dec2 DEJ2000 \
+                         --plot \
+                         --cores NCPUS
+# --signal peak_flux --noise local_rms --SNR 10
+        fi
+        if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp_${method}_cf_output.txt ]]
+        then
+            flux_warp \
+                 ${obsnum}_${subchan}_xm.fits \
+                 ${obsnum}_deep-${subchan}-image-pb_warp.fits \
+                 --mode mean \
+                 --freq ${freqq} \
+                 --threshold 0.5 \
+                 --nmax 400 \
+                 --flux_key "flux" \
+                 --smooth 5.0 \
+                 --ignore_magellanic \
+                 --localrms_key "local_rms" \
+                 --add-to-header \
+             --ra_key "RAJ2000" \
+             --dec_key "DEJ2000" \
+             --index "alpha" \
+             --curvature "beta" \
+                 --ref_flux_key "S_200" \
+                 --ref_freq 200.0 \
+                 --alpha -0.77 \
+                 --plot \
+                 --cmap "gnuplot2" \
+             --update-bscale \
+             --order 2 \
+             --ext png \
+             --nolatex
         fi
         factor=`tail -1 ${obsnum}_deep-${subchan}-image-pb_warp_${method}_cf_output.txt | awk '{print $6}'`
 # The RMS and BKG maps will not have changed much from the ionospheric warping, so I can just rename them and update BSCALE
