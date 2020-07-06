@@ -7,6 +7,8 @@
 
 source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
+ra=RAPOINT
+dec=DECPOINT
 base=BASEDIR
 obslist=OBSLIST
 
@@ -24,10 +26,18 @@ num=${#obss[@]}
 last=${obss[-1]}
 middle=${obss[$((num / 2))]}
 
-# Use the middle observation of the sorted list to define the centre of the mosaic
 metafits=`ls -1 $middle/*metafits* | head -1`
-ra=`pyhead.py -p RA ${metafits} | awk '{print $3}'`
-dec=`pyhead.py -p DEC ${metafits} | awk '{print $3}'`
+
+# If RA and Dec are not set then use the middle observation of the sorted list to define the centre of the mosaic
+if [[ -z ra ]]
+then
+    ra=`pyhead.py -p RA ${metafits} | awk '{print $3}'`
+fi
+if [[ -z dec ]]
+then
+    dec=`pyhead.py -p DEC ${metafits} | awk '{print $3}'`
+fi
+
 # Assume user has been smart and all observations have the same central channel
 chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
 
@@ -35,7 +45,7 @@ subchans=(0000 0001 0002 0003 MFS)
 subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
 
 # Define output mosaic name as the first part of the input text file
-outname=`echo ${obslist} | awk 'BEGIN {FS="_"} {print $1}'`
+outname=`echo ${obslist%.txt} | awk 'BEGIN {FS="_"} {print $1}'`
 
 # Create the image list -- use a temporary name for now
 tmp=${obslist%.txt}_temp_${subchan}.txt

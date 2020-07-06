@@ -2,10 +2,13 @@
 
 usage()
 {
-echo "obs_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] -o list_of_observations.txt
+echo "obs_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r] [-e] -o list_of_observations.txt
   -d dep     : job number for dependency (afterok)
   -a account : computing account, default pawsey0272
   -q queue    : job queue, default=copyq
+  -p project  : project, (must be specified, no default)
+  -r RA       : Right Ascension (decimal hours; default = guess from observation list)
+  -e dec      : Declination (decimal degrees; default = guess from observation list)
   -p project  : project, (must be specified, no default)
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
@@ -44,9 +47,11 @@ dep=
 queue="-p $standardq"
 account=
 tst=
+ra=
+dec=
 
 # parse args and set options
-while getopts ':td:p:o:' OPTION
+while getopts ':td:p:o:r:e:' OPTION
 do
     case "$OPTION" in
     d)
@@ -59,6 +64,10 @@ do
 	    account=${OPTARG} ;;
 	o)
 	    obslist=${OPTARG} ;;
+    r)
+        ra=${OPTARG} ;;
+    e)
+        dec=${OPTARG} ;;
     t)
         tst=1 ;;
     g)
@@ -97,6 +106,8 @@ script="${dbdir}queue/mosaic_${listbase}.sh"
 
 cat ${dbdir}/bin/mosaic.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:ACCOUNT:${account}:g" \
+                                 -e "s:RAPOINT:${ra}:g" \
+                                 -e "s:DECPOINT:${dec}:g" \
                                  -e "s:BASEDIR:${base}:g"  > ${script}
 
 output="${dbdir}queue/logs/mosaic_${listbase}.o%A_%a"
@@ -130,5 +141,5 @@ do
 done
 
 echo "Submitted ${script} as ${jobid}. Follow progress here:"
-echo $output"_*"
-echo $error"_*"
+echo $output
+echo $error
