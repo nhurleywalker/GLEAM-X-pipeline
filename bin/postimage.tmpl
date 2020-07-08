@@ -116,7 +116,7 @@ do
              --ext png \
              --nolatex
         fi
-        factor=`tail -1 ${obsnum}_deep-${subchan}-image-pb_warp_${method}_cf_output.txt | awk '{print $6}'`
+        factor=`pyhead.py -p BSCALE ${obsnum}_deep-${subchan}-image-pb_warp.fits | awk '{print $3}'`
 # The RMS and BKG maps will not have changed much from the ionospheric warping, so I can just rename them and update BSCALE
         mv ${obsnum}_deep-${subchan}-image-pb_rms.fits ${obsnum}_deep-${subchan}-image-pb_warp_rms.fits
         mv ${obsnum}_deep-${subchan}-image-pb_bkg.fits ${obsnum}_deep-${subchan}-image-pb_warp_bkg.fits
