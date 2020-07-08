@@ -29,11 +29,11 @@ middle=${obss[$((num / 2))]}
 metafits=`ls -1 $middle/*metafits* | head -1`
 
 # If RA and Dec are not set then use the middle observation of the sorted list to define the centre of the mosaic
-if [[ -z ra ]]
+if [[ -z $ra ]]
 then
     ra=`pyhead.py -p RA ${metafits} | awk '{print $3}'`
 fi
-if [[ -z dec ]]
+if [[ -z $dec ]]
 then
     dec=`pyhead.py -p DEC ${metafits} | awk '{print $3}'`
 fi
