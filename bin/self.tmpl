@@ -190,11 +190,11 @@ done
 wsclean -predict \
     -name ${obsnum}_initunc \
     -size ${imsize} ${imsize} \
-    -pol xx,yy,xy,yx
-    -weight briggs -1.0
-    -scale ${scale:0:8}
+    -pol xx,yy,xy,yx \
+    -weight briggs -1.0 \
+    -scale ${scale:0:8} \
     -channels-out 4 \
-    -j ${ncpus}
+    -j ${ncpus} \
     ${obsnum}.ms
 
 calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
