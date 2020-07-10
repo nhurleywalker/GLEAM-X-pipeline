@@ -150,5 +150,8 @@ if options.plot is not None:
     ax.set_xlabel("Right Ascension (deg)")
     ax.set_ylabel("Declination (deg)")
 
+# Title
+    ax.set_title("Observation {0}".format(options.metafits[0:10]))
+
     fig.savefig(options.plot, bbox_inches="tight")
 
