@@ -144,7 +144,10 @@ done
 # Initial clean
 if [[ ! -e ${obsnum}_initial-MFS-XX-image.fits ]]
 then
-    wsclean -j $cores \
+
+module load singularity
+singularity exec -B /astro/mwasci/phancock -B /pawsey  -B "$PWD"  /group/mwasci/phancock/images/wsclean_2.9.2.img bash -c \
+"wsclean -j $cores \
         -apply-primary-beam \
         -reuse-primary-beam \
         -name ${obsnum}_initial \
@@ -152,7 +155,7 @@ then
         -nmiter 1 \
         -niter 40000 \
         -threshold ${tsigma} \
-        -pol XX,XY,YX,XY \
+        -pol XX,YY,YX,XY \
         -join-polarizations \
         -weight briggs ${robust} \
         -scale ${scale:0:8} \
@@ -160,7 +163,7 @@ then
         -channels-out 4 \
         -no-mf-weighting \
         -join-channels \
-        ${obsnum}.ms
+        ${obsnum}.ms"
 fi
 
 # Self-cal -- using the now-populated MODEL column
@@ -187,7 +190,8 @@ do
     pbcorrect -uncorrect ${obsnum}_initunc-${subchan} model.fits ${obsnum}_beam-${subchan} ${obsnum}_initcor-${subchan}
 done
 
-wsclean -predict \
+singularity exec -B /astro/mwasci/phancock -B /pawsey  -B "$PWD"  /group/mwasci/phancock/images/wsclean_2.9.2.img bash -c \
+"wsclean -predict \
     -name ${obsnum}_initunc \
     -size ${imsize} ${imsize} \
     -pol xx,yy,xy,yx \
@@ -195,7 +199,7 @@ wsclean -predict \
     -scale ${scale:0:8} \
     -channels-out 4 \
     -j ${ncpus} \
-    ${obsnum}.ms
+    ${obsnum}.ms"
 
 calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
 aocal_plot.py --refant=127 ${obsnum}_self_solutions.bin
