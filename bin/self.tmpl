@@ -182,9 +182,9 @@ do
 # Make a primary-beam corrected model, for use NOW in calibrating
     pbcorrect ${obsnum}_initial-$subchan model.fits ${obsnum}_beam-$subchan ${obsnum}_initcor-${subchan}
 # Set Q, U, V to zero
-    mv ${obsnum}-${subchan}_initcor-Q.fits unused/
-    mv ${obsnum}-${subchan}_initcor-U.fits unused/
-    mv ${obsnum}-${subchan}_initcor-V.fits unused/
+    mv ${obsnum}_initcor-${subchan}-Q.fits unused/
+    mv ${obsnum}_initcor-${subchan}-U.fits unused/
+    mv ${obsnum}_initcor-${subchan}-V.fits unused/
     # "Uncorrect" the beam
     pbcorrect -uncorrect ${obsnum}_initunc-${subchan} model.fits ${obsnum}_beam-${subchan} ${obsnum}_initcor-${subchan}
 done
