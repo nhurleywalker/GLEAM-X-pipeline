@@ -5,6 +5,7 @@
 #SBATCH --account=ACCOUNT
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
+#SBATCH --qos=high
 TASKLINE
 
 source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
@@ -148,8 +149,6 @@ then
 module load singularity
 singularity exec -B /astro/mwasci/phancock -B /pawsey  -B "$PWD"  /group/mwasci/phancock/images/wsclean_2.9.2.img bash -c \
 "wsclean -j $cores \
-        -apply-primary-beam \
-        -reuse-primary-beam \
         -name ${obsnum}_initial \
         -size ${imsize} ${imsize} \
         -nmiter 1 \
@@ -167,7 +166,7 @@ singularity exec -B /astro/mwasci/phancock -B /pawsey  -B "$PWD"  /group/mwasci/
 fi
 
 # Self-cal -- using the now-populated MODEL column
-if [[ ! -e ${obsnum}_initial-MFS-XX-image.fits ]]
+if [[ ! -e ${obsnum}_initial-0000-XX-image.fits ]]
 then
     echo "Initial image did not generate! Something wrong with WSClean?"
     test_fail $?
@@ -198,7 +197,6 @@ singularity exec -B /astro/mwasci/phancock -B /pawsey  -B "$PWD"  /group/mwasci/
     -weight briggs -1.0 \
     -scale ${scale:0:8} \
     -channels-out 4 \
-    -j ${ncpus} \
     ${obsnum}.ms"
 
 calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
