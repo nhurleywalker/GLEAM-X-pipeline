@@ -5,7 +5,7 @@ usage()
 echo "obs_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r] [-e] -o list_of_observations.txt
   -d dep     : job number for dependency (afterok)
   -a account : computing account, default pawsey0272
-  -q queue    : job queue, default=copyq
+  -q queue    : job queue, default=workq
   -p project  : project, (must be specified, no default)
   -r RA       : Right Ascension (decimal hours; default = guess from observation list)
   -e dec      : Declination (decimal degrees; default = guess from observation list)
