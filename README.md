@@ -32,9 +32,8 @@ A typical workflow might look like:
    - Put the text file there, and then run obs_manta.sh on it to download that list of observations
    - Once they have downloaded, for each observation, run obs_autocal.sh
    - Look at the calibraton solutions, and if they generally look OK, for each observation, run obs_apply_cal.sh to apply them
-   - Run obs_self.sh on each one to perform self-calibration
-   - Look at the self-calibration solutions; if they look good, apply them (obs_apply_cal.sh)
-   - Then run some deep imaging via obs_image.sh.
+   - Run some deep imaging via obs_image.sh
+   - Run the post-imaging processing via obs_postimage.sh to perform source-finding, ionospheric de-warping, and flux density scaling to GLEAM.
 
 ## Detailed script descriptions
 
@@ -98,7 +97,7 @@ uses templates:
   - applies the calibration solution from one data set to another
 
 ### obs_self.sh
-Self-calibrates a single observation
+Self-calibrates a single observation -- not now typically performed as part of routine processing, but available.
 
 Usage:
 ```
