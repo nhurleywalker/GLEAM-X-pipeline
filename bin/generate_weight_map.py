@@ -14,7 +14,7 @@ hdu_yy = fits.open(in_yy)
 hdu_rms = fits.open(in_rms)
 
 try:
-    bscale = hdu[0].header["BSCALE"]
+    bscale = hdu_rms[0].header["BSCALE"]
 except IndexError:
     bscale = 1.0
 
