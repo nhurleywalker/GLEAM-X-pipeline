@@ -4,7 +4,7 @@ __author__ = "PaulHancock & Natasha Hurley-Walker"
 
 import os
 import sys
-import mysql_db as mdb
+from  ..db import mysql_db as mdb
 
 def queue_job(job_id, task_id, host_cluster,  submission_time, obs_id, user, batch_file, stderr, stdout, task):
     conn = mdb.connect()
