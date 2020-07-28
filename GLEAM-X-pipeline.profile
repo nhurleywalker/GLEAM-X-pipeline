@@ -14,6 +14,7 @@ else
   cluster=$PAWSEY_CLUSTER
 fi
 
+export HOST_CLUSTER=cluster
 
 if [[ "${cluster}" == "galaxy" ]]
 then
