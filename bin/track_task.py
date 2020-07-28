@@ -3,42 +3,49 @@
 __author__ = "PaulHancock & Natasha Hurley-Walker"
 
 import os
-import sqlite3
 import sys
+import mysql_db as mdb
 
-db='/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
-
-def queue_job(job_id, task_id, submission_time, obs_id, user, batch_file, stderr, stdout, task):
-    conn = sqlite3.connect(db)
+def queue_job(job_id, task_id, host_cluster,  submission_time, obs_id, user, batch_file, stderr, stdout, task):
+    conn = mdb.connect()
     cur = conn.cursor()
     cur.execute("""INSERT INTO processing
     ( job_id, task_id, submission_time, obs_id, user, batch_file, stderr, stdout, task, status)
-    VALUES ( ?,?,?,?,?,?,?,?,?, 'queued')
-    """, (job_id, task_id, submission_time, obs_id, user, batch_file, stderr, stdout, task))
+    VALUES ( %s,%s,%s,%s,%s,%s,%s,%s,%s,%s, 'queued')
+    """, (job_id, task_id, host_cluster, submission_time, obs_id, user, batch_file, stderr, stdout, task))
     conn.commit()
     conn.close()
 
 
-def start_job(job_id, task_id, start_time):
-    conn = sqlite3.connect(db)
+def start_job(job_id, task_id, host_cluster, start_time):
+    conn = mdb.connect()
     cur = conn.cursor()
-    cur.execute("""UPDATE processing SET status='started', start_time=? WHERE job_id =? AND task_id=?""", (start_time, job_id, task_id))
+    cur.execute("""UPDATE processing 
+                   SET status='started', start_time=%s 
+                   WHERE job_id =%s AND task_id=%s and host_cluster=%s""", 
+                (start_time, job_id, task_id, host_cluster))
     conn.commit()
     conn.close()
 
 
-def finish_job(job_id, task_id, end_time):
-    conn = sqlite3.connect(db)
+def finish_job(job_id, task_id, host_cluster, end_time):
+    conn = mdb.connect()
     cur = conn.cursor()
-    cur.execute("""UPDATE processing SET status='finished', end_time=? WHERE job_id =? AND task_id=?""", (end_time, job_id, task_id))
+    cur.execute("""UPDATE processing 
+                   SET status='finished', end_time=%s 
+                   WHERE job_id =%s AND task_id=%s and host_cluster=%s""", 
+                (end_time, job_id, task_id, host_cluster))
     conn.commit()
     conn.close()
 
 
-def fail_job(job_id, task_id, time):
-    conn = sqlite3.connect(db)
+def fail_job(job_id, task_id, host_cluster, time):
+    conn = mdb.connect()
     cur = conn.cursor()
-    cur.execute("""UPDATE processing SET status='failed', end_time=? WHERE job_id =? AND task_id=?""", (time, job_id, task_id))
+    cur.execute("""UPDATE processing 
+                   SET status='failed', end_time=%s 
+                   WHERE job_id =%s AND task_id=%s and host_cluster=%s""", 
+               (time, job_id, task_id, host_cluster))
     conn.commit()
     conn.close()
 
@@ -52,7 +59,18 @@ def require(args, reqlist):
         if not getattr(args, r):
             print "Directive {0} requires argument {1}".format(args.directive, r)
             sys.exit()
+        
+        # an sqlite to mysql change
+        if 'date +%s' in args.__dict__[r]:
+            args.__dict__[r] = args.__dict__[r].replace('date +%s', 'NOW()')
+            
     return True
+
+
+def test_db():
+    """Small function to test aspects of the database connection
+    """
+    pass
 
 if __name__ == "__main__":
 
@@ -73,18 +91,21 @@ if __name__ == "__main__":
     args = ps.parse_args()
 
     args.user = os.environ['USER']
+    args.host_cluster = os.environ['HOST_CLUSTER']
 
     if args.directive.lower() == 'queue':
-        require(args, ['jobid', 'taskid', 'submission_time', 'obs_id', 'user', 'batch_file', 'stderr', 'stdout', 'task'])
-        queue_job(args.jobid, args.taskid, args.submission_time, args.obs_id, args.user, args.batch_file, args.stderr, args.stdout, args.task)
+        require(args, ['jobid', 'taskid', 'host_cluster', 'submission_time', 'obs_id', 'user', 'batch_file', 'stderr', 'stdout', 'task'])
+        queue_job(args.jobid, args.taskid, args.host_cluster, args.submission_time, args.obs_id, args.user, args.batch_file, args.stderr, args.stdout, args.task)
     elif args.directive.lower() == 'start':
-        require(args, ['jobid', 'taskid', 'start_time'])
-        start_job(args.jobid, args.taskid, args.start_time)
+        require(args, ['jobid', 'taskid', 'host_cluster', 'start_time'])
+        start_job(args.jobid, args.taskid, args.host_cluster, args.start_time)
     elif args.directive.lower() == 'finish':
-        require(args, ['jobid', 'taskid', 'finish_time'])
-        finish_job(args.jobid, args.taskid, args.finish_time)
+        require(args, ['jobid', 'taskid', 'host_cluster', 'finish_time'])
+        finish_job(args.jobid, args.taskid, args.host_cluster, args.finish_time)
     elif args.directive.lower() == 'fail':
-        require(args, ['jobid', 'taskid', 'finish_time'])
-        fail_job(args.jobid, args.taskid, args.finish_time)
+        require(args, ['jobid', 'taskid', 'host_cluster', 'finish_time'])
+        fail_job(args.jobid, args.taskid, args.host_cluster, args.finish_time)
+    elif args.directive.lower() == 'test_db':
+        test_db()
     else:
         print "I don't know what you are asking; please include a queue/start/finish/fail directive"
