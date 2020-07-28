@@ -9,7 +9,6 @@ from astropy.wcs import WCS
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
-from mwapy import ephem_utils
 from mwapy.pb.primary_beam import MWA_Tile_full_EE
 import argparse
 

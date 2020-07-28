@@ -6,12 +6,14 @@ import os
 import numpy as np
 import argparse
 import sqlite3
+import mysql_db as mdb
 
 __author__ = "PaulHancock & Natasha Hurley-Walker"
 
 # Append the service name to this base URL, eg 'con', 'obs', etc.
 BASEURL = 'http://ws.mwatelescope.org/metadata/'
-dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
+
+dbconn = mdb.connect()
 
 # Function to call a JSON web service and return a dictionary: This function by Andrew Williams
 def getmeta(service='obs', params=None):
@@ -43,26 +45,8 @@ def getmeta(service='obs', params=None):
     return result
 
 
-#def update_observation(obsid, obsname, cur):
-#    if 'CORR_MODE' in obsname:
-#        return
-#    elif 'FDS' in obsname:
-#        # eg FDS_DEC-55.0_93
-#        idx = obsname[3:-4]
-#    elif 'GCN' in obsname:
-#        idx = obsname[3:]
-#    else:
-#        idx = obsname
-#    cur.execute("SELECT count(name) FROM grb WHERE fermi_trigger_id = ?", (idx,))
-#    if cur.fetchone()[0] > 0:
-#        cur.execute("SELECT name FROM grb WHERE fermi_trigger_id = ?", (idx,))
-#        grb = cur.fetchone()[0]
-#        cur.execute("UPDATE observation SET grb = ? WHERE obs_id =?", (grb, obsid))
-#    return
-
-
 def copy_obs_info(obsid, cur):
-    cur.execute("SELECT count(*) FROM observation WHERE obs_id =?",(obsid,))
+    cur.execute("SELECT count(*) FROM observation WHERE obs_id = %s",(obsid,))
     if cur.fetchone()[0] > 0:
         print "already imported", obsid
         return
@@ -73,7 +57,7 @@ def copy_obs_info(obsid, cur):
     metadata = meta['metadata']
     
     cur.execute("""
-    INSERT OR REPLACE INTO observation
+    INSERT INTO observation
     (obs_id, projectid,  lst_deg, starttime, duration_sec, obsname, creator,
     azimuth_pointing, elevation_pointing, ra_pointing, dec_pointing,
     cenchan, freq_res, int_time, delays,
@@ -81,7 +65,7 @@ def copy_obs_info(obsid, cur):
     peelsrcs, flags, selfcal, ion_phs_med, ion_phs_peak, ion_phs_std,
     nfiles, archived
     )
-    VALUES (?,?,?,?,?,?,?,  ?,?,?,?,  ?,?,?,?,   ?,?,?,  ?,?,?,?,?,?,  ?,?);
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
     """, (
     obsid, meta['projectid'], metadata['local_sidereal_time_deg'], meta['starttime'], meta['stoptime']-meta['starttime'], meta['obsname'], meta['creator'],
     metadata['azimuth_pointing'], metadata['elevation_pointing'], metadata['ra_pointing'], metadata['dec_pointing'],
@@ -91,28 +75,6 @@ def copy_obs_info(obsid, cur):
     len(meta['files']), False))
     #update_observation(obsid, meta['obsname'], cur)
     return
-
-#def update_grb_links(cur):
-#    # associate each observation with the corresponding grb
-#    cur.execute("SELECT obs_id, obsname FROM observation WHERE grb IS NULL")
-#    # need to do this to exhaust the generator so we can reuse the cursor
-#    obsids, obsnames = zip(*cur.fetchall())
-#    for obsid, obsname in zip(obsids, obsnames):
-#        update_observation(obsid, obsname, cur)
-#
-#    # now associate each calibration observation with a grb
-#    # this relies on the calibration observation being within 150sec of the regular obs
-#    cur.execute("""
-#    SELECT o.obs_id, b.grb
-#    FROM observation o JOIN observation b ON
-#    o.obs_id - b.obs_id BETWEEN -150 AND 150
-#    AND o.calibration AND b.grb IS NOT NULL
-#    AND o.obs_id != b.obs_id
-#    """)
-#    ids, grbs = zip(*cur.fetchall())
-#    for idx, grb in zip(ids, grbs):
-#        cur.execute("UPDATE observation SET grb=? WHERE obs_id=?", (grb, idx))
-#    return
 
 
 if __name__ == "__main__":
@@ -125,33 +87,16 @@ if __name__ == "__main__":
     if os.path.exists(args.obsids):
         filename, file_extension = os.path.splitext(args.obsids)
         if file_extension == ".txt":
-            ids = np.loadtxt(args.obsids, comments="#", dtype=int)
-# Makes it work for single-line files
-#            if len(ids.shape)==1:
-#               ids = [ids]
+            ids = np.loadtxt(args.obsids, comments="#", dtype=int, ndmin=1)
         else:
             print "Other file formats not yet enabled."
             sys.exit(1)
-#        elif file_extension == ".csv":
-#        elif file_extension == ".xml":
 
-    conn = sqlite3.connect(dbfile)
-    cur = conn.cursor()
+
+    cur = dbconn.cursor()
     print len(ids)
-    if len(ids) > 0:
-        for obs_id in ids:
-            print obs_id
-            copy_obs_info(obs_id,cur)
-            conn.commit()
-        sys.exit()
-    #obsdata = getmeta(service='find', params={'projectid':'D0009', 'limit':100000}) #'limit':10
-#    obsdata = getmeta(service='find', params={'projectid':'G0008', 'mintime':'1201549600', 'maxtime': '1201550200', 'limit':10}) #'limit':10
-    # For Jai's project - MAXI J1535 - XRB
-    #obsdata = getmeta(service='find', params={'obsname':'J1535_%', 'limit':100000}) #'limit':10
-#    for obs in obsdata:
-#        obs_id = obs[0]
-#        copy_obs_info(obs_id, cur)
-#        conn.commit()
-#    update_grb_links(cur)
-    conn.commit()
-    conn.close()
+    for obs_id in ids:
+        copy_obs_info(obs_id,cur)
+
+    dbconn.commit()
+    dbconn.close()

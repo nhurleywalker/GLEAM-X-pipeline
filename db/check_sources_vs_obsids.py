@@ -1,3 +1,12 @@
+"""
+Can't develop this without access to mwapy. 
+
+Looks like this is a one off script that will compare
+the sources in the `sources` table to all obsids and find
+where tehy sit in the mwa bea,. This then makes a table
+for all obsid scripts. 
+
+"""
 import sys
 from astropy.coordinates import SkyCoord
 from astropy import wcs
@@ -5,7 +14,7 @@ from astropy.io import fits
 from astropy.time import Time
 import astropy.units as u
 import json
-import sqlite3
+import mysql_db as mdb
 import numpy as np
 from populate_sources_table import Source
 from check_src_fov import check_coords
@@ -18,7 +27,7 @@ dbfile = 'GLEAM-X.sqlite'
 def insert_app(obs_id, source, appflux, infov, cur):
     cur.execute(""" INSERT OR REPLACE INTO calapparent
                 (obs_id, source, appflux, infov)
-                VALUES (?, ?, ?, ?); """,
+                VALUES (%s, %s, %s, %s); """,
                 (obs_id, source, appflux, infov))
     return
 
@@ -48,7 +57,7 @@ def create_wcs(ra, dec, cenchan):
     return w
 
 if __name__ == "__main__":
-    conn = sqlite3.connect(dbfile)
+    conn = mdb.connect()
     cur = conn.cursor()
 
     srclist = []

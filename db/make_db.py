@@ -1,12 +1,19 @@
 #! python
-import sqlite3
+import mysql.connector as mysql
+import mysql_db as mdb
+import sys
 
-__author__ = 'Paul Hancock & Natasha Hurley-Walker'
+__author__ = ['Paul Hancock', 
+              'Natasha Hurley-Walker',
+              'Tim Galvin']
 
-dbfile = 'GLEAM-X.sqlite'
+DEBUG = False
+dbname = mdb.dbname
 
 schema = """
-PRAGMA foreign_keys=ON;
+CREATE DATABASE {0};
+
+USE {0};
 
 CREATE TABLE observation
 (
@@ -44,6 +51,7 @@ CREATE TABLE processing
 (
 job_id INT,
 task_id INT,
+host VARCHAR(255),
 submission_time INT,
 task TEXT,
 user TEXT,
@@ -61,33 +69,54 @@ CONSTRAINT job_task_id PRIMARY KEY (job_id,task_id)
 
 CREATE TABLE sources
 (
-source TEXT,
+source VARCHAR(255) NOT NULL,
 ra FLOAT,
-dec FLOAT,
+`dec` FLOAT,
 flux FLOAT,
 alpha FLOAT,
-beta FLOAT
+beta FLOAT,
+PRIMARY KEY (source)
 );
 
 CREATE TABLE calapparent
 (
 obs_id INT,
-source TEXT,
+source VARCHAR(255),
 appflux FLOAT,
 infov BOOL,
 FOREIGN KEY(obs_id) REFERENCES observation(obs_id),
 FOREIGN KEY(source) REFERENCES sources(source),
-CONSTRAINT obs_src PRIMARY KEY(obs_id,source)
+CONSTRAINT obs_src PRIMARY KEY (obs_id,source)
 );
-"""
+""".format(dbname)
 
-def main():
-    conn = sqlite3.connect(dbfile)
+# NOTES ON SCHEMA
+# The column `dec` in `sources` is a reserved keyword so needs to be escaped
+# The column `source` in `sources` is now set as a primary key. This is required to construct
+#     the composite key in the `calapparent` table
+# The column `source` in `sources` is used as a foreign key (and in practise a primary key)
+#     and mysql would like some extra specifications when using it as such. It would like
+#     a limit on the number of characters to consider to determine 'uniqueness'. 
+
+
+def main(debug=False):
+    conn = mdb.connect()
     cur = conn.cursor()
+    
+    if debug:
+        print 'Dropping {0} from the mqsql database.'.format(dbname)
+        cur.execute("DROP DATABASE IF EXISTS {0}".format(dbname))
+    
     for cmd in schema.split(';'):
+        if cmd.strip() == "":
+            continue
+
         print cmd + ';'
         cur.execute(cmd)
     conn.close()
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) == 2 and sys.argv[1] in ['-d', '--drop-db']:
+        DEBUG = True
+    
+    main(debug=DEBUG)

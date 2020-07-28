@@ -4,11 +4,10 @@
 import sys
 from astropy.coordinates import SkyCoord
 
-import sqlite3
+import mysql_db as mdb
 
 __author__ = "Natasha Hurley-Walker"
 
-dbfile = 'GLEAM-X.sqlite'
 
 class Source:
     def __init__(self, name, pos, flux, alpha, beta):
@@ -17,20 +16,29 @@ class Source:
         self.flux = flux
         self.alpha = alpha
         self.beta = beta
+    
+    def __repr__(self):
+        return "{0} {1} {2} {3} {4} {5}".format(src.name, src.pos.ra.deg, src.pos.dec.deg, src.flux, src.alpha, src.beta)
+
 
 def insert_src(src, cur):
+    print src
+
     cur.execute("""
-    INSERT OR REPLACE INTO sources
-    (source, ra, dec, flux, alpha, beta)
+    INSERT INTO sources
+    (source, ra, `dec`, flux, alpha, beta)
     VALUES
-    (?, ?, ?, ?, ?, ?);
+    (%s, %s, %s, %s, %s, %s);
     """, (src.name, src.pos.ra.deg, src.pos.dec.deg, src.flux, src.alpha, src.beta))
     return
 
 if __name__ == "__main__":
-    conn = sqlite3.connect(dbfile)
-    cur = conn.cursor()
+    conn = mdb.connect()
+    print conn
 
+    cur = conn.cursor()
+    print cur
+    
     casa = Source("CasA", SkyCoord("23h23m24.000s   +58d48m54.00s"),  13000., -0.5, 0.0 )
     cyga = Source("CygA", SkyCoord("19h59m28.35663s +40d44m02.0970s"), 9000., -1.0, 0.0 )
     crab = Source("Crab", SkyCoord("05h34m31.94s    +22d00m52.2s"),    1500., -0.5, 0.0 )
