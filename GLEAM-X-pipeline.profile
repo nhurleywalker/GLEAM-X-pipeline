@@ -14,9 +14,6 @@ else
   cluster=$PAWSEY_CLUSTER
 fi
 
-# Would this actually be picked up by the slurm jobs?
-export HOST_CLUSTER=cluster
-
 if [[ "${cluster}" == "galaxy" ]]
 then
     echo "Galaxy!"
@@ -45,6 +42,10 @@ then
 else
     echo "Where am i?"
 fi
+
+
+# Would this actually be picked up by the slurm jobs?
+export HOST_CLUSTER=cluster
 
 export PATH=${PATH}:/group/mwasci/$USER/bin/:/group/mwasci/$USER/GLEAM-X-pipeline/bin
 export PYTHONPATH=$PYTHONPATH:/group/mwasci/$USER/lib/python2.7/site-packages/:~/lib/:/group/mwasci/$USER/bin/

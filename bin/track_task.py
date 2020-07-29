@@ -91,7 +91,11 @@ if __name__ == "__main__":
     args = ps.parse_args()
 
     args.user = os.environ['USER']
-    args.host_cluster = os.environ['HOST_CLUSTER']
+    # This try will be removed completely at some point soon
+    try:
+        args.host_cluster = os.environ['HOST_CLUSTER']
+    except KeyError:
+        args.host_cluster = os.environ['HOST']
 
     if args.directive.lower() == 'queue':
         require(args, ['jobid', 'taskid', 'host_cluster', 'submission_time', 'obs_id', 'user', 'batch_file', 'stderr', 'stdout', 'task'])
