@@ -14,6 +14,7 @@ else
   cluster=$PAWSEY_CLUSTER
 fi
 
+# Would this actually be picked up by the slurm jobs?
 export HOST_CLUSTER=cluster
 
 if [[ "${cluster}" == "galaxy" ]]

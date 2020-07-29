@@ -51,8 +51,8 @@ def get_neighbours(pix, order=4, nn=1):
     for i in range(nn):
         for p in neighbours.copy():
             theta,phi = hp.pix2ang(2**order,p)
-            neighbours|= set(hp.pixelfunc.get_all_neighbours(2**order,theta,phi))
-            neighbours -=set([-1])
+            neighbours |= set(hp.pixelfunc.get_all_neighbours(2**order,theta,phi))
+            neighbours -= set([-1])
     return list(neighbours)
 
 
