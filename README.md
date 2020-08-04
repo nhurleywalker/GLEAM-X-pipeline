@@ -1,3 +1,7 @@
+# Branch Information
+
+Small changes as I prepare to move over to mysql as the backend for the database.
+
 # GLEAM-X-pipeline
 
 The goal of this pipeline is to reduce the data observed as part of the GLEAM-X project (G0008), but it is also applicable to many other MWA datasets. The pipeline is written for the Pawsey Magnus and Zeus systems which use a SLURM job scheduler. It borrows significantly from the MWA-Fast-Transients pipeline written by Paul Hancock and Gemma Anderson: https://github.com/PaulHancock/MWA-fast-image-transients.
