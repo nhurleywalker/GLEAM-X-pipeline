@@ -22,6 +22,15 @@ version=3.0 # First GLEAM-X pipeline data reduction April 2018
 cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 obsnum=OBSNUM
 base=BASEDIR
+debug=DEBUG
+# Which data column to image
+if [[ ! -z $debug ]]
+then
+    datacolumn="CORRECTED_DATA"
+else
+    datacolumn="DATA"
+fi
+
 # WSClean suffixes for subchannels and MFS
 subchans="MFS 0000 0001 0002 0003"
 # Minimum uvw for self-calibration (in lambda)
@@ -110,7 +119,7 @@ then
         -size ${imsize} ${imsize} \
         -scale ${scale:0:8} \
         -pol XX \
-        -data-column CORRECTED_DATA \
+        -data-column ${datacolumn} \
         -channel-range 4 5 \
         -interval 4 5 \
         -nwlayers ${cores} \
@@ -155,8 +164,11 @@ wsclean $multiscale \
     -pol I \
     -join-channels \
     -channels-out 4 \
-    -data-column CORRECTED_DATA \
+    -data-column ${datacolumn} \
     ${obsnum}.ms | tee wsclean.log
+
+test_fail $?
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
 
 ### TODO fix wsclean2gleam.py so it more cleverly handles lack of polarisation
 # Rename files
@@ -167,9 +179,6 @@ wsclean $multiscale \
 #    mv $deep $newfilename
 #done
 
-test_fail $?
-
-track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
 
 ## Shallow clean (for workshop)
 #wsclean -nmiter 1 -niter 100000 \

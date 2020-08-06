@@ -26,8 +26,9 @@ from optparse import OptionParser
 def read_table(inputfile):
     """
     """
-    table = parse_single_table(inputfile)
-    return table.to_table()
+    hdu = fits.open(inputfile)
+#    table = hdu[1].data
+    return Table(hdu[1].data)
 
 
 @np.vectorize
@@ -71,7 +72,7 @@ if __name__== "__main__":
     usage="Usage: %prog [options]\n"
     parser = OptionParser(usage=usage)
     parser.add_option('--input', dest="input", default=None,
-                      help="Input VO table to characterise.")
+                      help="Input fits table to characterise.")
     parser.add_option('--stepsize', dest="stepsize", default=1,
                       help="Specify step size in degrees (default = 1 deg)")
     parser.add_option('--output', dest="output", default=None,
@@ -87,7 +88,7 @@ if __name__== "__main__":
     (options, args) = parser.parse_args()
 
     if options.bmaj is None or options.bmin is None:
-        mosaic = options.input.replace('_comp_psf.vot','.fits')
+        mosaic = options.input.replace('_comp_psfcat.fits','.fits')
         if os.path.exists(mosaic):
             hdu = fits.open(mosaic)
             bmaj = hdu[0].header['BMAJ']
@@ -196,12 +197,10 @@ if __name__== "__main__":
     header['CTYPE3']=('Beam',"0=a,1=b,2=pa (degrees),3=blur")
     if options.output is None:
 # Try some common extensions
-        options.output = options.input.replace('_psf.vot','_psf.fits')
-        options.output = options.output.replace('_comp.vot','_psf.fits')
-        options.output = options.output.replace('.vot','_psf.fits')
+        options.output = options.input.replace('_comp_psfcat.fits','_psf.fits')
 # Last-ditch, call it psf.fits
         if options.output == options.input:
             options.output == "psf.fits"
     hdulist = fits.HDUList(fits.PrimaryHDU(header=header, data=car))
-    hdulist.writeto(options.output, clobber=True)
+    hdulist.writeto(options.output, overwrite=True)
     print "wrote", options.output

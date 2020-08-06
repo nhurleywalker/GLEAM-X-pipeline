@@ -19,6 +19,7 @@ fi
 calid=CALID
 base=BASEDIR
 obsnum=OBSNUM
+debug=DEBUG
 
 # apply calibration
 track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
@@ -37,9 +38,15 @@ then
     exit 1
 fi
 
-# HACK FOR HIGHZ
-applysolutions -nocopy ${obsnum}.ms ${calfile}
-#applysolutions ${obsnum}.ms ${calfile}
+# If in debugging mode, apply to the CORRECTED_DATA column
+if [[ ! -z $debug ]]
+then
+    applysolutions ${obsnum}.ms ${calfile}
+# If in production mode, apply to the DATA column
+else
+    applysolutions -nocopy ${obsnum}.ms ${calfile}
+fi
+
 test_fail $?
 
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`

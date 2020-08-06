@@ -8,6 +8,7 @@ echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -a account : computing account, default pawsey0272
   -d dep     : job number for dependency (afterok)
+  -i iono    : run the ionospheric metric tests (default = True)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process" 1>&2;
@@ -16,9 +17,10 @@ exit 1;
 
 dep=
 tst=
+ion=
 
 # parse args and set options
-while getopts ':ta:d:p:' OPTION
+while getopts ':tia:d:p:' OPTION
 do
     case "$OPTION" in
 	d)
@@ -29,6 +31,9 @@ do
         ;;
 	p)
 	    project=${OPTARG}
+	    ;;
+	i)
+	    ion=1
 	    ;;
 	t)
 	    tst=1
@@ -42,7 +47,7 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
-# if obsid or project are empty then just pring help
+# if obsid or project are empty then just print help
 if [[ -z ${obsnum} || -z ${project} ]]
 then
     usage
@@ -97,6 +102,7 @@ cat ${codedir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:TASKLINE:${taskline}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
+                                     -e "s:IONOTEST:${ion}:g" \
                                      -e "s:ACCOUNT:${account}:g" > ${script}
 
 output="${codedir}queue/logs/autocal_${obsnum}.o%A"

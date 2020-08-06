@@ -24,8 +24,10 @@ parser.add_option('--radius',type="float", dest="radius",
                     help="The radius of your crop circle in degrees")
 parser.add_option('--minflux',type="float", dest="minflux", default=1.0,
                     help="The minimum flux density of the source (default = 1.0 Jy)")
+parser.add_option('--nobeamselect', action="store_false", dest="beamselect", default=True,
+                    help="Use the primary beam to (crudely) attenuate the catalogue fluxes when calculating the minimum flux (default=True)")
 parser.add_option('--attenuate', action="store_true", dest="attenuate", default=False,
-                    help="Use the primary beam to attenuate the catalogue fluxes when calculating the minimum flux (default=False); NB: this will be slow for a very low flux density cut-off!")
+                    help="Use the primary beam to (crudely) attenuate the output source flux densities (default=False, therefore use -apply-beam in calibrate to apply the beam)")
 parser.add_option('--metafits',type="string", dest="metafits",
                     help="The metafits file for your observation (only necessary if using the beam attenuation option)")
 parser.add_option('--catalogue',type="string", dest="cat",
@@ -43,6 +45,12 @@ parser.add_option('--plot', type="string", dest="plot", default=None,
 parser.add_option('--output',type="string", dest="output", default="cropped_catalogue.fits",
                     help="The filename of the output cropped catalogue (fits format).")
 (options, args) = parser.parse_args()
+
+# This needs to be done immediately before I import any other modules which import matplotlib!
+if options.plot is not None:
+    import matplotlib as mpl
+    mpl.use('Agg') # So does not use display
+    import matplotlib.pyplot as plt
 
 pos = SkyCoord(options.ra, options.dec, unit=(u.deg, u.deg))
 
@@ -63,24 +71,33 @@ indices = np.intersect1d(alphacut,indices)
 
 # Now that we have some subset, check if beam attenuation is on, and if it is, attenuate and recalculate:
 
-if options.attenuate:
-    from beam_value_at_radec import beam_value
-    from beam_value_at_radec import parse_metafits
-    if options.metafits:
-        t, delays, freq = parse_metafits(options.metafits)
-        x,y = beam_value(data[options.racol][indices], data[options.decol][indices], t, delays, freq)
-# This might be more correct for Stokes values, but I'm not sure it's what I want...
-#        i = (x**2 + y**2)/2
-# Also, at some point, I would like to save the full Jones matrix into the source model
-        i = (x + y)/2
-# Attenuate the fluxes
-        data[options.fluxcol][indices] = i * data[options.fluxcol][indices]
-# Select only the sources which meet the minimum flux criterion
-        subindices = np.where(data[options.fluxcol][indices] > options.minflux)
-        indices = indices[subindices]
-    else:
+if options.beamselect is True or options.attenuate is True:
+    if options.metafits is False:
         print("No metafits file selected.")
         sys.exit(1)
+    from beam_value_at_radec import beam_value
+    from beam_value_at_radec import parse_metafits
+
+if options.beamselect is True:
+    t, delays, freq = parse_metafits(options.metafits)
+    x,y = beam_value(data[options.racol][indices], data[options.decol][indices], t, delays, freq)
+    i = (x + y)/2
+# Attenuate the fluxes
+    data[options.fluxcol][indices] = i * data[options.fluxcol][indices]
+# Select only the sources which meet the minimum flux criterion
+    subindices = np.where(data[options.fluxcol][indices] > options.minflux)
+# Undo the attenuation
+    data[options.fluxcol][indices] = data[options.fluxcol][indices] / i
+# Select the final indices
+    indices = indices[subindices]
+
+if options.attenuate is True:
+    t, delays, freq = parse_metafits(options.metafits)
+    x,y = beam_value(data[options.racol][indices], data[options.decol][indices], t, delays, freq)
+# Perform a crude attenuation of the source flux densities
+    i = (x + y)/2
+# Attenuate the fluxes
+    data[options.fluxcol][indices] = i * data[options.fluxcol][indices]
 
 nselected=indices.shape[0]
 noriginal=data.shape[0]
@@ -94,9 +111,6 @@ else:
     print "No sources selected!"
 
 if options.plot is not None:
-    import matplotlib
-    from matplotlib import pyplot as plt
-
     srcs = coords[indices]
 
     minra = np.nanmin(srcs.fk5.ra.value)
@@ -135,6 +149,9 @@ if options.plot is not None:
 # axis labels
     ax.set_xlabel("Right Ascension (deg)")
     ax.set_ylabel("Declination (deg)")
+
+# Title
+    ax.set_title("Observation {0}".format(options.metafits[0:10]))
 
     fig.savefig(options.plot, bbox_inches="tight")
 

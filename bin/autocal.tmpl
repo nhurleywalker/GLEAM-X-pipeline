@@ -3,7 +3,7 @@
 #SBATCH -M HOST
 #SBATCH -p workq
 #SBATCH --account=ACCOUNT
-#SBATCH --time=12:00:00
+#SBATCH --time=02:00:00
 #SBATCH --nodes=1
 TASKLINE
 
@@ -21,12 +21,18 @@ cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 obsnum=OBSNUM
 datadir=DATADIR
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
-# Owned by mwaadmin, can't use this
-catfile="/group/mwa/software/MWA_Tools/MWA_Tools/catalogues/GLEAM_EGC.fits"
-catfile="/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/models/GLEAM_EGC.fits"
+
+# GLEAM-X sky model
 catfile="/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
+
+# MWA beam information
+MWAPATH=/group/mwasci/software/mwa_pb/mwa_pb/data/
+
 # Minimum baseline of 75 lambda (=250m at 88 MHz) for calibration
 minuv=75
+
+# Perform ionospheric triage? (1 means yes, blank means no)
+ion=IONOTEST
 # Interval for ionospheric triage (in time steps)
 # Typically we have 2-minute observations which have been averaged to 4s
 # So in total they contain 30 time steps
@@ -38,9 +44,9 @@ track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 cd ${datadir}/${obsnum}
 metafits="${obsnum}.metafits"
-if [[ ! -e ${metafits} ]]
+if [[ ! -e ${metafits} ]] || [[ ! -s ${metafits} ]]
 then
-    wget "http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=${obsnum}" -O ${metafits}
+    wget -O ${metafits} http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
     test_fail $?
 fi
 
@@ -53,18 +59,16 @@ then
     Dec=$( pyhead.py -p DEC $metafits | awk '{print $3}' )
     chan=$( pyhead.py -p CENTCHAN $metafits | awk '{print $3}' )
 
-    if [[ ! -e "local_gleam_model.txt" ]]
+    if [[ ! -e "${obsnum}_local_gleam_model.txt" ]]
     then
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --attenuate --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot local_gleam_model.png
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=cropped_catalogue.fits --point --output=local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot ${obsnum}_local_gleam_model.png --output ${obsnum}_cropped_catalogue.fits
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=${obsnum}_cropped_catalogue.fits --point --output=${obsnum}_local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
-    modeldir=./
-    calmodel=local_gleam_model.txt
+    modeldir=.
+    calmodel=${obsnum}_local_gleam_model.txt
 else
     echo "Calibrating on $calibrator for $obsnum"
-
     calmodel=`ls -t $modeldir/model-$calibrator*comp_withalpha.txt | head -1`
-
     if [[ -z $calmodel ]]
     then
         echo "No calibrator model available for $calibrator in $modeldir."
@@ -103,26 +107,21 @@ minuvm=`echo "234 * $minuv / $chan" | bc -l`
 # Calculate max uvw in metres
 maxuvm=`echo "390000 / ($chan + 11)" | bc -l`
 
-# HACK TO NOT BOTHER FOR HIGHZ
-# Ionospheric triage
-#solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
-#calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
-#test_fail $?
-#
-#aocal_plot.py --refant=127 --amp_max=2 ${solutions}
-#test_fail $?
-#
-#aocal_diff.py --metafits=$metafits --names $solutions
-#test_fail $?
-#
-#iono_update.py --ionocsv ${obsnum}_ionodiff.csv
-#test_fail $?
+if [[ ! -z $ion ]]
+then
+    # Ionospheric triage
+    solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
+    calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -applybeam -mwa-path ${MWAPATH} ${obsnum}.ms ${solutions}
+    aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+    aocal_diff.py --metafits=$metafits --names $solutions
+    iono_update.py --ionocsv ${obsnum}_ionodiff.csv
+fi
 
 # At the moment, assume that the ionosphere is OK, and derive some real solutions
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
 
 # calibrate
-calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm ${obsnum}.ms ${solutions}
+calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -applybeam -mwa-path ${MWAPATH} ${obsnum}.ms ${solutions}
 test_fail $?
 
 # plot calibration solutions

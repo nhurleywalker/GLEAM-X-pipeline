@@ -24,7 +24,7 @@ absmem=ABSMEM
 obsnum=OBSNUM
 datadir=DATADIR
 # WSClean suffixes for subchannels and MFS
-subchans="MFS 0000 0001 0002 0003"
+subchans="0000 0001 0002 0003"
 # Minimum baseline of 75 lambda (=250m at 88 MHz) for self-calibration
 minuv=75
 # Depth of cleaning for initial images
@@ -75,14 +75,6 @@ freqrange="${lowfreq}-${highfreq}"
 # Set up position-dependent options
 RA=`pyhead.py -p RA $metafits | awk '{print $3}'`
 Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
-# Multiscale clean original GLEAM Galactic plane, normal clean for everything else
-#b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
-#if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
-#then
-#    multiscale="-multiscale -mgain 0.6"
-#else
-#    multiscale="-mgain 0.85"
-#fi
 
 # Calculate min uvw in metres
 minuvm=`echo "234 * $minuv / $chan" | bc -l`
@@ -136,39 +128,76 @@ do
     fi
     for pol in $pols
     do
+# For WSClean
         ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_initial-000${n}-beam-${pol}.fits
+# For PBCorrect
+# requires bash 4.0+ to convert quickly to lower-case
+        if [[ ${pol:2:1} != "i" ]]
+        then
+            ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_beam-000${n}-${pol,,}r.fits
+        else
+            ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_beam-000${n}-${pol,,}.fits
+        fi
     done
 done
 
 # Initial clean
-if [[ ! -e ${obsnum}_initial-MFS-image.fits ]]
+if [[ ! -e ${obsnum}_initial-MFS-XX-image.fits ]]
 then
-    wsclean -j $cores \
-        -apply-primary-beam \
-        -reuse-primary-beam \
+
+module load singularity
+singularity exec -B /astro/mwasci/phancock -B /pawsey  -B "$PWD"  /group/mwasci/phancock/images/wsclean_2.9.2.img bash -c \
+"wsclean -j $cores \
         -name ${obsnum}_initial \
         -size ${imsize} ${imsize} \
         -nmiter 1 \
         -niter 40000 \
         -threshold ${tsigma} \
-        -pol I \
+        -pol XX,YY,YX,XY \
+        -join-polarizations \
         -weight briggs ${robust} \
         -scale ${scale:0:8} \
         -mgain 0.85 \
         -channels-out 4 \
-        -no-mfs-weighting \
+        -no-mf-weighting \
         -join-channels \
-        ${obsnum}.ms
+        ${obsnum}.ms"
 fi
 
 # Self-cal -- using the now-populated MODEL column
-if [[ ! -e ${obsnum}_initial-MFS-image.fits ]]
+if [[ ! -e ${obsnum}_initial-0000-XX-image.fits ]]
 then
     echo "Initial image did not generate! Something wrong with WSClean?"
     test_fail $?
 fi
 
-### TODO Make the caldatacolumn dependent on whether you've peeled
+# Old school self-cal with polarisation taken into account
+if [[ ! -d unused ]]
+then
+    mkdir unused
+fi
+for subchan in $subchans
+do
+# Make a primary-beam corrected model, for use NOW in calibrating
+    pbcorrect ${obsnum}_initial-$subchan model.fits ${obsnum}_beam-$subchan ${obsnum}_initcor-${subchan}
+# Set Q, U, V to zero
+    mv ${obsnum}_initcor-${subchan}-Q.fits unused/
+    mv ${obsnum}_initcor-${subchan}-U.fits unused/
+    mv ${obsnum}_initcor-${subchan}-V.fits unused/
+    # "Uncorrect" the beam
+    pbcorrect -uncorrect ${obsnum}_initunc-${subchan} model.fits ${obsnum}_beam-${subchan} ${obsnum}_initcor-${subchan}
+done
+
+singularity exec -B /astro/mwasci/phancock -B /pawsey  -B "$PWD"  /group/mwasci/phancock/images/wsclean_2.9.2.img bash -c \
+"wsclean -predict \
+    -name ${obsnum}_initunc \
+    -size ${imsize} ${imsize} \
+    -pol xx,yy,xy,yx \
+    -weight briggs -1.0 \
+    -scale ${scale:0:8} \
+    -channels-out 4 \
+    ${obsnum}.ms"
+
 calibrate -j ${cores} -minuv $minuvm ${obsnum}.ms ${obsnum}_self_solutions.bin | tee calibrate.log
 aocal_plot.py --refant=127 ${obsnum}_self_solutions.bin
 flaggedchans=`grep "gains to NaN" calibrate.log | awk '{printf("%03d\n",$2)}' | sort | uniq | wc -l`
@@ -179,9 +208,5 @@ then
     echo "Do not apply these calibration solutions."
     mv ${obsnum}_self_solutions.bin ${obsnum}_self_solutions.bad
 fi
-
-### TODO Sort out the logic for chaining applysolutions and imaging
-
-### TODO Re-run flagger to catch any broken channels after self-calibration
 
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
