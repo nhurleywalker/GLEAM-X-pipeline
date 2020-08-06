@@ -70,8 +70,8 @@ CONSTRAINT job_task_id PRIMARY KEY (job_id,task_id)
 CREATE TABLE sources
 (
 source VARCHAR(255) NOT NULL,
-ra FLOAT,
-`dec` FLOAT,
+RAJ2000 FLOAT,
+DecJ2000 FLOAT,
 flux FLOAT,
 alpha FLOAT,
 beta FLOAT,
@@ -89,15 +89,6 @@ FOREIGN KEY(source) REFERENCES sources(source),
 CONSTRAINT obs_src PRIMARY KEY (obs_id,source)
 );
 """.format(dbname)
-
-# NOTES ON SCHEMA
-# The column `dec` in `sources` is a reserved keyword so needs to be escaped
-# The column `source` in `sources` is now set as a primary key. This is required to construct
-#     the composite key in the `calapparent` table
-# The column `source` in `sources` is used as a foreign key (and in practise a primary key)
-#     and mysql would like some extra specifications when using it as such. It would like
-#     a limit on the number of characters to consider to determine 'uniqueness'. 
-
 
 def main(debug=False):
     conn = mdb.connect()
