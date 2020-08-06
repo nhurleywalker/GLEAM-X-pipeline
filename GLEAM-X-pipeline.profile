@@ -50,6 +50,6 @@ export HOST_CLUSTER=cluster
 export PATH=${PATH}:/group/mwasci/$USER/bin/:/group/mwasci/$USER/GLEAM-X-pipeline/bin
 export PYTHONPATH=$PYTHONPATH:/group/mwasci/$USER/lib/python2.7/site-packages/:~/lib/:/group/mwasci/$USER/bin/
 
-# Add your MWA_ASVO_API_KEY here
-export MWA_ASVO_API_KEY=
+# Add your MWA_ASVO_API_KEY to a text file called mwa_asvo_api.key
+export MWA_ASVO_API_KEY=`cat mwa_asvo_api.key`
 
