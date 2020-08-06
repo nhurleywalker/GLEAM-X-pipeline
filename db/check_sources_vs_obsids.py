@@ -1,12 +1,3 @@
-"""
-Can't develop this without access to mwapy. 
-
-Looks like this is a one off script that will compare
-the sources in the `sources` table to all obsids and find
-where tehy sit in the mwa beam. This then makes a table
-for all obsid scripts. 
-"""
-
 import sys
 from astropy.coordinates import SkyCoord
 from astropy import wcs
