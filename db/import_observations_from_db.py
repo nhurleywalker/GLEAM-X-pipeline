@@ -8,7 +8,9 @@ import argparse
 import sqlite3
 import mysql_db as mdb
 
-__author__ = "PaulHancock & Natasha Hurley-Walker"
+__author__ = ["PaulHancock",
+              "Natasha Hurley-Walker", 
+              "Tim Galvin"]
 
 # Append the service name to this base URL, eg 'con', 'obs', etc.
 BASEURL = 'http://ws.mwatelescope.org/metadata/'
@@ -48,7 +50,7 @@ def getmeta(service='obs', params=None):
 def copy_obs_info(obsid, cur):
     cur.execute("SELECT count(*) FROM observation WHERE obs_id = %s",(obsid,))
     if cur.fetchone()[0] > 0:
-        print "already imported", obsid
+        print "Obsid `{0}` is already imported.".format(obsid)
         return
     meta = getmeta(service='obs', params={'obs_id':obsid})
     if meta is None:
@@ -94,9 +96,10 @@ if __name__ == "__main__":
 
 
     cur = dbconn.cursor()
-    print len(ids)
     for obs_id in ids:
-        copy_obs_info(obs_id,cur)
+        # A numpy int64 is not the same as a python int, and 
+        # mysql connector gets a little upset. 
+        copy_obs_info(int(obs_id),cur)
 
     dbconn.commit()
     dbconn.close()
