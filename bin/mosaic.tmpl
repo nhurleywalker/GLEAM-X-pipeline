@@ -139,7 +139,7 @@ cat /group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/mosaics/resamp.swarp.tmpl \
     | sed "s;RACENT;${ra};" \
     | sed "s;DECENT;${dec};" > ${template}.resamp
 
-if [[ ! -e ${outname}.fits ]] || [ ! -e ${outname}_psfmap.fits ]]; then
+if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
 
     if [ -e ${resampdir} ]; then
         rm ${resampdir}
