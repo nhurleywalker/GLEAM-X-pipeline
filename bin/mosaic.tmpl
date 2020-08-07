@@ -105,13 +105,13 @@ fi
 # Finish setting up output filenames by including the frequencies over which we integrate
 outname="${outname}_${low}-${high}"
 # Also use this to define the list of images to be used
-#imagelist=${outname%.fits}.list
-imagelist=${outname%.fits}
+#imagelist=${outname}.list
+imagelist=${outname}
 # And the swarp template name
-template=${outname%.fits}.template
+template=${outname}.template
 # And some temporary output and weight output maps
-weightout=${outname%.fits}_weight.fits
-imageout=${outname%.fits}_temp
+weightout=${outname}_weight.fits
+imageout=${outname}_temp
 resampdir="./resamp_${low}-${high}/"
 
 if [[ ! -d mosaics ]]
@@ -194,16 +194,19 @@ if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
         then
             # will this ever trim something in one image but not in another? 
             fits_trim.py ${imageout}${image}.fits ${outname}${image}.fits
-            pyhead.py -u FREQ $mid ${outname}${image}.fits
+            if [[ -e ${outname}${image}.fits ]]
+            then
+                pyhead.py -u FREQ $mid ${outname}${image}.fits
+                rm ${imageout}${image}.fits
+            else
+                echo "Could not generate mosaic ${outname}${image} for ${obslist} subband ${subchan}"
+                exit 1
+            fi
         else
             echo "Could not generate mosaic ${outname}${image} for ${obslist} subband ${subchan}"
             exit 1
         fi
-
-        rm ${imageout}${image}.fits
-
     done
-
 
     # make PSF map and remove BMAJ, BMIN, BPA maps
     psf_combine_axes.py ${outname}_bmaj.fits \
@@ -216,14 +219,62 @@ if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
     # keep only one weight image
     rm "${imageout}_*.weight.fits"
 
-
 else
     echo "Mosaic ${outname}.fits for ${obslist} subband $subchan already created."
 fi
 
+# Blur correction and final PSF generation
+
+if [[ ! -e ${outname}_ddmod.fits ]] || [[ ! -e ${outname}_psf.fits ]]; then
+    BANE --noclobber $outname
+
+    # To create the final PSF map that I will use later, run source-finding without any PSF input
+    if [[ ! -e ${outname}_comp.fits ]]
+    then
+        aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}.fits ${outname}.fits
+    fi
+
+    # Generate a measured PSF map
+    if [[ ! -e ${outname}_psf.fits ]]
+    then
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_comp.fits
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_comp_psfcat.fits
+    fi
+
+    # Run source-finding using the mosaicked PSF map as an input
+    if [[ ! -e ${outname}_projpsf_comp.fits ]]
+    then
+        aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}_projpsf.fits --psf=${outname}_psfmap.fits $outname
+    fi
+
+    # Select sources and generate a new PSF map that has the right blur factor
+    if [[ ! -e ${outname}_projpsf_psf.fits ]]
+    then
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_projpsf_comp.fits
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_projpsf_comp_psfcat.fits
+    fi
+
+    # Multiply by blur factor
+    if [[ ! -e ${outname}_ddmod.fits ]]
+    then
+        # TODO parallelise this code
+        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/dd_flux_mod.py --mosaic=${outname}.fits --psf=${outname}_projpsf_psf.fits --output=${outname}_ddmod.fits
+    fi
+
+    # Rerun source-finding on blur-corrected map with measured PSF map
+    BANE --noclobber ${outname}_ddmod.fits
+    if [[ ! -e ${outname}_ddmod_comp.fits ]]
+    then
+        aegean --seedclip=4 --maxsummits=5 --autoload --table=${outname}_ddmod.fits --psf=${outname}_psf.fits ${outname}_ddmod.fits
+    fi
+    # TODO: clean up intermediate files
+else
+    echo "Mosaic ${outname}_ddmod.fits for ${obslist} subband $subchan already created."
+fi
+
 # Record whether mosaicking was successful
 n=0
-if [[ -e $outname ]]
+if [[ -e ${outname}_ddmod.fits ]]
 then
     for obsnum in ${obss[@]}
     do
