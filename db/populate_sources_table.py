@@ -26,7 +26,7 @@ def insert_src(src, cur):
 
     cur.execute("""
     INSERT INTO sources
-    (source, ra, `dec`, flux, alpha, beta)
+    (source, RAJ2000, DecJ2000, flux, alpha, beta)
     VALUES
     (%s, %s, %s, %s, %s, %s);
     """, (src.name, src.pos.ra.deg, src.pos.dec.deg, src.flux, src.alpha, src.beta))
@@ -34,10 +34,7 @@ def insert_src(src, cur):
 
 if __name__ == "__main__":
     conn = mdb.connect()
-    print conn
-
     cur = conn.cursor()
-    print cur
     
     casa = Source("CasA", SkyCoord("23h23m24.000s   +58d48m54.00s"),  13000., -0.5, 0.0 )
     cyga = Source("CygA", SkyCoord("19h59m28.35663s +40d44m02.0970s"), 9000., -1.0, 0.0 )
