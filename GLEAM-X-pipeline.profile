@@ -52,4 +52,4 @@ export PYTHONPATH=$PYTHONPATH:/group/mwasci/$USER/lib/python2.7/site-packages/:~
 export PYTHONPATH=$PYTHONPATH:/group/mwasci/$USER/bin/:/group/mwasci/$USER/GLEAM-X-pipeline/db
 
 # Add your MWA ASVO key to 'mwa_asvo_api.key'
-export MWA_ASVO_API_KEY=`cat /group/mwasci/$USER/mwa_asvo_api.key`
+export MWA_ASVO_API_KEY=`cat /group/mwasci/$USER/GLEAM-X-pipeline/mwa_asvo_api.key`
