@@ -4,14 +4,15 @@ __author__ = "PaulHancock & Natasha Hurley-Walker"
 
 import os
 import sys
-from  ..db import mysql_db as mdb
+# from  ..db import mysql_db as mdb
+import mysql_db as mdb
 
 def queue_job(job_id, task_id, host_cluster,  submission_time, obs_id, user, batch_file, stderr, stdout, task):
     conn = mdb.connect()
     cur = conn.cursor()
     cur.execute("""INSERT INTO processing
-    ( job_id, task_id, submission_time, obs_id, user, batch_file, stderr, stdout, task, status)
-    VALUES ( %s,%s,%s,%s,%s,%s,%s,%s,%s,%s, 'queued')
+    (job_id, task_id, host_cluster, submission_time, obs_id, user, batch_file, stderr, stdout, task, status)
+    VALUES ( %s,%s,%s,%s,%s,%s,%s,%s,%s, %s, 'queued')
     """, (job_id, task_id, host_cluster, submission_time, obs_id, user, batch_file, stderr, stdout, task))
     conn.commit()
     conn.close()
@@ -61,7 +62,7 @@ def require(args, reqlist):
             sys.exit()
         
         # an sqlite to mysql change
-        if 'date +%s' in args.__dict__[r]:
+        if isinstance(args.__dict__[r], str) and 'date +%s' in args.__dict__[r]:
             args.__dict__[r] = args.__dict__[r].replace('date +%s', 'NOW()')
             
     return True
