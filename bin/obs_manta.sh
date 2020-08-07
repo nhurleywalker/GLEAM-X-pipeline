@@ -34,6 +34,8 @@ gpubox=
 timeres=
 freqres=
 
+source "$dbdir/GLEAM-X-pipeline.profile"
+
 # parse args and set options
 while getopts ':tgd:p:s:k:o:' OPTION
 do
@@ -72,6 +74,15 @@ if [[ ! -z ${dep} ]]
 then
     depend="--dependency=afterok:${dep}"
 fi
+
+# Add the metadata to the observations table in the database
+python ${dbdir}db/import_observations_from_db.py --obsid $obslist
+
+# And now record the apparent brightness of sources in the obs
+# this takes a considerable time and shouldn't be done on the 
+# login node. 
+# python ${dbdir}db/check_sources_vs_obsids.py $obslist
+
 
 base=$base/$project
 cd $base
@@ -118,6 +129,8 @@ done
 listbase=`basename ${obslist}`
 listbase=${listbase%%.*}
 script="${dbdir}queue/manta_${listbase}.sh"
+
+echo "obslist is $obslist"
 
 cat ${dbdir}/bin/manta.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:STEM:${stem}:g"  \
