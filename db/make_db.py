@@ -51,7 +51,7 @@ CREATE TABLE processing
 (
 job_id INT,
 task_id INT,
-host VARCHAR(255),
+host_cluster VARCHAR(255),
 submission_time INT,
 task TEXT,
 user TEXT,
@@ -64,7 +64,7 @@ stderr TEXT,
 stdout TEXT,
 output_files TEXT,
 FOREIGN KEY(obs_id) REFERENCES observation(obs_id),
-CONSTRAINT job_task_id PRIMARY KEY (job_id,task_id)
+CONSTRAINT job_task_id PRIMARY KEY (job_id,task_id,host_cluster)
 );
 
 CREATE TABLE sources
@@ -90,11 +90,11 @@ CONSTRAINT obs_src PRIMARY KEY (obs_id,source)
 );
 """.format(dbname)
 
-def main(debug=False):
+def main(drop=False):
     conn = mdb.connect()
     cur = conn.cursor()
     
-    if debug:
+    if drop:
         print 'Dropping {0} from the mqsql database.'.format(dbname)
         cur.execute("DROP DATABASE IF EXISTS {0}".format(dbname))
     
@@ -107,7 +107,9 @@ def main(debug=False):
     conn.close()
 
 if __name__ == '__main__':
+
+    # This should not be used, and will be removed 
     if len(sys.argv) == 2 and sys.argv[1] in ['-d', '--drop-db']:
-        DEBUG = True
+        DROP = True
     
-    main(debug=DEBUG)
+    main(drop=DROP)
