@@ -1,2 +1,5 @@
 mwa_asvo_api.key
+db/GLEAM-X.sqlite
 db/database_configuration.py
+queue/*
+*/*pyc
