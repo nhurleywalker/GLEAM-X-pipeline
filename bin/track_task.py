@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
-__author__ = "PaulHancock & Natasha Hurley-Walker"
+__author__ = ["Paul Hancock", 
+              "Natasha Hurley-Walker",
+              "Tim Galvin"]
 
 import os
 import sys
-# from  ..db import mysql_db as mdb
 import mysql_db as mdb
+
+# This is the list of acceptable observation status' that are 'hard coded' in the 
+# gleam-x website data/ui models. 
+OBS_STATUS = ['unprocessed' , 'downloaded', 'calibrated', 'imaged', 'archived']
 
 def queue_job(job_id, task_id, host_cluster,  submission_time, obs_id, user, batch_file, stderr, stdout, task):
     conn = mdb.connect()
@@ -50,6 +55,25 @@ def fail_job(job_id, task_id, host_cluster, time):
     conn.commit()
     conn.close()
 
+def observation_status(obs_id, status):
+    """Update the observation table to inform it that obsid has been downloaded
+
+    Args:
+        obs_id (int): observation id to update the status of
+        status (str): the status to insert for the observation 
+    """
+    conn = mdb.connect()
+    cur = con.cursor()
+    cur.execute("""
+                UPDATE observation 
+                SET status='%s' 
+                WHERE obs_id=%s
+                """,
+                (status.lower(), obs_id, )
+               )
+    conn.commit()
+    con.close()
+
 
 def require(args, reqlist):
     """
@@ -65,6 +89,10 @@ def require(args, reqlist):
         if isinstance(args.__dict__[r], str) and 'date +%s' in args.__dict__[r]:
             args.__dict__[r] = args.__dict__[r].replace('date +%s', 'NOW()')
             
+        if r == 'status' and r.lower() not in OBS_STATUS:
+            print "Observation status {0} is not in the allowed list {1}".format(args.__dict__[r], OBS_STATUS)
+            sys.exit()
+
     return True
 
 
@@ -88,6 +116,7 @@ if __name__ == "__main__":
     ps.add_argument('--obs_id', type=int, help='observation id', default=None)
     ps.add_argument('--stderr', type=str, help='standard error log', default=None)
     ps.add_argument('--stdout', type=str, help='standard out log', default=None)
+    ps.add_argument('--status', type=str, help='observation status, must belong to {0}'.format(OBS_STATUS), default=None)
 
     args = ps.parse_args()
 
@@ -101,16 +130,25 @@ if __name__ == "__main__":
     if args.directive.lower() == 'queue':
         require(args, ['jobid', 'taskid', 'host_cluster', 'submission_time', 'obs_id', 'user', 'batch_file', 'stderr', 'stdout', 'task'])
         queue_job(args.jobid, args.taskid, args.host_cluster, args.submission_time, args.obs_id, args.user, args.batch_file, args.stderr, args.stdout, args.task)
+    
     elif args.directive.lower() == 'start':
         require(args, ['jobid', 'taskid', 'host_cluster', 'start_time'])
         start_job(args.jobid, args.taskid, args.host_cluster, args.start_time)
+    
     elif args.directive.lower() == 'finish':
         require(args, ['jobid', 'taskid', 'host_cluster', 'finish_time'])
         finish_job(args.jobid, args.taskid, args.host_cluster, args.finish_time)
+    
     elif args.directive.lower() == 'fail':
         require(args, ['jobid', 'taskid', 'host_cluster', 'finish_time'])
         fail_job(args.jobid, args.taskid, args.host_cluster, args.finish_time)
+    
+    elif args.directive.lower() == 'obs_status':
+        require(args, ['obs_id','status'])
+        observation_status(args.obs_id, args.status)
+    
     elif args.directive.lower() == 'test_db':
         test_db()
+    
     else:
         print "I don't know what you are asking; please include a queue/start/finish/fail directive"
