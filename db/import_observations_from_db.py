@@ -3,9 +3,9 @@ import urllib2
 import json
 import sys
 import os
+import time
 import numpy as np
 import argparse
-import sqlite3
 import mysql_db as mdb
 
 __author__ = ["PaulHancock",
@@ -18,7 +18,7 @@ BASEURL = 'http://ws.mwatelescope.org/metadata/'
 dbconn = mdb.connect()
 
 # Function to call a JSON web service and return a dictionary: This function by Andrew Williams
-def getmeta(service='obs', params=None):
+def getmeta(service='obs', params=None, failed=0):
     """
     Given a JSON web service ('obs', find, or 'con') and a set of parameters as
     a Python dictionary, return a Python dictionary containing the result.
@@ -38,8 +38,13 @@ def getmeta(service='obs', params=None):
         print BASEURL + service + '?' + data
         result = json.load(urllib2.urlopen(BASEURL + service + '?' + data))
     except urllib2.HTTPError as error:
-        print "HTTP error from server: code=%d, response:\n %s" % (error.code, error.read())
-        return
+        if failed <= 3:
+            time.sleep(3)
+            print 'Retrying...'
+            return getmeta(service=service, params=params, failed=failed+1)
+        else:
+            print "HTTP error from server: code=%d, response:\n %s" % (error.code, error.read())
+            return
     except urllib2.URLError as error:
         print "URL or network error: %s" % error.reason
         return
@@ -65,16 +70,16 @@ def copy_obs_info(obsid, cur):
     cenchan, freq_res, int_time, delays,
     calibration, cal_obs_id, calibrators,
     peelsrcs, flags, selfcal, ion_phs_med, ion_phs_peak, ion_phs_std,
-    nfiles, archived
+    nfiles, archived, status
     )
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
     """, (
     obsid, meta['projectid'], metadata['local_sidereal_time_deg'], meta['starttime'], meta['stoptime']-meta['starttime'], meta['obsname'], meta['creator'],
     metadata['azimuth_pointing'], metadata['elevation_pointing'], metadata['ra_pointing'], metadata['dec_pointing'],
     meta["rfstreams"]["0"]['frequencies'][12], meta['freq_res'], meta['int_time'], json.dumps(meta["rfstreams"]["0"]["xdelays"]),
     metadata['calibration'], None, metadata['calibrators'],
     None, None, None, None, None, None,
-    len(meta['files']), False))
+    len(meta['files']), False, 'unprocessed'))
     #update_observation(obsid, meta['obsname'], cur)
     return
 
@@ -96,10 +101,12 @@ if __name__ == "__main__":
 
 
     cur = dbconn.cursor()
-    for obs_id in ids:
+    for count, obs_id in enumerate(ids):
         # A numpy int64 is not the same as a python int, and 
         # mysql connector gets a little upset. 
+        print '{0}) {1}'.format(count, obs_id)
         copy_obs_info(int(obs_id),cur)
+        dbconn.commit()
 
     dbconn.commit()
     dbconn.close()
