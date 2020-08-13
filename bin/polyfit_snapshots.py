@@ -53,8 +53,8 @@ if os.path.exists(results.filelist):
     f.close()
     concat_table = results.filelist.replace(".txt", "_concat.fits")
     title = results.filelist.replace(".txt","")
-    dec_plot = results.filelist.replace(".txt", "fitted_dec_poly.png")
-    ra_plot = results.filelist.replace(".txt", "fitted_ra_poly.png")
+    dec_plot = results.filelist.replace(".txt", "_fitted_dec_poly.png")
+    ra_plot = results.filelist.replace(".txt", "_fitted_ra_poly.png")
 else:
     print(results.filelist)
     print("Must specify a list of files to read!")
@@ -201,7 +201,7 @@ if results.make_plots is True:
     may = np.ma.masked_array(y, mask=np.ma.getmask(maw))
     ax.set_ylim([np.ma.min(may), np.ma.max(may)])
 
-    fitplot.savefig("fitted_dec_poly.png", bbox_inches="tight")
+    fitplot.savefig(dec_plot, bbox_inches="tight")
 
 # RA plot after Dec correction
     w = f[good][indices]/r[good][indices]
@@ -228,7 +228,7 @@ if results.make_plots is True:
     may = np.ma.masked_array(y, mask=np.ma.getmask(maw))
     ax.set_ylim([np.ma.min(may), np.ma.max(may)])
 
-    fitplot.savefig("fitted_ra_poly.png", bbox_inches="tight")
+    fitplot.savefig(ra_plot, bbox_inches="tight")
 
 if results.do_rescale is True:
     for fitsimage in infiles:
