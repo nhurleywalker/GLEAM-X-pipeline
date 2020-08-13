@@ -82,4 +82,4 @@ test_fail $?
 
 cd ${base}
 track_task.py finish --jobid=${SLURM_JOBID} --finish_time=`date +%s`
-
+track_task.py obs_status --obs_id=${obsnum} --status='calibrated'

@@ -169,6 +169,7 @@ wsclean $multiscale \
 
 test_fail $?
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+track_task.py obs_status --obs_id=${obsnum} --status='imaged'
 
 ### TODO fix wsclean2gleam.py so it more cleverly handles lack of polarisation
 # Rename files
