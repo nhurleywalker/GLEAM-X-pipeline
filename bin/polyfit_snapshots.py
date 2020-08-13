@@ -13,6 +13,8 @@ import os
 import sys
 import glob
 
+import matplotlib
+matplotlib.use('Agg') # Avoid using the display on supercomputers
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
