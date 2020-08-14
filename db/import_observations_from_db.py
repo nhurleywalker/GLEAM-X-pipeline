@@ -31,22 +31,22 @@ def getmeta(service='obs', params=None, failed=0):
     if service.strip().lower() in ['obs', 'find', 'con']:
         service = service.strip().lower()
     else:
-        print "invalid service name: %s" % service
+        print "\tinvalid service name: %s" % service
         return
     # Get the data
     try:
-        print BASEURL + service + '?' + data
+        print "\t" + BASEURL + service + '?' + data
         result = json.load(urllib2.urlopen(BASEURL + service + '?' + data))
     except urllib2.HTTPError as error:
         if failed <= 3:
             time.sleep(3)
-            print 'Retrying...'
+            print '\tRetrying...'
             return getmeta(service=service, params=params, failed=failed+1)
         else:
-            print "HTTP error from server: code=%d, response:\n %s" % (error.code, error.read())
+            print "\tHTTP error from server: code=%d, response:\n %s" % (error.code, error.read())
             return
     except urllib2.URLError as error:
-        print "URL or network error: %s" % error.reason
+        print "\tURL or network error: %s" % error.reason
         return
     # Return the result dictionary
     return result
@@ -55,11 +55,11 @@ def getmeta(service='obs', params=None, failed=0):
 def copy_obs_info(obsid, cur):
     cur.execute("SELECT count(*) FROM observation WHERE obs_id = %s",(obsid,))
     if cur.fetchone()[0] > 0:
-        print "Obsid `{0}` is already imported.".format(obsid)
+        print "\tObsid `{0}` is already imported.".format(obsid)
         return
     meta = getmeta(service='obs', params={'obs_id':obsid})
     if meta is None:
-        print obsid, "has no metadata!"
+        print "\t{0} has no metadata!".format(obsids)
         return
     metadata = meta['metadata']
     
@@ -84,10 +84,19 @@ def copy_obs_info(obsid, cur):
     return
 
 
+def check_obsids(cur):
+    """Return a list of all obsids currently saved in the database
+    """
+    cur.execute("""
+                SELECT obs_id FROM observation
+                """)
+    return [o[0] for o in cur.fetchall()]
+
 if __name__ == "__main__":
 
     ps = argparse.ArgumentParser(description='add observations to database')
     ps.add_argument('--obsids', type=str, help='List of obsids to import; format of file ("txt": single-column text file of obsids; "csv": (optionally multi-column) comma-separated file with a header starting with # and a column labelled obsid; "meta": download from the online MWA metadatabase.', default=None)
+    ps.add_argument('-s', '--skip-existing', action='store_true', default=False, help='pull down a list of obsids initially and remove already known ids before attempting to download meta-data')
 
     args = ps.parse_args()
 
@@ -99,8 +108,15 @@ if __name__ == "__main__":
             print "Other file formats not yet enabled."
             sys.exit(1)
 
-
+    
     cur = dbconn.cursor()
+    
+    # Skip the existing obs_ids that are in the observation table
+    if args.skip_existing:
+        existing_obs = check_obsids(cur)
+        ids = list( set(ids) - set(existing_obs) )
+
+    print '\n{0} obs_ids to download... '.format(len(ids))
     for count, obs_id in enumerate(ids):
         # A numpy int64 is not the same as a python int, and 
         # mysql connector gets a little upset. 
