@@ -45,7 +45,7 @@ fi
 
 
 # Would this actually be picked up by the slurm jobs?
-export HOST_CLUSTER=cluster
+export HOST_CLUSTER=$cluster
 
 export PATH=${PATH}:/group/mwasci/$USER/bin/:/group/mwasci/$USER/GLEAM-X-pipeline/bin
 export PYTHONPATH=$PYTHONPATH:/group/mwasci/$USER/lib/python2.7/site-packages/:~/lib/
