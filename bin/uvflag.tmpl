@@ -48,3 +48,6 @@ else
         echo "No baselines to flag."
     fi
 fi
+
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+
