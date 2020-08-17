@@ -9,7 +9,7 @@ import mysql_db as mdb
 import numpy as np
 import argparse
 
-from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import Pool
 
 from populate_sources_table import Source
 from check_src_fov import check_coords
@@ -71,13 +71,30 @@ def get_obs(cur, obs_id = None):
         
     else:
         cur.execute("""
-                    SELECT obs_id, ra_pointing, dec_pointing, cenchan, starttime, delays "
+                    SELECT obs_id, ra_pointing, dec_pointing, cenchan, starttime, delays 
                     FROM observation WHERE obs_id = %s 
                     """, 
                     (obs_id, ))
 
         
     return cur.fetchall()
+
+
+def get_all_obsids():
+    """Helper function to create a single database connection to get all obsids
+    from the database without reinventing the whell. The database connection is
+    killed to ensure no funny business with the multi-processing. 
+    """
+    conn = mdb.connect()
+    cur = conn.cursor()
+
+    print 'Getting all obsids from the user database...'
+    obsids = get_obs(cur)
+    print '...{0} obsids found'.format(len(obsids))
+
+    return [o[0] for o in obsids]
+
+
 
 def create_wcs(ra, dec, cenchan):
     """Creates a fake WCS header to generate a MWA primary beam response
@@ -106,7 +123,7 @@ def check_for_obsid(cur, obsid):
     into the database if they are not there
     """
     cur.execute("""
-                SELECT count(*) FROM calapparent WHERE obsid = %s
+                SELECT count(*) FROM calapparent WHERE obs_id = %s
                 """,
                 (obsid, ))
     results = list(cur.fetchall()) 
@@ -114,7 +131,7 @@ def check_for_obsid(cur, obsid):
     return False if len(results) == 0 else True
 
 
-def insert_sources_obsid(obsid):
+def insert_sources_obsid(obsid, force_update=True):
     """Insert the apparent brightness of each source into the database for the 
     provided obsid
     """
@@ -126,14 +143,19 @@ def insert_sources_obsid(obsid):
     cur = conn.cursor()
 
     # No need to do anything further if the obsid is already in the databvase
-    if check_for_obsid(cur, obsid):
+    if check_for_obsid(cur, obsid) and not force_update:
+        print 'Obsids already found for obsid {0}. Skipping.'.format(obsid)
         conn.close()
         return
 
     obs_details = list(get_obs(cur, obs_id=obsid))[0]
 
+    print '{0}'.format(obsid)
+
     # Get list of sources
-    srclist = [Source(obs_details[0],SkyCoord(obs_details[1],obs_details[2],unit=u.deg),obs_details[3],obs_details[4],obs_details[5]) for row in get_srcs(cur)]
+    srclist = [Source(src[0],SkyCoord(src[1], src[2],unit=u.deg), src[3], src[4], src[5]) for src in get_srcs(cur)]
+
+    print '\t{0} sources to check'.format(len(srclist))
 
     # Create the WCS to create/evaluate the FEE beam
     w = create_wcs(obs_details[1], 
@@ -164,27 +186,40 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Calculates and stores the apparent brightness of sources (stored in the GLEAM-X database)")
     parser.add_argument('-f', '--file', nargs=1, default=None, help='A text file of obsids to check')
-    parser.add_argument('-o', '--obdsid', nargs=1, default=None, help='A single obsid to check')
-    parser.add_argument('-p', '--processes', nargs=1, default=1, help='How many parallel jobs to execute.')
+    parser.add_argument('-o', '--obsid', nargs=1, default=None, help='A single obsid to check')
+    parser.add_argument('-a', '--all-obsids', default=False, action='store_true', help='Calculate apparent of sources for all known obsids')
+    parser.add_argument('-p', '--processes', default=1, type=int, help='How many parallel jobs to execute.')
+    parser.add_argument('-u', '--force-update', default=False, action='store_true', help='Force the insertion of an apparent brightness for all sources for all obsids')
 
     args = parser.parse_args()
 
-    if args.file is None and args.obsid is None:
-        print 'Either `file` or `obsid` has to be set. Exiting. '
+    if all([args.file is None, args.obsid is None, args.all_obsids is False]):
+        print 'Either `file`, `obsid` or `all-obsids` has to be set. Exiting. '
         sys.exit(1)
 
     if args.file is not None:
         obsids = [int(i.strip()) for i in open(sys.argx[1], 'r')]
-    else:
+    elif args.obsid is not None:
         obsids = (int(args.obsid), )
+    else:
+        obsids = get_all_obsids()
+
+    print '{0} obsids to process'.format(len(obsids))
 
     if args.processes == 1:
         for obsid in obsids:
-            insert_sources_obsid(obsid)
+            insert_sources_obsid(obsid, force_update=args.force_update)
 
     else:
-        with ProcessPoolExecutor(max_workers=args.processes) as pool:
-            pool.map(insert_sources_obsid, obsids, chunksize=len(obsids)//args.processes//4)
+        print '\nAttempting with {0} spawned processes'.format(args.processes)
+        
+        # Because the `map` only takes an iterable and because everything in 
+        # python is an object, wrap up what we need
+        def worker(x): 
+            insert_sources_obsid(x, force_update=args.force_update)
+        
+        pool = Pool(processes=args.processes)
+        pool.map(worker, obsids)
 
 
     # # TODO: Add a proper argument parser
