@@ -227,7 +227,7 @@ if __name__ == "__main__":
     else:
         print '\nAttempting with {0} spawned processes'.format(args.processes)
         print '\nWARNING: There appears to be some con-currency issues while reading the HDF5 files for the FEE. '
-        
+
         # Because the `map` only takes an iterable and because everything in 
         # python is an object, wrap up what we need
         def worker(x): 
@@ -236,17 +236,4 @@ if __name__ == "__main__":
         pool = Pool(processes=args.processes)
         pool.map(worker, obsids)
 
-
-    # # TODO: Add a proper argument parser
-    # if len(sys.argv) == 1:
-    #     print 'Getting all obsids from the user database...'
-    #     obsids = get_obs(cur)
-    #     print '...{0} obsids found'.format(len(obsids))
-    # else:
-    #     print 'Reading obsids from {0}...'.format(sys.argv[1])
-    #     obsids = [int(i.strip()) for i in open(sys.argv[1], 'r')]
-    #     print '...{0} obsids found'.format(len(obsids))
-
-    #     # This could be done with one call with a change to the SQL WHERE IN
-    #     obsids = [list(get_obs(cur, obs_id=i))[0] for i in obsids]
 
