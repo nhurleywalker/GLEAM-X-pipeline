@@ -53,6 +53,7 @@ def get_srcs(cur):
                          """)
     return cur.fetchall()
 
+
 def get_obs(cur, obs_id = None):
     """
     Return a set of rows from the `observations` table. 
@@ -84,6 +85,9 @@ def get_all_obsids():
     """Helper function to create a single database connection to get all obsids
     from the database without reinventing the whell. The database connection is
     killed to ensure no funny business with the multi-processing. 
+
+    Returns:
+        {list} -- a iterable with each element being an int
     """
     conn = mdb.connect()
     cur = conn.cursor()
@@ -116,19 +120,23 @@ def create_wcs(ra, dec, cenchan):
     w.wcs.cunit = ["deg","deg"]
     w._naxis1 = 8000
     w._naxis2 = 8000
+    
     return w
 
 def check_for_obsid(cur, obsid):
     """For the given obsid calculate the apparent flux of sources and insert them
     into the database if they are not there
     """
+    
     cur.execute("""
                 SELECT count(*) FROM calapparent WHERE obs_id = %s
                 """,
                 (obsid, ))
     results = list(cur.fetchall()) 
     
-    return False if len(results) == 0 else True
+    # TODO: Update to make sure that the number of results matches the number
+    # of unique sources in the source table
+    return False if results[0][0] == 0 else True
 
 
 def insert_sources_obsid(obsid, force_update=True):
@@ -155,7 +163,7 @@ def insert_sources_obsid(obsid, force_update=True):
     # Get list of sources
     srclist = [Source(src[0],SkyCoord(src[1], src[2],unit=u.deg), src[3], src[4], src[5]) for src in get_srcs(cur)]
 
-    print '\t{0} sources to check'.format(len(srclist))
+    # print '\t{0} sources to check'.format(len(srclist))
 
     # Create the WCS to create/evaluate the FEE beam
     w = create_wcs(obs_details[1], 
@@ -163,20 +171,26 @@ def insert_sources_obsid(obsid, force_update=True):
                   obs_details[3])
     t = Time(int(obs_details[4]), format='gps')
     freq = 1.28 * obs_details[3]
-        
-    for src in srclist:
-        # Delays are stored as a string by json
-        xx, yy = beam_value(src.pos.ra.deg, src.pos.dec.deg, t, json.loads(obs_details[5]), freq*1.e6)
-        
+    
+    xx_srcs, yy_srcs = beam_value(
+                        [s.pos.ra.deg for s in srclist], 
+                        [s.pos.dec.deg for s in srclist], 
+                        t, 
+                        json.loads(obs_details[5]), 
+                        freq*1.e6
+                    )
+
+    for xx, yy, src in zip(xx_srcs, yy_srcs, srclist):
+              
         # Ignoring spectral curvature parameter for now
         appflux = src.flux * ( (freq / 150.)**(src.alpha) ) * (xx+yy)/2.
         if np.isnan(appflux):
             appflux = 0.0
         
-        print obsid, obs_details[0], src.name, appflux, check_coords(w, src.pos)
+        # print obsid, obs_details[0], src.name, appflux, check_coords(w, src.pos)
         
-        insert_app(obs_details[0], src.name, float(appflux), check_coords(w, src.pos), cur)
-    
+        insert_app(obs_details[0], src.name, float(appflux), check_coords(w, src.pos), cur)              
+
     conn.commit()
     conn.close()
 
@@ -212,6 +226,7 @@ if __name__ == "__main__":
 
     else:
         print '\nAttempting with {0} spawned processes'.format(args.processes)
+        print '\nWARNING: There appears to be some con-currency issues while reading the HDF5 files for the FEE. '
         
         # Because the `map` only takes an iterable and because everything in 
         # python is an object, wrap up what we need
