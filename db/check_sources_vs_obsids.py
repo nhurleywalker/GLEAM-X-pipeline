@@ -5,6 +5,7 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.time import Time
 import astropy.units as u
+from astopy.table import Table
 import json
 import mysql_db as mdb
 import numpy as np
@@ -23,11 +24,6 @@ __author__ = ["Natasha Hurley-Walker",
 NO_SRCS = 7 # Number of unique sources in the database. 
             # TODO: Make this something derived from the database
 
-try:
-    MODELS = '{0}/anoko/mwa-reduce/models'.format(os.environ['MWA_CODE_BASE'])
-except KeyError:
-    print 'Missing `MWA_CODE_BASE` variable. Exiting. '
-    sys.exit(1)
 
 def create_conn_cur():
     """Creates a database connection and cursor object
@@ -40,6 +36,7 @@ def create_conn_cur():
     cur = conn.cursor()
 
     return conn, cur
+
 
 def insert_app(obs_id, source, appflux, infov, cur):
     """Saves the apparent flux of known sources based on the observation pointing
@@ -216,7 +213,38 @@ def insert_sources_obsid(obsid, force_update=False):
     conn.close()
 
 
-def check_obsid_peel(obsid, local_sky, check_exists=True):
+def create_peel_model(sources):
+    """Creates the mode to be used by calibrate to peel out sources from 
+    parts of the visibility data. Assumes access to the GLEAM-X sky model.  
+    
+    Arguments:
+        sources {Iterable} -- an iterable of known sources (identified by their name) that need to be peeled. 
+    """
+    # Do the things
+    return ''
+
+
+def update_db_with_peeled(obsid, sources, curr):
+    """Update the observation table to record which sources were peeled. 
+    
+    Arguments:
+        obsid {int} -- observation id to update
+        sources {int} -- the list of peeled sources to insert
+        curr {mysql.connector.Cursor} -- an activate cursor to use
+    """
+    curr.execute(
+            """
+            UPDATE observation
+            SET peelsrcs=%s
+            WHERE obs_id=%s
+            """,
+            (sources, obsid)
+        )
+    curr.commit()
+
+
+
+def check_obsid_peel(obsid, local_sky, check_exists=True, min_threshold=0.):
     """Check to see whether a specified obsid has sources that need to be peeled
     
     Arguments:
@@ -225,6 +253,7 @@ def check_obsid_peel(obsid, local_sky, check_exists=True):
 
     Keyword Arguments:
         check_exists {bool} -- will sanity check and ensure that an `obsid` is in `calapparent` table (default: {True})
+        min_threshold {float} -- minimum flux to have before bothering with attempting to peel (default: {0.0})
 
     Returns:
     TODO
@@ -238,17 +267,22 @@ def check_obsid_peel(obsid, local_sky, check_exists=True):
     # Get the brightness of known / scary sources
     cur.execute(
             """
-            SELECT * 
+            SELECT source, appflux 
             FROM calapparent
             WHERE obs_id = %s and infov=0
             """,
             (obsid, )
         )
 
-    peel_sources = cur.fetchall()
+    peel_sources = Table(
+                       rows=list(cur.fetchall()),
+                       names=['source', 'appflux']
+                    )
 
     # TODO: No point going further if all known sources are sufficently faint
-
+    if max(peel_sources['appflux']) < min_threshold:
+        print 'No known bright sources require peeling. '
+        return
 
     # Compute the FEE beam
     obs_details = list(get_obs(cur, obs_id=obsid))[0]
@@ -266,12 +300,15 @@ def check_obsid_peel(obsid, local_sky, check_exists=True):
                         freq*1.e6
                     )
 
-    #TODO: Add a minimum threshold to check
-
     local_sky['obs_flux'] = local_sky['S_200'] * (freq / 200.)**(local_sky['alpha']) * (xx_srcs + yy_srcs)/2
 
-    peel_srcs = max(local_sky['obs_flux']) < peel_sources['appflux']
+    peel_mask = max(local_sky['obs_flux']) < peel_sources['appflux']
 
+    if np.sum(peel_mask) > 0:
+        print peel_sources['source'][peel_mask]
+        model = create_peel_model(peel_sources['source'][peel_mask])
+
+        return 
 
 
 if __name__ == "__main__":
@@ -325,8 +362,12 @@ if __name__ == "__main__":
     # Can not provide more than one obsid to look at at this time. 
     # can't see in pipeline when any more than one would be needed. 
     elif len(obdsids) == 1:
-        pass
+        components = Table.read(args.peel_check)
+
+        print 'Loaded {0} table, with shape {1} components'.format(args.peel_check, len(components))
     
+        check_obsid_peel(obsids[0], components)
+
     # Something went wrong, we shall end it here
     else:
         print '`--peel-check` ({0}) and provided obsids ({1}) appears misconfigured.'.format(args.peel_check, obsids)
