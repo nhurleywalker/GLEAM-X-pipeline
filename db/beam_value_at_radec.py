@@ -37,21 +37,25 @@ def beam_value(ra, dec, t, delays, freq, pol='i', interp=True):
     theta = (pi/2) - altaz.alt.rad # [up]
     phi = altaz.az.rad #[up]
 
-# Test if more than one RA and Dec value has been specified
+    # Test if more than one RA and Dec value has been specified
     if not hasattr(theta,"__getitem__"):
        theta = [theta]
        phi = [phi]
 
-    #rX,rY=mwapy.pb.primary_beam.MWA_Tile_full_EE(theta, phi,
-    rX,rY=MWA_Tile_full_EE([theta], [phi],
-          freq=freq, delays=delays,
-          zenithnorm=True, power=True,
-          interp=interp)
+    rX,rY=MWA_Tile_full_EE(
+                    [theta], 
+                    [phi],
+                    freq=freq, 
+                    delays=delays,
+                    zenithnorm=True, 
+                    power=True,
+                    interp=interp
+                )
 
     return np.squeeze(rX), np.squeeze(rY)
 
 def parse_metafits(metafits):
-# Delays needed for beam model calculation
+    # Delays needed for beam model calculation
     try:
         f = fits.open(metafits)
     except Exception,e:
@@ -60,19 +64,21 @@ def parse_metafits(metafits):
     if not 'DELAYS' in f[0].header.keys():
         logger.error('Cannot find DELAYS in %s' % options.metafits)
         sys.exit(1)
+
     delstr=f[0].header['DELAYS'].split(",")
     delays = [int(e) for e in delstr]
 
-# get the date so we can convert to Az,El
+    # get the date so we can convert to Az,El
     try:
         d = f[0].header['DATE-OBS']
     except:
         logger.error('Unable to read observation date DATE-OBS from %s' % filename)
         return None
+    
     t = Time(d, format='isot', scale='utc')
 
-# Just use the central frequency
-# Nice update would be to use the whole bandwidth and calculate spectral term
+    # Just use the central frequency
+    # Nice update would be to use the whole bandwidth and calculate spectral term
     try:
         freq = f[0].header['FREQCENT'] * 1000000.
     except:

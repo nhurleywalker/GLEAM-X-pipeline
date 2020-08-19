@@ -1,3 +1,4 @@
+import os
 import sys
 from astropy.coordinates import SkyCoord
 from astropy import wcs
@@ -17,6 +18,28 @@ from beam_value_at_radec import beam_value
 
 __author__ = ["Natasha Hurley-Walker",
               "Tim Galvin"]
+
+
+NO_SRCS = 7 # Number of unique sources in the database. 
+            # TODO: Make this something derived from the database
+
+try:
+    MODELS = '{0}/anoko/mwa-reduce/models'.format(os.environ['MWA_CODE_BASE'])
+except KeyError:
+    print 'Missing `MWA_CODE_BASE` variable. Exiting. '
+    sys.exit(1)
+
+def create_conn_cur():
+    """Creates a database connection and cursor object
+
+    Returns:
+        {mysql.connector.Connection} -- an open connection to the database
+        {mysql.connector.Cursor} -- a cursor object read for work
+    """
+    conn = mdb.connect()
+    cur = conn.cursor()
+
+    return conn, cur
 
 def insert_app(obs_id, source, appflux, infov, cur):
     """Saves the apparent flux of known sources based on the observation pointing
@@ -99,7 +122,6 @@ def get_all_obsids():
     return [o[0] for o in obsids]
 
 
-
 def create_wcs(ra, dec, cenchan):
     """Creates a fake WCS header to generate a MWA primary beam response
 
@@ -123,6 +145,7 @@ def create_wcs(ra, dec, cenchan):
     
     return w
 
+
 def check_for_obsid(cur, obsid):
     """For the given obsid calculate the apparent flux of sources and insert them
     into the database if they are not there
@@ -134,21 +157,25 @@ def check_for_obsid(cur, obsid):
                 (obsid, ))
     results = list(cur.fetchall()) 
     
-    # TODO: Update to make sure that the number of results matches the number
-    # of unique sources in the source table
-    return False if results[0][0] == 0 else True
+    return True if results[0][0] == NO_SRCS else False
 
 
-def insert_sources_obsid(obsid, force_update=True):
+def insert_sources_obsid(obsid, force_update=False):
     """Insert the apparent brightness of each source into the database for the 
-    provided obsid
+    provided obsid. By default, if it is detected that the obsid is already entered
+    then the sources will not be entered into the database. 
+
+    Arguments:
+        obsid {int} -- observation ID number to inspection
+
+    Keywork Arguments:
+        force_update {bool} -- Perform check and database insert even is obsid has already been processed
     """
     if not isinstance(obsid, int):
         print 'Expected type `int` for obsid, received {0}'.format(type(obsid))
         return
     
-    conn = mdb.connect()
-    cur = conn.cursor()
+    conn, cur = create_conn_cur()
 
     # No need to do anything further if the obsid is already in the databvase
     if check_for_obsid(cur, obsid) and not force_update:
@@ -158,12 +185,8 @@ def insert_sources_obsid(obsid, force_update=True):
 
     obs_details = list(get_obs(cur, obs_id=obsid))[0]
 
-    print '{0}'.format(obsid)
-
     # Get list of sources
     srclist = [Source(src[0],SkyCoord(src[1], src[2],unit=u.deg), src[3], src[4], src[5]) for src in get_srcs(cur)]
-
-    # print '\t{0} sources to check'.format(len(srclist))
 
     # Create the WCS to create/evaluate the FEE beam
     w = create_wcs(obs_details[1], 
@@ -187,12 +210,67 @@ def insert_sources_obsid(obsid, force_update=True):
         if np.isnan(appflux):
             appflux = 0.0
         
-        # print obsid, obs_details[0], src.name, appflux, check_coords(w, src.pos)
-        
         insert_app(obs_details[0], src.name, float(appflux), check_coords(w, src.pos), cur)              
 
     conn.commit()
     conn.close()
+
+
+def check_obsid_peel(obsid, local_sky, check_exists=True):
+    """Check to see whether a specified obsid has sources that need to be peeled
+    
+    Arguments:
+        obsid {int} -- the observation id to inspect
+        local_sky {astropy.table.Table} -- table with columns following the GLEAM-X sky model definition.  
+
+    Keyword Arguments:
+        check_exists {bool} -- will sanity check and ensure that an `obsid` is in `calapparent` table (default: {True})
+
+    Returns:
+    TODO
+    """
+    # Compute brightness of known sources if necessary
+    if check_exists:
+        insert_sources_obsid(obsid)
+
+    conn, cur = create_conn_cur()
+
+    # Get the brightness of known / scary sources
+    cur.execute(
+            """
+            SELECT * 
+            FROM calapparent
+            WHERE obs_id = %s and infov=0
+            """,
+            (obsid, )
+        )
+
+    peel_sources = cur.fetchall()
+
+    # TODO: No point going further if all known sources are sufficently faint
+
+
+    # Compute the FEE beam
+    obs_details = list(get_obs(cur, obs_id=obsid))[0]
+    w = create_wcs(obs_details[1], 
+                  obs_details[2],
+                  obs_details[3])
+    t = Time(int(obs_details[4]), format='gps')
+    freq = 1.28 * obs_details[3]
+
+    xx_srcs, yy_srcs = beam_value(
+                        local_model['RAJ2000'],
+                        local_model['DEJ2000'], 
+                        t, 
+                        json.loads(obs_details[5]), 
+                        freq*1.e6
+                    )
+
+    #TODO: Add a minimum threshold to check
+
+    local_sky['obs_flux'] = local_sky['S_200'] * (freq / 200.)**(local_sky['alpha']) * (xx_srcs + yy_srcs)/2
+
+    peel_srcs = max(local_sky['obs_flux']) < peel_sources['appflux']
 
 
 
@@ -202,15 +280,18 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--file', nargs=1, default=None, help='A text file of obsids to check')
     parser.add_argument('-o', '--obsid', nargs=1, default=None, help='A single obsid to check')
     parser.add_argument('-a', '--all-obsids', default=False, action='store_true', help='Calculate apparent of sources for all known obsids')
-    parser.add_argument('-p', '--processes', default=1, type=int, help='How many parallel jobs to execute.')
+    parser.add_argument('-p', '--processes', default=1, type=int, help='How many parallel jobs to execute. Placeholder until hdf5 concurrent reads figured out.')
     parser.add_argument('-u', '--force-update', default=False, action='store_true', help='Force the insertion of an apparent brightness for all sources for all obsids')
+    parser.add_argument('-c', '--peel-check', nargs=1, default=False, help='Return a log of objects that need to be peeled. Only relevant for when a single `obsid` is provided (whether via argument of via file)/')
 
     args = parser.parse_args()
 
+    # Some sanity checks
     if all([args.file is None, args.obsid is None, args.all_obsids is False]):
         print 'Either `file`, `obsid` or `all-obsids` has to be set. Exiting. '
         sys.exit(1)
 
+    # Configure the obsids to process
     if args.file is not None:
         obsids = [int(i.strip()) for i in open(sys.argx[1], 'r')]
     elif args.obsid is not None:
@@ -220,20 +301,34 @@ if __name__ == "__main__":
 
     print '{0} obsids to process'.format(len(obsids))
 
-    if args.processes == 1:
-        for obsid in obsids:
-            insert_sources_obsid(obsid, force_update=args.force_update)
+    # When no peeling is needed, can process all ids as specified
+    if args.peel_check is False:
+        if args.processes == 1:
+            for count, obsid in enumerate(obsids):
+                print '{0}) {1}'.format(count+1, obsid)
+                insert_sources_obsid(obsid, force_update=args.force_update)
 
+        else:
+            print '\nAttempting with {0} spawned processes'.format(args.processes)
+            print '\nWARNING: There appears to be some con-currency issues while reading the HDF5 files for the FEE. '
+
+            sys.exit(1)
+
+            # Because the `map` only takes an iterable and because everything in 
+            # python is an object, wrap up what we need
+            def worker(x): 
+                insert_sources_obsid(x, force_update=args.force_update)
+            
+            pool = Pool(processes=args.processes)
+            pool.map(worker, obsids)
+
+    # Can not provide more than one obsid to look at at this time. 
+    # can't see in pipeline when any more than one would be needed. 
+    elif len(obdsids) == 1:
+        pass
+    
+    # Something went wrong, we shall end it here
     else:
-        print '\nAttempting with {0} spawned processes'.format(args.processes)
-        print '\nWARNING: There appears to be some con-currency issues while reading the HDF5 files for the FEE. '
-
-        # Because the `map` only takes an iterable and because everything in 
-        # python is an object, wrap up what we need
-        def worker(x): 
-            insert_sources_obsid(x, force_update=args.force_update)
-        
-        pool = Pool(processes=args.processes)
-        pool.map(worker, obsids)
-
+        print '`--peel-check` ({0}) and provided obsids ({1}) appears misconfigured.'.format(args.peel_check, obsids)
+        sys.exit(1)
 
