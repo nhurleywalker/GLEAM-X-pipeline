@@ -30,11 +30,11 @@ group1.add_argument('--filelist',dest="filelist",default=None,
 group1.add_argument('--skymodel',dest="skymodel",default=None,
                   help="Sky model to cross-match to (no default)")
 group2 = parser.add_argument_group("Control options")
-group2.add_argument('--Nsrc',dest="Nsrc",default=10000,type=int,
+group2.add_argument('--nsrc',dest="nsrc",default=10000,type=int,
                   help="Number of sources to use for the polynomial fit (default=10000)")
 group2.add_argument('--threshold',dest="SNR_threshold",default=None,type=int,
                   help="Alternatively, set a S/N threshold for sources used for \
-                        the polynomial fit (will override --Nsrc if set)")
+                        the polynomial fit (will override --nsrc if set)")
 group2.add_argument('--order',dest="poly_order",default=5,type=int,
                   help="Set the order of the polynomial fit. (default = 5)")
 group2.add_argument('--ra',action="store_true",dest="correct_ra",default=False,
@@ -172,7 +172,7 @@ alpha = alphas[ind]
 # Get the highest S/N measurements
 if results.SNR_threshold is None:
     SNR = sorted(f /r, reverse=True)
-    threshold = SNR[results.Nsrc]
+    threshold = SNR[results.nsrc]
 else:
     threshold = results.SNR_threshold
 
@@ -190,7 +190,7 @@ P_dec,res,rank,sv,cond = np.polyfit(np.array(d[good][indices]),np.array(c[good][
 decmodel = np.poly1d(P_dec)
 
 if results.write_coefficients is True:
-    numpy.savetxt(dec_coeff, P_dec, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
+    np.savetxt(dec_coeff, P_dec, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
 
 # Now that we have accumulated Dec, apply the polynomials to the concatenated catalogue, and then fit over RA
 new_int_fluxes = int_fluxes * 10**(decmodel(decs))
@@ -210,7 +210,7 @@ if results.correct_ra is True:
     P_ra, res, rank, sv,cond = np.polyfit(np.array(h[good][indices]),np.array(new_c[good][indices]), results.poly_order, full=True, w = f[good][indices]/r[good][indices])
     ramodel = np.poly1d(P_ra)
     if results.write_coefficients is True:
-        numpy.savetxt(ra_coeff, P_ra, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
+        np.savetxt(ra_coeff, P_ra, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
 
     final_int_fluxes = new_int_fluxes * 10**(ramodel(ra_offs))
     final_logratios = np.log10(S200s*(centfreq/200.)**alphas / final_int_fluxes)
@@ -222,31 +222,32 @@ else:
     final_f = new_f
 
 # Save the results as a FITS table
-t = Table([h, a, d, f, new_f, final_f, r, S200, alpha, c, new_c[ind], final_logratios[ind]], names = ("RA_offset", "RA", "Dec", "flux", "flux_after_dec_corr", "flux_after_full_corr", "local_rms", "S_200", "alpha", "log10ratio", "log10ratio_after_dec_corr", "log10ratio_after_full_cor"))
+t = Table([h, a, d, f, new_f, final_f, r, S200, alpha, c, new_c, final_c], names = ("RA_offset", "RA", "Dec", "flux", "flux_after_dec_corr", "flux_after_full_corr", "local_rms", "S_200", "alpha", "log10ratio", "log10ratio_after_dec_corr", "log10ratio_after_full_cor"))
 #t = Table([h, d, x, a, f, r, S200, alpha, c], names = ("RA_offset", "Dec", "Azimuth", "Altitude", "flux", "local_rms", "S_200", "alpha", "log10ratio"))
 t.write(concat_table, overwrite=True)
 
 if results.make_plots is True:
-# Weights for plotting
-w = f[good][indices]/r[good][indices]
+    # Weights for plotting
+    w = f[good][indices]/r[good][indices]
 
-# Dec plot
-x = d[good][indices]
-y = c[good][indices]
-make_plot(x, y, w, decmodel, title, "Declination (deg)", dec_plot)
+    # Dec plot
+    x = d[good][indices]
+    y = c[good][indices]
+    make_plot(x, y, w, decmodel, title, "Declination (deg)", dec_plot)
 
-# Dec plot after Dec correction
-y = new_c[good][indices]
-make_plot(x, y, w, zmodel, title, "Declination (deg)", dec_corrected_plot)
-
-# RA plot after Dec correction
-    x = h[good][indices]
+    # Dec plot after Dec correction
     y = new_c[good][indices]
-    make_plot(x, y, w, ramodel, title, "RA offset (deg)", ra_plot)
-    
-# RA plot after RA (and Dec) correction
-    y = final_c[good][indices]
-    make_plot(x, y, w, zmodel, title, "RA offset (deg)", ra_corrected_plot)
+    make_plot(x, y, w, zmodel, title, "Declination (deg)", dec_corrected_plot)
+
+    if results.correct_ra is True:
+    # RA plot after Dec correction
+        x = h[good][indices]
+        y = new_c[good][indices]
+        make_plot(x, y, w, ramodel, title, "RA offset (deg)", ra_plot)
+        
+    # RA plot after RA (and Dec) correction
+        y = final_c[good][indices]
+        make_plot(x, y, w, zmodel, title, "RA offset (deg)", ra_corrected_plot)
 
 if results.do_rescale is True:
     for fitsimage in infiles:
