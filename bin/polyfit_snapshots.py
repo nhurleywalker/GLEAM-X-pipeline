@@ -45,9 +45,11 @@ group3.add_argument('--plot',action="store_true",dest="make_plots",default=False
 group3.add_argument('--rescale',action="store_true",dest="do_rescale",default=False,
                   help="Generate rescaled fits files? (default = False)")
 group3.add_argument('--correctall',action="store_true",dest="correct_all",default=False,
-                  help="Correct associated background and RMS maps? (default = False)")
+                  help="Correct associated background, RMS, and weight maps? (default = False)")
 group3.add_argument('--overwrite',action="store_true",dest="overwrite",default=False,
                   help="Overwrite existing rescaled fits files? (default = False)")
+group3.add_argument('--read',action="store_true",dest="read_coefficients",default=False,
+                    help="Read coefficients from file? (default = False)")
 group3.add_argument('--write',action="store_true",dest="write_coefficients",default=False,
                     help="Write coefficients to file? (default = False)")
 results = parser.parse_args()
@@ -63,7 +65,8 @@ if os.path.exists(results.filelist):
     if results.correct_ra is True:
         ra_plot = results.filelist.replace(".txt", "_fitted_ra_poly.png")
         ra_corrected_plot = results.filelist.replace(".txt", "_corrected_ra_poly.png")
-    if results.write_coefficients is True:
+# TODO: Replace these with database calls?
+    if results.write_coefficients is True or results.read_coefficients is True:
         dec_coeff = results.filelist.replace(".txt", "_dec_coefficients.csv")
         if results.correct_ra is True:
             ra_coeff = results.filelist.replace(".txt", "_ra_coefficients.csv")
@@ -106,160 +109,167 @@ def zmodel(x):
            output_file.write("#obsid,median,peak,std\n")
            output_file.write(outformat.format(*outvars))
 
-
-logratios = np.empty(0)
-int_fluxes = np.empty(0)
-local_rmses = np.empty(0)
-S200s = np.empty(0)
-alphas = np.empty(0)
-ras = np.empty(0)
-ra_offs = np.empty(0)
-decs = np.empty(0)
-
-for fitsimage in infiles:
-    sf = fitsimage.replace(".fits", "_comp.fits")
-    sfm = fitsimage.replace(".fits", "_comp_matched.fits")
-# Cross-match with a sky model to get model flux densities
-    if not os.path.exists(sfm):
-        # Rely on the user running Aegean and just fail if the source-finding isn't there
-        if not os.path.exists(sf):
-            print("Source-finding results for {0} not found".format(fitsimage))
-            sys.exit(1)
-        os.system("stilts tmatch2 \
-        values1=\"RAJ2000 DEJ2000\" \
-        values2=\"ra dec\" \
-        in1={0} in2={1} \
-        matcher=sky params=45 \
-        out={2}".format(results.skymodel, sf, sfm))
-    gpstime = Time(int(fitsimage[0:10]), format="gps")
-# We get this from the FITS image rather than the metafits because I make sub-band images
-    hdr = fits.getheader(fitsimage)
-    centfreq = hdr["CRVAL3"] / 1.e6 #MHz
-# But the metafits is better for the RA, because of the denormal projection
-    path, _ = os.path.split(fitsimage)
-    meta = fits.getheader("{0}/{1}.metafits".format(path, fitsimage[0:10]))
-    ra_cent = meta["RA"]
-# Get the cross-matched catalogue
-    hdu = fits.open(sfm)
-    cat = hdu[1].data
-# RA offsets and Decs
-    ras = np.append(ras, cat["RAJ2000"])
-    ra_offs = np.append(ra_offs, cat["RAJ2000"] - ra_cent*np.ones(len(cat["RAJ2000"])))
-    decs = np.append(decs, cat["DEJ2000"])
-# Flux densities
-    int_fluxes = np.append(int_fluxes, cat["int_flux"])
-    S200s = np.append(S200s, cat["S_200"])
-    alphas = np.append(alphas, cat["alpha"])
-    logratios = np.append(logratios, np.log10(cat["S_200"]*(centfreq/200.)**cat["alpha"]/cat["int_flux"]))
-    local_rmses = np.append(local_rmses, cat["local_rms"])
-
-# sigma-clip to get rid of crazy values
-ind = sigma_clip(logratios, 3)
-median = np.median(logratios[ind])
-std = np.nanstd(logratios[ind])
-vmin = median - std
-vmax = median + std
-
-h = ra_offs[ind]
-a = ras[ind]
-d = decs[ind]
-c = logratios[ind]
-f = int_fluxes[ind]
-r = local_rmses[ind]
-S200 = S200s[ind]
-alpha = alphas[ind]
-
-# Get the highest S/N measurements
-if results.SNR_threshold is None:
-    SNR = sorted(f /r, reverse=True)
-    threshold = SNR[results.nsrc]
+if results.read_coefficients is True:
+    P_dec = np.loadtxt(dec_coeff, delimiter=",")
+    decmodel = np.poly1d(P_dec)
+    if results.correct_ra is True:
+        P_ra = np.loadtxt(ra_coeff, delimiter=",")
+        ramodel = np.poly1d(P_ra)
 else:
-    threshold = results.SNR_threshold
+    logratios = np.empty(0)
+    int_fluxes = np.empty(0)
+    local_rmses = np.empty(0)
+    S200s = np.empty(0)
+    alphas = np.empty(0)
+    ras = np.empty(0)
+    ra_offs = np.empty(0)
+    decs = np.empty(0)
 
-good = np.where(f / r > threshold)
+    for fitsimage in infiles:
+        sf = fitsimage.replace(".fits", "_comp.fits")
+        sfm = fitsimage.replace(".fits", "_comp_matched.fits")
+    # Cross-match with a sky model to get model flux densities
+        if not os.path.exists(sfm):
+            # Rely on the user running Aegean and just fail if the source-finding isn't there
+            if not os.path.exists(sf):
+                print("Source-finding results for {0} not found".format(fitsimage))
+                sys.exit(1)
+            os.system("stilts tmatch2 \
+            values1=\"RAJ2000 DEJ2000\" \
+            values2=\"ra dec\" \
+            in1={0} in2={1} \
+            matcher=sky params=45 \
+            out={2}".format(results.skymodel, sf, sfm))
+        gpstime = Time(int(fitsimage[0:10]), format="gps")
+    # We get this from the FITS image rather than the metafits because I make sub-band images
+        hdr = fits.getheader(fitsimage)
+        centfreq = hdr["CRVAL3"] / 1.e6 #MHz
+    # But the metafits is better for the RA, because of the denormal projection
+        path, _ = os.path.split(fitsimage)
+        meta = fits.getheader("{0}/{1}.metafits".format(path, fitsimage[0:10]))
+        ra_cent = meta["RA"]
+    # Get the cross-matched catalogue
+        hdu = fits.open(sfm)
+        cat = hdu[1].data
+    # RA offsets and Decs
+        ras = np.append(ras, cat["RAJ2000"])
+        ra_offs = np.append(ra_offs, cat["RAJ2000"] - ra_cent*np.ones(len(cat["RAJ2000"])))
+        decs = np.append(decs, cat["DEJ2000"])
+    # Flux densities
+        int_fluxes = np.append(int_fluxes, cat["int_flux"])
+        S200s = np.append(S200s, cat["S_200"])
+        alphas = np.append(alphas, cat["alpha"])
+        logratios = np.append(logratios, np.log10(cat["S_200"]*(centfreq/200.)**cat["alpha"]/cat["int_flux"]))
+        local_rmses = np.append(local_rmses, cat["local_rms"])
 
-P, res, rank, sv, cond = np.polyfit(np.array(d[good]), np.array(c[good]), results.poly_order, full=True, w = f[good]/r[good])
-decmodel = np.poly1d(P)
+    # sigma-clip to get rid of crazy values
+    ind = sigma_clip(logratios, 3)
+    median = np.median(logratios[ind])
+    std = np.nanstd(logratios[ind])
+    vmin = median - std
+    vmax = median + std
 
-# Remove outliers
-model_subtracted = c[good] - decmodel(d[good])
-indices = sigma_clip(model_subtracted, 3)
+    h = ra_offs[ind]
+    a = ras[ind]
+    d = decs[ind]
+    c = logratios[ind]
+    f = int_fluxes[ind]
+    r = local_rmses[ind]
+    S200 = S200s[ind]
+    alpha = alphas[ind]
 
-# Re-fit model
-P_dec,res,rank,sv,cond = np.polyfit(np.array(d[good][indices]),np.array(c[good][indices]), results.poly_order, full=True, w = f[good][indices]/r[good][indices])
-decmodel = np.poly1d(P_dec)
+    # Get the highest S/N measurements
+    if results.SNR_threshold is None:
+        SNR = sorted(f /r, reverse=True)
+        threshold = SNR[results.nsrc]
+    else:
+        threshold = results.SNR_threshold
 
-if results.write_coefficients is True:
-    np.savetxt(dec_coeff, P_dec, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
+    good = np.where(f / r > threshold)
 
-# Now that we have accumulated Dec, apply the polynomials to the concatenated catalogue, and then fit over RA
-new_int_fluxes = int_fluxes * 10**(decmodel(decs))
-new_logratios = np.log10(S200s*(centfreq/200.)**alphas / new_int_fluxes)
+    P, res, rank, sv, cond = np.polyfit(np.array(d[good]), np.array(c[good]), results.poly_order, full=True, w = f[good]/r[good])
+    decmodel = np.poly1d(P)
 
-new_f = new_int_fluxes[ind]
-new_c = new_logratios[ind]
-
-if results.correct_ra is True:
-    P_ra, res, rank, sv,cond = np.polyfit(np.array(h[good]),np.array(new_c[good]), results.poly_order, full=True, w = f[good]/r[good])
-    ramodel = np.poly1d(P_ra)
-
-    model_subtracted = new_c[good] - ramodel(h[good])
+    # Remove outliers
+    model_subtracted = c[good] - decmodel(d[good])
     indices = sigma_clip(model_subtracted, 3)
 
     # Re-fit model
-    P_ra, res, rank, sv,cond = np.polyfit(np.array(h[good][indices]),np.array(new_c[good][indices]), results.poly_order, full=True, w = f[good][indices]/r[good][indices])
-    ramodel = np.poly1d(P_ra)
+    P_dec,res,rank,sv,cond = np.polyfit(np.array(d[good][indices]),np.array(c[good][indices]), results.poly_order, full=True, w = f[good][indices]/r[good][indices])
+    decmodel = np.poly1d(P_dec)
+
     if results.write_coefficients is True:
-        np.savetxt(ra_coeff, P_ra, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
+        np.savetxt(dec_coeff, P_dec, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
 
-    final_int_fluxes = new_int_fluxes * 10**(ramodel(ra_offs))
-    final_logratios = np.log10(S200s*(centfreq/200.)**alphas / final_int_fluxes)
+    # Now that we have accumulated Dec, apply the polynomials to the concatenated catalogue, and then fit over RA
+    new_int_fluxes = int_fluxes * 10**(decmodel(decs))
+    new_logratios = np.log10(S200s*(centfreq/200.)**alphas / new_int_fluxes)
 
-    final_f = final_int_fluxes[ind]
-    final_c = final_logratios[ind]
-else:
-    final_c = new_c
-    final_f = new_f
-
-# Save the results as a FITS table
-t = Table([h, a, d, f, new_f, final_f, r, S200, alpha, c, new_c, final_c], names = ("RA_offset", "RA", "Dec", "flux", "flux_after_dec_corr", "flux_after_full_corr", "local_rms", "S_200", "alpha", "log10ratio", "log10ratio_after_dec_corr", "log10ratio_after_full_cor"))
-#t = Table([h, d, x, a, f, r, S200, alpha, c], names = ("RA_offset", "Dec", "Azimuth", "Altitude", "flux", "local_rms", "S_200", "alpha", "log10ratio"))
-t.write(concat_table, overwrite=True)
-
-if results.make_plots is True:
-    # Weights for plotting
-    w = f[good][indices]/r[good][indices]
-
-    # Dec plot
-    x = d[good][indices]
-    y = c[good][indices]
-    make_plot(x, y, w, decmodel, title, "Declination (deg)", dec_plot)
-
-    # Dec plot after Dec correction
-    y = new_c[good][indices]
-    make_plot(x, y, w, zmodel, title, "Declination (deg)", dec_corrected_plot)
+    new_f = new_int_fluxes[ind]
+    new_c = new_logratios[ind]
 
     if results.correct_ra is True:
-    # RA plot after Dec correction
-        x = h[good][indices]
+        P_ra, res, rank, sv,cond = np.polyfit(np.array(h[good]),np.array(new_c[good]), results.poly_order, full=True, w = f[good]/r[good])
+        ramodel = np.poly1d(P_ra)
+
+        model_subtracted = new_c[good] - ramodel(h[good])
+        indices = sigma_clip(model_subtracted, 3)
+
+        # Re-fit model
+        P_ra, res, rank, sv,cond = np.polyfit(np.array(h[good][indices]),np.array(new_c[good][indices]), results.poly_order, full=True, w = f[good][indices]/r[good][indices])
+        ramodel = np.poly1d(P_ra)
+        if results.write_coefficients is True:
+            np.savetxt(ra_coeff, P_ra, delimiter=",", header = "Order-{0} polynomial fit coefficients".format(results.poly_order))
+
+        final_int_fluxes = new_int_fluxes * 10**(ramodel(ra_offs))
+        final_logratios = np.log10(S200s*(centfreq/200.)**alphas / final_int_fluxes)
+
+        final_f = final_int_fluxes[ind]
+        final_c = final_logratios[ind]
+    else:
+        final_c = new_c
+        final_f = new_f
+
+    # Save the results as a FITS table
+    t = Table([h, a, d, f, new_f, final_f, r, S200, alpha, c, new_c, final_c], names = ("RA_offset", "RA", "Dec", "flux", "flux_after_dec_corr", "flux_after_full_corr", "local_rms", "S_200", "alpha", "log10ratio", "log10ratio_after_dec_corr", "log10ratio_after_full_cor"))
+    t.write(concat_table, overwrite=True)
+
+    # TODO Fix the plotting so it can be run even if the coefficients and sources are read in from a table
+    # Likely to do this I will need to add a new column to the table that says whether a source was used for fitting
+    if results.make_plots is True:
+        # Weights for plotting
+        w = f[good][indices]/r[good][indices]
+
+        # Dec plot
+        x = d[good][indices]
+        y = c[good][indices]
+        make_plot(x, y, w, decmodel, title, "Declination (deg)", dec_plot)
+
+        # Dec plot after Dec correction
         y = new_c[good][indices]
-        make_plot(x, y, w, ramodel, title, "RA offset (deg)", ra_plot)
-        
-    # RA plot after RA (and Dec) correction
-        y = final_c[good][indices]
+        make_plot(x, y, w, zmodel, title, "Declination (deg)", dec_corrected_plot)
+
+        if results.correct_ra is True:
+        # RA plot after Dec correction
+            x = h[good][indices]
+            y = new_c[good][indices]
+            make_plot(x, y, w, ramodel, title, "RA offset (deg)", ra_plot)
+            
+        # RA plot after RA (and Dec) correction
+            y = final_c[good][indices]
         make_plot(x, y, w, zmodel, title, "RA offset (deg)", ra_corrected_plot)
 
 if results.do_rescale is True:
     for fitsimage in infiles:
         if results.correct_all is True:
-            extlist = [".fits", "_bkg.fits", "_rms.fits"]
+            extlist = ["", "_bkg", "_rms", "_weight"]
         else:
-            extlist = [".fits"]
+            extlist = [""]
         for ext in extlist:
-            infits = fitsimage.replace(".fits", ext)
-            outfits = infits.replace(".fits", "_rescaled.fits")
+            infits = fitsimage.replace(".fits", ext+".fits")
+            outfits = infits.replace(ext+".fits", "_rescaled"+ext+".fits")
             if (not os.path.exists(outfits)) or results.overwrite is True:
-
+                print("Creating {0} from {1}".format(outfits, infits))
         # Modify each fits file to produce a new version
                 hdu_in = fits.open(infits)
             # wcs in format [stokes,freq,y,x]; stokes and freq are length 1 if they exist
