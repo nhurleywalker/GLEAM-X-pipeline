@@ -183,7 +183,7 @@ def main():
                                     "varies over the new map.",
                         )
 
-    ps.add_argument("new_image", tye=str,
+    ps.add_argument("new_image", type=str,
                     help="New (resampled/reprojected) FITS image in ZEA projection.")
     ps.add_argument("original_image", type=str,
                     help="Original FITS image in SIN projection. Used to get "
