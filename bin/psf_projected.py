@@ -160,6 +160,7 @@ def make_effective_psf(dOmega_map, outname, bmaj, bmin=None, bpa=0.):
 
     shape = hdu[0].data.shape
 
+
     psf = {}
     #  Swarp cannot cope with cubes, so we have to output each aspect of the PSF individually
     psf["bmaj"] = bmaj / hdu[0].data
@@ -204,7 +205,7 @@ def main():
 
     original_projection = "SIN"
     with fits.open(args.original_image) as f:
-        ra0 = f[0].header["CRVAl1"]
+        ra0 = f[0].header["CRVAL1"]
         dec0 = f[0].header["CRVAL2"]
 
     outname = args.new_image.replace(".fits", "")
