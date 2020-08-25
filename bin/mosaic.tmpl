@@ -75,14 +75,14 @@ used_obs=()
 
 for obsnum in ${obss[@]}
 do
-    if [[ -e ${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits ]]
+    if [[ -e ${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits ]]
     then
 
-        echo "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits" >> $tmp
-        example=${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits
+        echo "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits" >> $tmp
+        example=${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits
 
         # pass weight maps as a text file so the same weight maps can be used - not needed anymore
-        echo "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_weight.fits" >> $tmp_weights
+        echo "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_weight.fits" >> $tmp_weights
         
         # add obs that actually exist to list for later:
         used_obs+=(${obsnum})
@@ -164,16 +164,16 @@ if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
     for obsnum in ${used_obs[@]}; do
 
         # keep name the same for easier naming rather than append .resamp
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp.fits" >> $tmp_resamp
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits" >> $tmp_resamp
         
         # create snapshot PSF on resampled image:
-        psf_projected.py ${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp.fits
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_bmaj.fits" >> $tmp_bmaj
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_bmin.fits" >> $tmp_bmin
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_bpa.fits" >> $tmp_bpa
+        psf_projected.py ${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmaj.fits" >> $tmp_bmaj
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmin.fits" >> $tmp_bmin
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bpa.fits" >> $tmp_bpa
 
         # weight maps are automatically renamed to .weight.fits apparently...
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp.weight.fits" >> $tmp_weights
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.weight.fits" >> $tmp_weights
 
     done
 
@@ -224,14 +224,14 @@ else
 fi
 
 # Blur correction and final PSF generation
-
+module load singularity
 if [[ ! -e ${outname}_ddmod.fits ]] || [[ ! -e ${outname}_psf.fits ]]; then
     BANE --noclobber ${outname}.fits
 
     # To create the final PSF map that I will use later, run source-finding without any PSF input
     if [[ ! -e ${outname}_comp.fits ]]
     then
-        aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}.fits ${outname}.fits
+        env PYTHONPATH=  singularity run -B $PWD /pawsey/mwa/singularity/robbie/robbie-next.sif aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}.fits ${outname}.fits
     fi
 
     # Generate a measured PSF map
@@ -244,7 +244,7 @@ if [[ ! -e ${outname}_ddmod.fits ]] || [[ ! -e ${outname}_psf.fits ]]; then
     # Run source-finding using the mosaicked PSF map as an input
     if [[ ! -e ${outname}_projpsf_comp.fits ]]
     then
-        aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}_projpsf.fits --psf=${outname}_psfmap.fits ${outname}.fits
+        env PYTHONPATH=  singularity run -B $PWD /pawsey/mwa/singularity/robbie/robbie-next.sif aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}_projpsf.fits --psf=${outname}_psfmap.fits ${outname}.fits
     fi
 
     # Select sources and generate a new PSF map that has the right blur factor
@@ -265,7 +265,7 @@ if [[ ! -e ${outname}_ddmod.fits ]] || [[ ! -e ${outname}_psf.fits ]]; then
     BANE --noclobber ${outname}_ddmod.fits
     if [[ ! -e ${outname}_ddmod_comp.fits ]]
     then
-        aegean --seedclip=4 --maxsummits=5 --autoload --table=${outname}_ddmod.fits --psf=${outname}_psf.fits ${outname}_ddmod.fits
+        env PYTHONPATH=  singularity run -B $PWD /pawsey/mwa/singularity/robbie/robbie-next.sif aegean --seedclip=4 --maxsummits=5 --autoload --table=${outname}_ddmod.fits --psf=${outname}_psf.fits ${outname}_ddmod.fits
     fi
     # TODO: clean up intermediate files
 else
