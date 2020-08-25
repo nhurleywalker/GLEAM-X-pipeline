@@ -182,8 +182,10 @@ def main():
                                     "varies over the new map.",
                         )
 
+    ps.add_argument("new_image", tye=str,
+                    help="New (resampled/reprojected) FITS image in ZEA projection.")
     ps.add_argument("original_image", type=str,
-                    help="Original FITS image in SIN or ZEA projection. Used to get "
+                    help="Original FITS image in SIN projection. Used to get "
                          "original CRVAL1/CRVAL2 values.")
 
 
@@ -200,13 +202,13 @@ def main():
     except KeyError:
         bpa = 0.
 
+    original_projection = "SIN"
     with fits.open(args.original_image) as f:
-        original_projection = check_projection(f[0].header)
-        ra = f[0].header["CRVAL1"]
-        dec = f[0].header["CRVAL2"] 
+        ra0 = f[0].header["CRVAl1"]
+        dec0 = f[0].header["CRVAL2"]
 
-    outname = args.original_image.replace(".fits", "")
-    hdu = make_ratio_map(args.original_image, ra, dec, outname=None)
+    outname = args.new_image.replace(".fits", "")
+    hdu = make_ratio_map(args.new_image, ra0, dec0, outname=None)
     make_effective_psf(hdu, outname, bmaj, bmin, bpa)
 
 
