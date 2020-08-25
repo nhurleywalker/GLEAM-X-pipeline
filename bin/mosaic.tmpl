@@ -166,8 +166,9 @@ if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
         # keep name the same for easier naming rather than append .resamp
         echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits" >> $tmp_resamp
         
-        # create snapshot PSF on resampled image:
-        psf_projected.py ${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits
+        # create snapshot PSF on resampled image: 
+        # psf_projected.py new_image old_image
+        psf_projected.py ${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp.fits ../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits 
         echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmaj.fits" >> $tmp_bmaj
         echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmin.fits" >> $tmp_bmin
         echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bpa.fits" >> $tmp_bpa
