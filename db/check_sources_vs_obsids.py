@@ -5,7 +5,7 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.time import Time
 import astropy.units as u
-from astopy.table import Table
+from astropy.table import Table
 import json
 import mysql_db as mdb
 import numpy as np
