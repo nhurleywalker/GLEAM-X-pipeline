@@ -32,4 +32,8 @@ cd ${datadir}
 rsync -avh --progress --stats *image.fits *png *log $user@$host:"$remote/$obsnum"
 
 test_fail $?
-track_task.py obs_status --obs_id=${obsnum} --status='archived'
+
+echo 'Updating database'
+track_task.py obs_status --obs_id=${obsnum} --status=archived
+
+echo "Database updated. Obsid $obsid has been archived. "
