@@ -64,10 +64,9 @@ def observation_status(obs_id, status):
     """
     conn = mdb.connect()
     cur = conn.cursor()
-    print obs_id, status
     cur.execute("""
                 UPDATE observation 
-                SET status='%s' 
+                SET status=%s 
                 WHERE obs_id=%s
                 """,
                 (status.lower(), obs_id, )
