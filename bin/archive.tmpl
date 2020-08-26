@@ -1,0 +1,35 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p STANDARDQ
+#SBATCH --account=ACCOUNT
+#SBATCH --time=2:00:00
+#SBATCH --ntasks=NCPUS
+#SBATCH --nodes=1
+
+source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+# Set version number
+version=3.0 # First GLEAM-X pipeline data reduction April 2018
+cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
+obsnum=OBSNUM
+base=BASEDIR
+user=ENDUSER
+host=ENDPOINT
+remote=REMOTE
+
+datadir=${base}/${obsnum}
+cd ${datadir}
+
+rsync -avh --progress --stats *image.fits *png *log $user@$host:"$remote/$obsnum"
+
+test_fail $?
+track_task.py obs_status --obs_id=${obsnum} --status='archived'
