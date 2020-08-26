@@ -63,7 +63,8 @@ def observation_status(obs_id, status):
         status (str): the status to insert for the observation 
     """
     conn = mdb.connect()
-    cur = con.cursor()
+    cur = conn.cursor()
+    print obs_id, status
     cur.execute("""
                 UPDATE observation 
                 SET status='%s' 
@@ -72,7 +73,7 @@ def observation_status(obs_id, status):
                 (status.lower(), obs_id, )
                )
     conn.commit()
-    con.close()
+    conn.close()
 
 
 def require(args, reqlist):
@@ -83,14 +84,14 @@ def require(args, reqlist):
     for r in reqlist:
         if not getattr(args, r):
             print "Directive {0} requires argument {1}".format(args.directive, r)
-            sys.exit()
+            sys.exit(1)
         
         # an sqlite to mysql change
         if isinstance(args.__dict__[r], str) and 'date +%s' in args.__dict__[r]:
             args.__dict__[r] = args.__dict__[r].replace('date +%s', 'NOW()')
             
-        if r == 'status' and args.__dicit__[r].strip().lower() not in OBS_STATUS:
-            print "Observation status `{0}` is not in the allowed list {1}. Exiting without updating. \n".format(args.__dict__[r], OBS_STATUS)
+        if r == 'status' and args.status.lower() not in OBS_STATUS:
+            print "Observation status `{0}` is not in the allowed list {1}. Exiting without updating. \n".format(args.status, OBS_STATUS)
             sys.exit(1)
 
     return True
