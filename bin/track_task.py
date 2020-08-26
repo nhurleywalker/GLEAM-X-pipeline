@@ -89,9 +89,9 @@ def require(args, reqlist):
         if isinstance(args.__dict__[r], str) and 'date +%s' in args.__dict__[r]:
             args.__dict__[r] = args.__dict__[r].replace('date +%s', 'NOW()')
             
-        if r == 'status' and r.lower() not in OBS_STATUS:
-            print "Observation status {0} is not in the allowed list {1}".format(args.__dict__[r], OBS_STATUS)
-            sys.exit()
+        if r == 'status' and args.__dicit__[r].strip().lower() not in OBS_STATUS:
+            print "Observation status `{0}` is not in the allowed list {1}. Exiting without updating. \n".format(args.__dict__[r], OBS_STATUS)
+            sys.exit(1)
 
     return True
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     ps.add_argument('--status', type=str, help='observation status, must belong to {0}'.format(OBS_STATUS), default=None)
 
     args = ps.parse_args()
-
+    
     args.user = os.environ['USER']
     # This try will be removed completely at some point soon
     try:
