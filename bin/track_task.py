@@ -96,11 +96,6 @@ def require(args, reqlist):
     return True
 
 
-def test_db():
-    """Small function to test aspects of the database connection
-    """
-    pass
-
 if __name__ == "__main__":
 
     import argparse
@@ -146,9 +141,6 @@ if __name__ == "__main__":
     elif args.directive.lower() == 'obs_status':
         require(args, ['obs_id','status'])
         observation_status(args.obs_id, args.status)
-    
-    elif args.directive.lower() == 'test_db':
-        test_db()
     
     else:
         print "I don't know what you are asking; please include a queue/start/finish/fail directive"
