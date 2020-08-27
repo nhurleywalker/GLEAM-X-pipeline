@@ -29,7 +29,12 @@ remote=REMOTE
 datadir=${base}/${obsnum}
 cd ${datadir}
 
-rsync -avh --progress --stats *image.fits *png *log $user@$host:"$remote/$obsnum"
+for i in *model.fits 
+do
+    zip $i.zip $i
+done
+
+rsync -avh --progress --stats *image-pb_warp.fits *csv *zip *png *log $user@$host:"$remote/$obsnum"
 
 test_fail $?
 
