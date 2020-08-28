@@ -147,3 +147,30 @@ do
         fi
     fi
 done
+
+
+# Post procressing tasks unrelated to fitswarp
+for subchan in ${subchans}
+then
+    # Compress the near empty model files
+    zip ${obsnum}_deep-${subchan}-models.zip ${obsid}_deep-${subchan}-model*.zip
+
+    dirty=${obsnum}_deep-${subchan}-dirty.fits
+    crop=${dirty%.fits}_crop.fits
+    if [[ ! -e ${crop} ]]
+    then
+        # Create the extracted dirty beam region
+        x=$(imsize ${dirty} | cut -d ' ' -f8 | cut -d 'x' -f1)
+        y=$(imsize ${dirty} | cut -d ' ' -f8 | cut -d 'x' -f2)
+        
+        SIZE=200 # Pixels in central region to extract
+
+        let "x1 = $x/2 - $SIZE/2" 
+        let "x2 = $x/2 + $SIZE/2"
+        let "y1 = $y/2 - $SIZE/2"
+        let "y2 = $y/2 + $SIZE/2"
+
+        getfits -o ${crop} $x1-$x2 $y1-$y2 ${file}
+    fi
+done
+
