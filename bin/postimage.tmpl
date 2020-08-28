@@ -155,13 +155,13 @@ then
     # Compress the near empty model files
     zip ${obsnum}_deep-${subchan}-models.zip ${obsid}_deep-${subchan}-model*.zip
 
+    # Create an extract of the dirty beam
     dirty=${obsnum}_deep-${subchan}-dirty.fits
     crop=${dirty%.fits}_crop.fits
     if [[ ! -e ${crop} ]]
     then
-        # Create the extracted dirty beam region
-        x=$(imsize ${dirty} | cut -d ' ' -f8 | cut -d 'x' -f1)
-        y=$(imsize ${dirty} | cut -d ' ' -f8 | cut -d 'x' -f2)
+        x=$(imsize ${dirty} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f1)
+        y=$(imsize ${dirty} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f2)
         
         SIZE=200 # Pixels in central region to extract
 
