@@ -17,9 +17,6 @@ then
 fi
 }
 
-# Set version number
-version=3.0 # First GLEAM-X pipeline data reduction April 2018
-cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 obsnum=OBSNUM
 base=BASEDIR
 user=ENDUSER
@@ -29,12 +26,7 @@ remote=REMOTE
 datadir=${base}/${obsnum}
 cd ${datadir}
 
-for i in *model.fits 
-do
-    zip $i.zip $i
-done
-
-rsync -avh --progress --stats *image-pb_warp.fits *csv *zip *png *log $user@$host:"$remote/$obsnum"
+rsync -avh --progress --stats *image-pb_warp.fits *psf.fits *csv *zip *png *log $user@$host:"$remote/$obsnum"
 
 test_fail $?
 
