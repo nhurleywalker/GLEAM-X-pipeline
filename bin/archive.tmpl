@@ -30,10 +30,7 @@ rsync -avh --progress --stats *csv \
                               *zip \
                               *png \
                               *log \
-                              *psf.fits \
-                              *crop.fits \ 
-                              *image-pb_warp.fits \
-                              *_crop.fits \
+                              ${obsnum}_deep-*-_psf_crop.fits \ 
                               ${obsnum}_deep-*-image-pb.fits \
                               ${obsnum}_deep-*-image-pb_warp_weight.fits \
                               ${obsnum}_deep-*-image-pb_warp_rms.fits \
@@ -46,5 +43,4 @@ test_fail $?
 
 echo 'Updating database'
 track_task.py obs_status --obs_id=${obsnum} --status=archived
-
 echo "Database updated. Obsid $obsid has been archived. "
