@@ -131,20 +131,16 @@ jobid=${jobid[3]}
 error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
-# record submission
-n=1
-for obsnum in ${obss[@]}
-do
-    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='mosaic' --submission_time=`date +%s` --batch_file=${script} \
-                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
-    ((n+=1))
-done
 
-for jobitem in {0..4}
-do
-    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${jobitem} --task='mosaic' --submission_time=`date +%s` --batch_file=${script} \
-                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
-done
+# Record submission
+subchans=(0000 0001 0002 0003 MFS)
+subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
+
+# for jobitem in {0..4}
+# do
+#     python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${jobitem} --task="mosaic_${subchan}" --submission_time=`date +%s` --batch_file=${script} \
+#                      --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+# done
 
 echo "Submitted ${script} as ${jobid}. Follow progress here:"
 echo $output
