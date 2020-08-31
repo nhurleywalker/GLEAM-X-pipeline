@@ -2,16 +2,15 @@
 
 usage()
 {
-echo "drift_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r] [-e] -o list_of_observations.txt
+echo "drift_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r ra] [-e dec] -o list_of_observations.txt
+  -p project  : project, (must be specified, no default)
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -q queue    : job queue, default=workq
-  -p project  : project, (must be specified, no default)
-  -r RA       : Right Ascension (decimal hours; default = guess from observation list)
-  -e dec      : Declination (decimal degrees; default = guess from observation list)
-  -p project  : project, (must be specified, no default)
+  -a account : computing account, default pawsey0272
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
+  -r RA       : Right Ascension (decimal hours; default = guess from observation list)
+  -e dec      : Declination (decimal degrees; default = guess from observation list)
   -o obslist  : the list of obsids to process" 1>&2;
 exit 1;
 }
