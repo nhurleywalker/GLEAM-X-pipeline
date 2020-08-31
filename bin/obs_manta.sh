@@ -78,12 +78,6 @@ fi
 # Add the metadata to the observations table in the database
 python ${dbdir}db/import_observations_from_db.py --obsid $obslist
 
-# And now record the apparent brightness of sources in the obs
-# this takes a considerable time and shouldn't be done on the 
-# login node. 
-# python ${dbdir}db/check_sources_vs_obsids.py $obslist
-
-
 base=$base/$project
 cd $base
 
