@@ -9,42 +9,39 @@ account=ACCOUNT
 #depend=${dep[3]}
 #echo "cotter jobid: $depend"
 
+echo obs_autoflag.sh -p $project -a $account $obsnum
 dep=($(obs_autoflag.sh -p $project -a $account $obsnum))
 #dep=($(obs_autoflag.sh -p $project -d $depend -a $account $obsnum))
 depend=${dep[3]}
 echo "flag jobid: $depend"
 
+echo obs_autocal.sh -i -p $project -a $account -d $depend $obsnum
 dep=($(obs_autocal.sh -i -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "cal jobid: $depend"
 
+echo obs_apply_cal.sh -p $project -a $account -d $depend -c $obsnum $obsnum
 dep=($(obs_apply_cal.sh -p $project -a $account -d $depend -c $obsnum $obsnum))
 depend=${dep[3]}
 echo "apply-cal jobid: $depend"
 
+echo obs_uvflag.sh -p $project -a $account -d $depend $obsnum
 dep=($(obs_uvflag.sh -p $project -a $account -d $depend $obsnum))
-#dep=($(obs_uvflag.sh -p $project -a $account $obsnum))
 depend=${dep[3]}
 echo "uv-flag jobid: $depend"
 
-# No longer recommend self-cal as part of routine processing
-#dep=($(obs_self.sh -p $project -a $account -d $depend $obsnum))
-#depend=${dep[3]}
-#echo "self-cal jobid: $depend"
-
-#dep=($(obs_apply_cal.sh -p $project -a $account -d $depend -c $obsnum $obsnum))
-#depend=${dep[3]}
-#echo "apply-cal jobid: $depend"
-
-#dep=($(obs_uvflag.sh -p $project -a $account -d $depend $obsnum))
-#depend=${dep[3]}
-#echo "uv-flag jobid: $depend"
-
+echo obs_image.sh -p $project -a $account -d $depend $obsnum
 dep=($(obs_image.sh -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "imaging jobid: $depend"
 
+echo obs_postimage.sh -p $project -a $account -d $depend $obsnum
 dep=($(obs_postimage.sh -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
 echo "post-processing jobid: $depend"
+
+echo obs_archive.sh -p $project -a $account -d $depend $obsnum
+dep=($(obs_archive.sh -p $project -a $account -d $depend $obsnum))
+depend=${dep[3]}
+echo "archive jobid: $depend"
 
