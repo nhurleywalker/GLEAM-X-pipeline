@@ -11,9 +11,9 @@ set -x
 
 base=BASEDIR
 obslist=OBSLIST
-read=READ
+readfile=READ
 
-if [[ -z $read ]]
+if [[ -z $readfile ]]
 then
     write="--write"
 fi
@@ -43,4 +43,4 @@ done
 python /group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/bin/polyfit_snapshots.py \
                --filelist ${sublist} \
                --skymodel=/group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/models/skymodel_only_alpha_sparse_unresolved.fits \
-               $read $write --rescale --correctall --overwrite --plot
+               $readfile $write --rescale --correctall --overwrite --plot
