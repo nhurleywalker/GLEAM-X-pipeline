@@ -64,13 +64,10 @@ def parse_metafits(metafits):
     delstr=f[0].header['DELAYS'].split(",")
     delays = [int(e) for e in delstr]
 
-# get the date so we can convert to Az,El
-    try:
-        d = f[0].header['DATE-OBS']
-    except:
-        logger.error('Unable to read observation date DATE-OBS from %s' % filename)
-        return None
-    t = Time(d, format='isot', scale='utc')
+    # get the date so we can convert to Az,El
+    start_time = f[0].header['DATE-OBS']
+    duration = f[0].header['EXPOSURE']*u.s
+    t = Time(start_time, format='isot', scale='utc') + 0.5*duration
 
 # Just use the central frequency
 # Nice update would be to use the whole bandwidth and calculate spectral term
