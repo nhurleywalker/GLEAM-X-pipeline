@@ -2,16 +2,15 @@
 
 usage()
 {
-echo "obs_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r] [-e] -o list_of_observations.txt
+echo "drift_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r ra] [-e dec] -o list_of_observations.txt
+  -p project  : project, (must be specified, no default)
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -q queue    : job queue, default=workq
-  -p project  : project, (must be specified, no default)
-  -r RA       : Right Ascension (decimal hours; default = guess from observation list)
-  -e dec      : Declination (decimal degrees; default = guess from observation list)
-  -p project  : project, (must be specified, no default)
+  -a account : computing account, default pawsey0272
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
+  -r RA       : Right Ascension (decimal hours; default = guess from observation list)
+  -e dec      : Declination (decimal degrees; default = guess from observation list)
   -o obslist  : the list of obsids to process" 1>&2;
 exit 1;
 }
@@ -51,7 +50,7 @@ ra=
 dec=
 
 # parse args and set options
-while getopts ':td:p:o:r:e:' OPTION
+while getopts ':td:p:q:o:r:e:' OPTION
 do
     case "$OPTION" in
     d)
@@ -132,13 +131,13 @@ error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`
 
 # record submission
-n=1
-for obsnum in ${obss[@]}
-do
-    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='mosaic' --submission_time=`date +%s` --batch_file=${script} \
-                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
-    ((n+=1))
-done
+#n=1
+#for obsnum in ${obss[@]}
+#do
+#    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='mosaic' --submission_time=`date +%s` --batch_file=${script} \
+#                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+#    ((n+=1))
+#done
 
 echo "Submitted ${script} as ${jobid}. Follow progress here:"
 echo $output
