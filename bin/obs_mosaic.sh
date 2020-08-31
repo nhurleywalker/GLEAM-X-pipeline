@@ -140,6 +140,12 @@ do
     ((n+=1))
 done
 
+for jobitem in {0..4}
+do
+    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${jobitem} --task='mosaic' --submission_time=`date +%s` --batch_file=${script} \
+                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+done
+
 echo "Submitted ${script} as ${jobid}. Follow progress here:"
 echo $output
 echo $error

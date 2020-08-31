@@ -15,13 +15,6 @@ obslist=OBSLIST
 cd ${base}
 obss=($(sort $obslist))
 
-n=0
-for obsnum in ${obss[@]}
-do
-    track_task.py start --jobid=${SLURM_JOBID} --taskid=$n --start_time=`date +%s`
-    ((n+=1))
-done
-
 num=${#obss[@]}
 last=${obss[-1]}
 middle=${obss[$((num / 2))]}
@@ -81,6 +74,9 @@ template=${outname%.fits}.template
 imageout=${outname%.fits}_temp.fits
 weightout=${outname%.fits}_weight.fits
 
+# Update processing database
+track_task.py start --jobid=${SLURM_JOBID} --taskid=$SLURM_ARRAY_TASK_ID --start_time=`date +%s`
+
 if [[ ! -d mosaics ]]
 then
     mkdir mosaics
@@ -120,19 +116,16 @@ else
     echo "Mosaic ${outname} for ${obslist} subband $subchan already created."
 fi
 
+
+# Why are we iterating on obss at all? Shoudl it not be
+# the SLURM_JOBARRAY_TASK_ID ?
 # Record whether mosaicking was successful
 n=0
 if [[ -e $outname ]]
 then
-    for obsnum in ${obss[@]}
-    do
-        track_task.py finish --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
-        ((n+=1))
-    done
+    # Update processing database
+    track_task.py finish --jobid=${SLURM_JOBID} --taskid=${SLURM_ARRAY_TASK_ID} --start_time=`date +%s`
 else
-    for obsnum in ${obss[@]}
-    do
-        track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
-        ((n+=1))
-    done
+    # Update processing database
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=${SLURM_ARRAY_TASK_ID} --start_time=`date +%s`
 fi
