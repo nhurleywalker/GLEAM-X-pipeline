@@ -17,12 +17,12 @@ dec=DECPOINT
 cd ${base}
 obss=($(sort $obslist))
 
-n=0
-for obsnum in ${obss[@]}
-do
-   track_task.py start --jobid=${SLURM_JOBID} --taskid=$n --start_time=`date +%s`
-   ((n+=1))
-done
+#n=0
+#for obsnum in ${obss[@]}
+#do
+#   track_task.py start --jobid=${SLURM_JOBID} --taskid=$n --start_time=`date +%s`
+#   ((n+=1))
+#done
 
 num=${#obss[@]}
 last=${obss[-1]}
@@ -168,7 +168,7 @@ if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
         
         # create snapshot PSF on resampled image: 
         # psf_projected.py new_image old_image
-        psf_projected.py ${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp.fits ../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp.fits 
+        psf_projected.py ${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits ../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits 
         echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmaj.fits" >> $tmp_bmaj
         echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmin.fits" >> $tmp_bmin
         echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bpa.fits" >> $tmp_bpa
@@ -274,18 +274,18 @@ else
 fi
 
 # Record whether mosaicking was successful
-n=0
-if [[ -e ${outname}_ddmod.fits ]]
-then
-    for obsnum in ${obss[@]}
-    do
-        track_task.py finish --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
-        ((n+=1))
-    done
-else
-    for obsnum in ${obss[@]}
-    do
-        track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
-        ((n+=1))
-    done
-fi
+#n=0
+#if [[ -e ${outname}_ddmod.fits ]]
+#then
+#    for obsnum in ${obss[@]}
+#    do
+#        track_task.py finish --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+#        ((n+=1))
+#    done
+#else
+#    for obsnum in ${obss[@]}
+#    do
+#        track_task.py fail --jobid=${SLURM_JOBID} --taskid=$n --finish_time=`date +%s`
+#        ((n+=1))
+#    done
+#fi
