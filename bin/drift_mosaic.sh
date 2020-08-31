@@ -2,7 +2,7 @@
 
 usage()
 {
-echo "obs_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r] [-e] -o list_of_observations.txt
+echo "drift_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r] [-e] -o list_of_observations.txt
   -d dep     : job number for dependency (afterok)
   -a account : computing account, default pawsey0272
   -q queue    : job queue, default=workq
@@ -51,7 +51,7 @@ ra=
 dec=
 
 # parse args and set options
-while getopts ':td:p:o:r:e:' OPTION
+while getopts ':td:p:q:o:r:e:' OPTION
 do
     case "$OPTION" in
     d)
