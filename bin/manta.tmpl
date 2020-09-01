@@ -7,6 +7,7 @@
 #SBATCH --nodes=1
 
 source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+alias mwa_client='module load singularity; env PYTHONPATH= singularity exec /pawsey/mwa/singularity/manta-ray-client/manta-ray-client_latest.sif mwa_client $@'
 
 base=BASEDIR
 obslist=OBSLIST

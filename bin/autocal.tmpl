@@ -21,6 +21,7 @@ cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 obsnum=OBSNUM
 datadir=DATADIR
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
+refant=127
 
 # GLEAM-X sky model
 catfile="/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
@@ -111,21 +112,28 @@ if [[ ! -z $ion ]]
 then
     # Ionospheric triage
     solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
+    # Remove duplicate obsnum
+    solutions=${solutions/${obsnum}_${obsnum}_/${obsnum}_}
     calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -applybeam -mwa-path ${MWAPATH} ${obsnum}.ms ${solutions}
-    aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+    aocal_plot.py --refant=${refant} --amp_max=2 ${solutions}
     aocal_diff.py --metafits=$metafits --names $solutions
     iono_update.py --ionocsv ${obsnum}_ionodiff.csv
 fi
 
 # At the moment, assume that the ionosphere is OK, and derive some real solutions
 solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
+# Remove duplicate obsnum
+solutions=${solutions/${obsnum}_${obsnum}_/${obsnum}_}
 
 # calibrate
 calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -applybeam -mwa-path ${MWAPATH} ${obsnum}.ms ${solutions}
 test_fail $?
 
+# Create a version divided through by the reference antenna, so that all observations have the same relative XY phase, allowing polarisation calibration solutions to be transferred
+/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/aocal_phaseref.py ${solutions} ${solutions%.bin}_ref.bin ${refant}
+
 # plot calibration solutions
-aocal_plot.py --refant=127 --amp_max=2 ${solutions}
+aocal_plot.py --refant=${refant} --amp_max=2 ${solutions%.bin}_ref.bin
 test_fail $?
 
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
