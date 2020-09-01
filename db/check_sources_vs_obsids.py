@@ -243,7 +243,6 @@ def update_db_with_peeled(obsid, sources, curr):
     curr.commit()
 
 
-
 def check_obsid_peel(obsid, local_sky, check_exists=True, min_threshold=0.):
     """Check to see whether a specified obsid has sources that need to be peeled
     
@@ -293,8 +292,8 @@ def check_obsid_peel(obsid, local_sky, check_exists=True, min_threshold=0.):
     freq = 1.28 * obs_details[3]
 
     xx_srcs, yy_srcs = beam_value(
-                        local_model['RAJ2000'],
-                        local_model['DEJ2000'], 
+                        local_sky['RAJ2000'],
+                        local_sky['DEJ2000'], 
                         t, 
                         json.loads(obs_details[5]), 
                         freq*1.e6
@@ -317,7 +316,6 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--file', nargs=1, default=None, help='A text file of obsids to check')
     parser.add_argument('-o', '--obsid', nargs=1, default=None, help='A single obsid to check')
     parser.add_argument('-a', '--all-obsids', default=False, action='store_true', help='Calculate apparent of sources for all known obsids')
-    parser.add_argument('-p', '--processes', default=1, type=int, help='How many parallel jobs to execute. Placeholder until hdf5 concurrent reads figured out.')
     parser.add_argument('-u', '--force-update', default=False, action='store_true', help='Force the insertion of an apparent brightness for all sources for all obsids')
     parser.add_argument('-c', '--peel-check', nargs=1, default=False, help='Return a log of objects that need to be peeled. Only relevant for when a single `obsid` is provided (whether via argument of via file)/')
 
@@ -330,7 +328,7 @@ if __name__ == "__main__":
 
     # Configure the obsids to process
     if args.file is not None:
-        obsids = [int(i.strip()) for i in open(sys.argx[1], 'r')]
+        obsids = [int(i.strip()) for i in open(args.file, 'r')]
     elif args.obsid is not None:
         obsids = (int(args.obsid), )
     else:
@@ -340,28 +338,13 @@ if __name__ == "__main__":
 
     # When no peeling is needed, can process all ids as specified
     if args.peel_check is False:
-        if args.processes == 1:
-            for count, obsid in enumerate(obsids):
-                print '{0}) {1}'.format(count+1, obsid)
-                insert_sources_obsid(obsid, force_update=args.force_update)
-
-        else:
-            print '\nAttempting with {0} spawned processes'.format(args.processes)
-            print '\nWARNING: There appears to be some con-currency issues while reading the HDF5 files for the FEE. '
-
-            sys.exit(1)
-
-            # Because the `map` only takes an iterable and because everything in 
-            # python is an object, wrap up what we need
-            def worker(x): 
-                insert_sources_obsid(x, force_update=args.force_update)
-            
-            pool = Pool(processes=args.processes)
-            pool.map(worker, obsids)
+        for count, obsid in enumerate(obsids):
+            print '{0}) {1}'.format(count+1, obsid)
+            insert_sources_obsid(obsid, force_update=args.force_update)
 
     # Can not provide more than one obsid to look at at this time. 
     # can't see in pipeline when any more than one would be needed. 
-    elif len(obdsids) == 1:
+    elif len(obsids) == 1:
         components = Table.read(args.peel_check)
 
         print 'Loaded {0} table, with shape {1} components'.format(args.peel_check, len(components))
