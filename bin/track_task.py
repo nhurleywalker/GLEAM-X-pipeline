@@ -139,7 +139,6 @@ def finish_mosaic(job_id, task_id, host_cluster, subband, end_time):
     conn.close()
 
 
-
 def require(args, reqlist):
     """
     Determine if the the given requirements are met
@@ -218,7 +217,7 @@ if __name__ == "__main__":
         start_mosaic(args.job_id, args.task_id, args.host_cluster,  args.subband, args.start_time)
 
     elif args.directive.lower() == 'finish_mosaic':
-        require(args, ['jobid', 'taskid', 'host_cluster', 'start_time', 'subband'])
+        require(args, ['jobid', 'taskid', 'host_cluster', 'finish_time', 'subband'])
         finish_mosaic(args.job_id, args.task_id, args.host_cluster,  args.subband, args.finish_time)
 
     else:
