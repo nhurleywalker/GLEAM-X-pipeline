@@ -12,13 +12,19 @@ import mysql_db as mdb
 # gleam-x website data/ui models. 
 OBS_STATUS = ['unprocessed' , 'downloaded', 'calibrated', 'imaged', 'archived']
 
+# Bit of record keeping for potential future use / sanity
+BATCH_OBS_IDS_TASKS = ['queue_mosaic']
+
 def queue_job(job_id, task_id, host_cluster,  submission_time, obs_id, user, batch_file, stderr, stdout, task):
     conn = mdb.connect()
     cur = conn.cursor()
-    cur.execute("""INSERT INTO processing
-    (job_id, task_id, host_cluster, submission_time, obs_id, user, batch_file, stderr, stdout, task, status)
-    VALUES ( %s,%s,%s,%s,%s,%s,%s,%s,%s, %s, 'queued')
-    """, (job_id, task_id, host_cluster, submission_time, obs_id, user, batch_file, stderr, stdout, task))
+    cur.execute("""
+                INSERT INTO processing
+                (job_id, task_id, host_cluster, submission_time, obs_id, user, batch_file, stderr, stdout, task, status)
+                VALUES 
+                ( %s,%s,%s,%s,%s,%s,%s,%s,%s, %s, 'queued')
+                """, 
+            (job_id, task_id, host_cluster, submission_time, obs_id, user, batch_file, stderr, stdout, task))
     conn.commit()
     conn.close()
 
@@ -55,6 +61,7 @@ def fail_job(job_id, task_id, host_cluster, time):
     conn.commit()
     conn.close()
 
+
 def observation_status(obs_id, status):
     """Update the observation table to inform it that obsid has been downloaded
 
@@ -73,6 +80,64 @@ def observation_status(obs_id, status):
                )
     conn.commit()
     conn.close()
+
+
+def queue_mosaic(batch_obs_ids, job_id, task_id, host_cluster, submission_time, user, subband):
+    """Creates a new item in the `mosaic` table to signify that a new batch
+    of `obs_ids` are being `swarp`ed together
+    """
+    conn = mdb.connect()
+    cur = conn.cursor()
+    
+    for obs_id in batch_obs_ids:
+        cur.execute(""" 
+                    INSERT INTO mosaic
+                    (obs_id, job_id, task_id, host_cluster, submission_time, user, subband, status)
+                    VALUES
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (obs_id, job_id, task_id, host_cluster, user, subband, 'queued')
+                )
+    
+    cur.commit()
+    conn.close()
+
+
+def start_mosaic(job_id, task_id, host_cluster, subband, start_time):
+    """Update all rows that form a `mos_id` job that their mosaic operation has started
+    """
+    conn = mdb.connect()
+    cur = conn.cursor()
+
+    cur.execute("""
+                UPDATE mosaic
+                SET status='started', start_time=%s
+                WHERE job_id=%s AND task_id=%s AND host_cluster=%s AND subband=%s
+                """,
+                (start_time, job_id, task_id, host_cluster, subband)
+            )
+
+    cur.commit()
+    conn.close()
+
+
+def finish_mosaic(job_id, task_id, host_cluster, subband, end_time):
+    """Update all rows that form a `mos_id` job that their mosaic operation has started
+    """
+    conn = mdb.connect()
+    cur = conn.cursor()
+
+    cur.execute("""
+                UPDATE mosaic
+                SET status='finished', end_time=%s
+                WHERE job_id=%s AND task_id=%s AND host_cluster=%s AND subband=%s
+                """,
+                (end_time, job_id, task_id, host_cluster, subband)
+            )
+
+    cur.commit()
+    conn.close()
+
 
 
 def require(args, reqlist):
@@ -109,9 +174,11 @@ if __name__ == "__main__":
     ps.add_argument('--finish_time', type=int, help='job finish time', default=None)
     ps.add_argument('--batch_file', type=str, help='batch file name', default=None)
     ps.add_argument('--obs_id', type=int, help='observation id', default=None)
+    ps.add_argument('--batch_obs_ids', type=int, nargs='+', help='collection of observation ids, used only for {0} directives'.format(BATCH_OBS_IDS_TASKS), default=None)
     ps.add_argument('--stderr', type=str, help='standard error log', default=None)
     ps.add_argument('--stdout', type=str, help='standard out log', default=None)
     ps.add_argument('--status', type=str, help='observation status, must belong to {0}'.format(OBS_STATUS), default=None)
+    ps.add_argument('--subband', type=str, help='subband of images that are being mosaiced together', default=None)
 
     args = ps.parse_args()
     
@@ -142,5 +209,17 @@ if __name__ == "__main__":
         require(args, ['obs_id','status'])
         observation_status(args.obs_id, args.status)
     
+    elif args.directive.lower() == 'queue_mosaic':
+        require(args, ['jobid', 'taskid', 'host_cluster', 'submission_time', 'batch_obs_ids', 'user', 'subband'])
+        queue_mosaic(args.batch_obs_ids, args.job_id, args.task_id, args.host_cluster, args.submission_time, args.user, args.subband)
+    
+    elif args.directive.lower() == 'start_mosaic':
+        require(args, ['jobid', 'taskid', 'host_cluster', 'start_time', 'subband'])
+        start_mosaic(args.job_id, args.task_id, args.host_cluster,  args.subband, args.start_time)
+
+    elif args.directive.lower() == 'finish_mosaic':
+        require(args, ['jobid', 'taskid', 'host_cluster', 'start_time', 'subband'])
+        finish_mosaic(args.job_id, args.task_id, args.host_cluster,  args.subband, args.finish_time)
+
     else:
         print "I don't know what you are asking; please include a queue/start/finish/fail directive"

@@ -88,6 +88,22 @@ FOREIGN KEY(obs_id) REFERENCES observation(obs_id),
 FOREIGN KEY(source) REFERENCES sources(source),
 CONSTRAINT obs_src PRIMARY KEY (obs_id,source)
 );
+
+CREATE TABLE mosaic
+(
+mos_id INT AUTO_INCREMENT PRIMARY KEY,
+obs_id INT,
+job_id INT,
+task_id INT,
+host_cluster VARCHAR(255),
+user TEXT,
+subband TEXT,
+status TEXT,
+submission_time INT,
+start_time INT,
+end_time INT,
+FOREIGN KEY(obs_id) REFERENCES observation(obs_id)
+);
 """.format(dbname)
 
 def main(drop=False):
