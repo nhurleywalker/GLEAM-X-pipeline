@@ -6,7 +6,7 @@
 #SBATCH --array=0-4
 
 pipeuser=PIPEUSER
-
+export pipeuser
 source /group/mwasci/$pieuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 set -x
