@@ -11,6 +11,8 @@ echo "arr_beams.sh [-d dep] [-q queue] [-b beamlist] [-c] [-t] obsnum
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "gala" ]]
 then
@@ -41,8 +43,8 @@ then
 fi
 
 #initial variables
-base="$scratch/mwasci/$USER/GLEAMX/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/GLEAMX/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 queue="-p $standardq"
 beamlist=
 dep=

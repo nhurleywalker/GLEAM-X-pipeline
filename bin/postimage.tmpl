@@ -7,6 +7,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=NCPUS
 
+pipeuser=PIPEUSER
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
 # Makes fits_warp parallelisation work on Zeus
 KMP_INIT_AT_FORK=false
 # Sub-channels
@@ -14,7 +17,7 @@ subchans="0000 0001 0002 0003 MFS"
 # flux_warp method
 method=scaled
 # Sky model
-MODEL_CATALOGUE="/group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/models/skymodel_only_alpha_sparse_unresolved.fits"
+MODEL_CATALOGUE="/group/mwasci/${pipeuser}/GLEAM-X-pipeline/models/skymodel_only_alpha_sparse_unresolved.fits"
 # Set max separation for flux_warp crossmatch as ~ 1' -- unlikely that the ionosphere would be that brutal
 separation=$(echo "60/3600" | bc -l)
 # Set exclusion for flux_warp internal exclusive crossmatch as ~ 3'
@@ -143,7 +146,7 @@ do
             cstart=${chans[$i]}
             cend=${chans[$j]}
             python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py ${obsnum} _deep-${subchan}-image-pb_warp.fits ${obsnum}_deep-${subchan}-image-pb_warp- -c $cstart-$cend --beam_path /group/mwasci/pb_lookup/gleam_xx_yy.hdf5
-            python /group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/bin/generate_weight_map.py ${obsnum}_deep-${subchan}-image-pb_warp-XX-beam.fits ${obsnum}_deep-${subchan}-image-pb_warp-YY-beam.fits ${obsnum}_deep-${subchan}-image-pb_warp_rms.fits
+            python /group/mwasci/${pipeuser}/GLEAM-X-pipeline/bin/generate_weight_map.py ${obsnum}_deep-${subchan}-image-pb_warp-XX-beam.fits ${obsnum}_deep-${subchan}-image-pb_warp-YY-beam.fits ${obsnum}_deep-${subchan}-image-pb_warp_rms.fits
         fi
     fi
 done

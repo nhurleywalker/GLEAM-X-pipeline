@@ -33,9 +33,9 @@ def main():
                         help="Output psf FITS file -- default is input_psfcat.fits")
     # allow manual specification of NVSS/SUMSS catalogue (e.g. if running locally...)
     parser.add_argument("--nscat", dest="nscat", type=str,
-                        default="/group/mwasci/$USER/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits",
+                        default="/group/mwasci/$PIPEUSER/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits",
                         help="NVSS-SUMSS catalogue filtering extended sources. Default is located at " \
-                             "'/group/mwasci/$USER/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits'")
+                             "'/group/mwasci/$PIPEUSER/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits'")
 
     options = parser.parse_args()
 

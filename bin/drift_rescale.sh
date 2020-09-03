@@ -14,6 +14,8 @@ echo "drift_rescale.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r] [
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
@@ -39,8 +41,8 @@ fi
 
 scratch="/astro"
 group="/group"
-base="$scratch/mwasci/$USER/"
-dbdir="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/"
+dbdir="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 account=
@@ -102,7 +104,8 @@ script="${dbdir}queue/rescale_${listbase}.sh"
 cat ${dbdir}/bin/rescale.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:READ:${readfile}:g" \
-                                 -e "s:BASEDIR:${base}:g"  > ${script}
+                                 -e "s:BASEDIR:${base}:g"  \
+                                 -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 
 output="${dbdir}queue/logs/rescale_${listbase}.o%A_%a"
 error="${dbdir}queue/logs/rescale_${listbase}.e%A_%a"
