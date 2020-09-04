@@ -23,14 +23,14 @@ tsigma=3
 # These options are different from the normal imaging scripts because the resolution has been halved
 if [[ $obsnum -lt 1151402936 ]] ; then
     telescope="MWA128T"
-    basescale=2.2
-    imsize=2000
+    basescale=2.0
+    imsize=2200
     robust=-1.0
 # TODO include flagging for the 128T
 elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
     telescope="MWAHEX"
-    basescale=4.0
-    imsize=1000
+    basescale=3.6
+    imsize=1200
     robust=-2.0
 elif [[ $obsnum -ge 1191580576 ]] ; then
 # To select these antennas I used the following criteria:
@@ -40,8 +40,8 @@ elif [[ $obsnum -ge 1191580576 ]] ; then
 # ants_south: North < -70 (43 antennas)
 # The flags that produce them are simply the inverse of those subsets
     telescope="MWALB"
-    basescale=1.1
-    imsize=4000
+    basescale=1.0
+    imsize=4400
     robust=0.0
 fi
 chan=`pyhead.py -p CENTCHAN ${obsnum}.metafits | awk '{print $3}'`
