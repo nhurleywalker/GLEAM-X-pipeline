@@ -5,7 +5,9 @@
 #SBATCH --nodes=1
 #SBATCH --array=0-4
 
-source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+pipeuser=PIPEUSER
+export pipeuser
+source /group/mwasci/$pieuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 set -x
 
@@ -134,7 +136,7 @@ cd mosaics/
 #raend=`pyhead.py -p CRVAL1 $last`
 
 # Create a swarp template file for resampling
-cat /group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/mosaics/resamp.swarp.tmpl \
+cat /group/mwasci/${pipeuser}/GLEAM-X-pipeline/mosaics/resamp.swarp.tmpl \
     | sed "s;OUTIMAGE;${imageout}.fits;" \
     | sed "s;OUTWEIGHT;${weightout};" \
     | sed "s;WEIGHT_NAMES;${imagelist}.weights.list;" \
@@ -241,8 +243,8 @@ if [[ ! -e ${outname}_ddmod.fits ]] || [[ ! -e ${outname}_psf.fits ]]; then
     # Generate a measured PSF map
     if [[ ! -e ${outname}_psf.fits ]]
     then
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_comp.fits
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_comp_psfcat.fits
+        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_comp.fits
+        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_comp_psfcat.fits
     fi
 
     # Run source-finding using the mosaicked PSF map as an input
@@ -254,15 +256,15 @@ if [[ ! -e ${outname}_ddmod.fits ]] || [[ ! -e ${outname}_psf.fits ]]; then
     # Select sources and generate a new PSF map that has the right blur factor
     if [[ ! -e ${outname}_projpsf_psf.fits ]]
     then
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_projpsf_comp.fits
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_projpsf_comp_psfcat.fits
+        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_projpsf_comp.fits
+        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_projpsf_comp_psfcat.fits
     fi
 
     # Multiply by blur factor
     if [[ ! -e ${outname}_ddmod.fits ]]
     then
         # TODO parallelise this code
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/dd_flux_mod.py --mosaic=${outname}.fits --psf=${outname}_projpsf_psf.fits --output=${outname}_ddmod.fits
+        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/dd_flux_mod.py --mosaic=${outname}.fits --psf=${outname}_projpsf_psf.fits --output=${outname}_ddmod.fits
     fi
 
     # Rerun source-finding on blur-corrected map with measured PSF map

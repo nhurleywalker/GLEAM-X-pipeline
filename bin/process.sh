@@ -11,6 +11,8 @@ echo "process.sh [-p project] [-a account] obsnum
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 scratch="/astro"
 group="/group"
 
@@ -43,8 +45,8 @@ then
     account=pawsey0272
 fi
 
-base="$scratch/mwasci/$USER/$project/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/$project/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 script="${code}queue/process_${obsnum}.sh"
 
 cat ${code}/bin/chain.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \

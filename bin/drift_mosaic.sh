@@ -15,6 +15,8 @@ echo "drift_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r ra]
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
@@ -40,8 +42,8 @@ fi
 
 scratch="/astro"
 group="/group"
-base="$scratch/mwasci/$USER/"
-dbdir="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/"
+dbdir="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 account=
@@ -107,7 +109,8 @@ cat ${dbdir}/bin/mosaic.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:RAPOINT:${ra}:g" \
                                  -e "s:DECPOINT:${dec}:g" \
-                                 -e "s:BASEDIR:${base}:g"  > ${script}
+                                 -e "s:BASEDIR:${base}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 
 output="${dbdir}queue/logs/mosaic_${listbase}.o%A_%a"
 error="${dbdir}queue/logs/mosaic_${listbase}.e%A_%a"

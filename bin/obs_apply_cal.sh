@@ -17,6 +17,8 @@ echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-z] [-t] o
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
@@ -97,8 +99,8 @@ fi
 
 # Set directories
 queue="-p $standardq"
-dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
-base="$scratch/mwasci/$USER/$project/"
+dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/$project/"
 
 if [[ $? != 0 ]]
 then
@@ -118,7 +120,8 @@ cat apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" \
                                      -e "s:DEBUG:${debug}:g" \
-                                     -e "s:CALID:${calid}:g"  > ${script}
+                                     -e "s:CALID:${calid}:g" \
+                                     -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 
 output="${dbdir}queue/logs/apply_cal_${obsnum}.o%A"
 error="${dbdir}queue/logs/apply_cal_${obsnum}.e%A"

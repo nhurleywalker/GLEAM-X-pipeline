@@ -11,7 +11,9 @@
 #SBATCH --output=WRAP_OUTPUT
 #SBATCH --error=WRAP_ERROR
 
-source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+pipeuser=PIPEUSER
+
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 output=IDG_OUTPUT
 error=IDG_ERROR

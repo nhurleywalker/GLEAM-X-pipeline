@@ -7,7 +7,9 @@
 #SBATCH --nodes=1
 TASKLINE
 
-source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+pipeuser=PIPEUSER
+
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 module load python-casacore
 

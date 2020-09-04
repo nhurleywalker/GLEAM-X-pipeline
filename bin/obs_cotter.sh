@@ -14,6 +14,8 @@ echo "obs_cotter.sh [-p project] [-d dep] [-a account] [-t] obsnum
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
@@ -83,9 +85,9 @@ then
 fi
 
 queue="-p $standardq"
-dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
-codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
-datadir=/astro/mwasci/$USER/$project
+dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+codedir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+datadir=/astro/mwasci/$pipeuser/$project
 
 if [[ $obsnum -lt 1151402936 ]] ; then
     telescope="MWA128T"
@@ -113,7 +115,8 @@ cat ${codedir}bin/cotter.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                   -e "s:MEMORY:${memory}:g" \
                                   -e "s:HOST:${computer}:g" \
                                   -e "s:STANDARDQ:${standardq}:g" \
-                                  -e "s:ACCOUNT:${account}:g" > ${script}
+                                  -e "s:ACCOUNT:${account}:g" \
+                                  -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 
 output="${codedir}queue/logs/cotter_${obsnum}.o%A"
 error="${codedir}queue/logs/cotter_${obsnum}.e%A"

@@ -10,6 +10,9 @@ echo "obs_rfifind.sh [-d dep] [-p project] [-q queue] [-t] obsnum
   obsnum     : the obsid to process" 1>&2;
 exit 1;
 }
+
+pipeuser=$(whoami)
+
 # No options for queue - has to be run on gpuq
 #  -q queue   : job queue, default=workq
 # Supercomputer options
@@ -67,8 +70,8 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
-base="$scratch/mwasci/$USER/$project/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/$project/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 
 # if obsid is empty then just print help
 
@@ -96,7 +99,8 @@ cat ${code}/bin/radiance.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:STANDARDQ:gpuq:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:OUTPUT:${output}:g"\
-                                 -e "s:ERROR:${error}:g" > ${script}
+                                 -e "s:ERROR:${error}:g" \
+                                 -e "s:PIPELINE:${pipeline}:g"> ${script}
 
 dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}))
 depend=${dep[3]}
@@ -128,7 +132,8 @@ cat ${code}/bin/rfifind.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:STANDARDQ:workq:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:OUTPUT:${output}:g"\
-                                 -e "s:ERROR:${error}:g" > ${script}
+                                 -e "s:ERROR:${error}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g"> ${script}
 
 dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} --dependency=afterok:${depend} ${queue} ${script}))
 depend=${dep[3]}
@@ -150,7 +155,8 @@ cat ${code}/bin/radiance.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:STANDARDQ:gpuq:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:OUTPUT:${output}:g"\
-                                 -e "s:ERROR:${error}:g" > ${script}
+                                 -e "s:ERROR:${error}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g"> ${script}
 
 dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} --dependency=afterok:${depend} ${queue} ${script}))
 depend=${dep[3]}
@@ -171,7 +177,8 @@ cat ${code}/bin/flagsubs.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:STANDARDQ:workq:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:OUTPUT:${output}:g"\
-                                 -e "s:ERROR:${error}:g" > ${script}
+                                 -e "s:ERROR:${error}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g"> ${script}
 
 dep=($(sbatch -M zeus --begin=now+15 --output=${output} --error=${error} --dependency=afterok:${depend} ${queue} ${script}))
 depend=${dep[3]}

@@ -7,7 +7,8 @@
 #SBATCH --nodes=1
 TASKLINE
 
-source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+pipeuser=PIPEUSER
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 function test_fail {
 if [[ $1 != 0 ]]
@@ -24,7 +25,7 @@ modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 refant=127
 
 # GLEAM-X sky model
-catfile="/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
+catfile="/group/mwasci/$pipeuser/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
 
 # MWA beam information
 MWAPATH=/group/mwasci/software/mwa_pb/mwa_pb/data/
@@ -62,8 +63,8 @@ then
 
     if [[ ! -e "${obsnum}_local_gleam_model.txt" ]]
     then
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot ${obsnum}_local_gleam_model.png --output ${obsnum}_cropped_catalogue.fits
-        /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/vo2model.py --catalogue=${obsnum}_cropped_catalogue.fits --point --output=${obsnum}_local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
+        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot ${obsnum}_local_gleam_model.png --output ${obsnum}_cropped_catalogue.fits
+        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/vo2model.py --catalogue=${obsnum}_cropped_catalogue.fits --point --output=${obsnum}_local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
     fi
     modeldir=.
     calmodel=${obsnum}_local_gleam_model.txt
@@ -92,7 +93,7 @@ current=`chgcentre ${obsnum}.ms`
 if [[ $current == *"shift"* ]]
 then
     echo "Detected that this measurement set has undergone a denormal shift; this must be undone before calibration."
-    coords=`python /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
+    coords=`python /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
     echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
     chgcentre ${obsnum}.ms $coords
 else
@@ -130,7 +131,7 @@ calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -
 test_fail $?
 
 # Create a version divided through by the reference antenna, so that all observations have the same relative XY phase, allowing polarisation calibration solutions to be transferred
-/group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/bin/aocal_phaseref.py ${solutions} ${solutions%.bin}_ref.bin ${refant}
+/group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/aocal_phaseref.py ${solutions} ${solutions%.bin}_ref.bin ${refant}
 
 # plot calibration solutions
 aocal_plot.py --refant=${refant} --amp_max=2 ${solutions%.bin}_ref.bin

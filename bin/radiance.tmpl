@@ -7,6 +7,9 @@
 #SBATCH --export=NONE
 #SBATCH --partition=STANDARDQ
 
+pipeuser=PIPEUSER
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
 module load shifter
 
 function test_fail {

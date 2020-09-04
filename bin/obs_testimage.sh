@@ -12,6 +12,8 @@ echo "obs_testimage.sh [-d dep] [-p project] [-q queue] [-t] obsnum
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
@@ -71,8 +73,8 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
-base="$scratch/mwasci/$USER/$project/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/$project/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 
 # if obsid is empty then just print help
 
