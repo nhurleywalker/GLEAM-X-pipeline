@@ -21,12 +21,14 @@ computer="zeus"
 account="mwasci"
 standardq="copyq"
 
+PIPEUSER=$(whoami)
+
 #initial variables
 
 scratch="/astro"
 group="/group"
-base="$scratch/mwasci/$USER/"
-dbdir="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$PIPEUSER/"
+dbdir="$group/mwasci/$PIPEUSER/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 tst=

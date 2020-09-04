@@ -14,6 +14,8 @@ echo "obs_image.sh [-d dep] [-p project] [-a account] [-z] [-t] obsnum
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
@@ -71,8 +73,8 @@ shift  "$(($OPTIND -1))"
 obsnum=$1
 
 queue="-p $standardq"
-base="$scratch/mwasci/$USER/$project/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/$project/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 
 # if obsid is empty then just print help
 
@@ -100,7 +102,8 @@ cat ${code}/bin/image.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:HOST:${computer}:g" \
                                  -e "s:STANDARDQ:${standardq}:g" \
                                  -e "s:DEBUG:${debug}:g" \
-                                 -e "s:ACCOUNT:${account}:g" > ${script}
+                                 -e "s:ACCOUNT:${account}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g"> ${script}
 
 output="${code}queue/logs/image_${obsnum}.o%A"
 error="${code}queue/logs/image_${obsnum}.e%A"

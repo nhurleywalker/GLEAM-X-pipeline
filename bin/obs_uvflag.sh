@@ -16,6 +16,9 @@ echo "obs_uvflag.sh [-p project] [-d dep] [-a account] [-z] [-t] obsnum
 exit 1;
 }
 
+
+pipeuser=$(whoami)
+
 dep=
 tst=
 debug=
@@ -84,10 +87,10 @@ then
 #    absmem=30 # Check this
 fi
 
-dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
-codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
+dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+codedir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 queue="-p $standardq"
-datadir=/astro/mwasci/$USER/$project
+datadir=/astro/mwasci/$pipeuser/$project
 
 # set dependency
 if [[ ! -z ${dep} ]]
@@ -104,7 +107,8 @@ cat ${codedir}bin/uvflag.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:TASKLINE:${taskline}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:DEBUG:${debug}:g" \
-                                     -e "s:ACCOUNT:${account}:g" > ${script}
+                                     -e "s:ACCOUNT:${account}:g" \
+                                     -e "s:PIPEUSER:${pipeuser}:g"> ${script}
 
 output="${codedir}queue/logs/uvflag_${obsnum}.o%A"
 error="${codedir}queue/logs/uvflag_${obsnum}.e%A"

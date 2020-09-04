@@ -14,6 +14,8 @@ echo "obs_idg.sh [-p project] [-d dep] [-q queue] [-s] [-t] -o list_of_observati
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
 then
@@ -38,8 +40,8 @@ fi
 
 scratch="/astro"
 group="/group"
-base="$scratch/mwasci/$USER/"
-dbdir="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/"
+dbdir="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 tst=false

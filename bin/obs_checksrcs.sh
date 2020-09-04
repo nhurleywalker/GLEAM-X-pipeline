@@ -11,6 +11,8 @@ echo "obs_checksrcs.sh [-d dep] [-q queue] [-n calname] [-t] obsnum
 exit 1;
 }
 
+pipeuser=$(whoami)
+
 # Supercomputer options
 if [[ "${HOST:0:4}" == "gala" ]]
 then
@@ -36,7 +38,7 @@ fi
 
 #initialize as empty
 scratch=/astro
-base="$scratch/mwasci/$USER/GLEAMX/"
+base="$scratch/mwasci/$pipeuser/GLEAMX/"
 dep=
 queue='-p $standardq'
 tst=
@@ -88,7 +90,8 @@ cat ${base}/bin/checksrcs.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:SRCLIST:${srclist}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
-                                     -e "s:ACCOUNT:${account}:g" > ${script}
+                                     -e "s:ACCOUNT:${account}:g" \
+                                     -e "s:PIPEUSER:${pipeuser}:g"> ${script}
 
 output="${base}queue/logs/checksrcs_${obsnum}.o%A"
 error="${base}queue/logs/checksrcs_${obsnum}.e%A"

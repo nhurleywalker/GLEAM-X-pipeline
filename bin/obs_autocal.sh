@@ -15,6 +15,8 @@ echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
 exit 1;
 }
 
+pipeline=$(whoami)
+
 dep=
 tst=
 ion=
@@ -83,10 +85,10 @@ then
 #    absmem=30 # Check this
 fi
 
-dbdir="/group/mwasci/$USER/GLEAM-X-pipeline/"
-codedir="/group/mwasci/$USER/GLEAM-X-pipeline/"
+dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+codedir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 queue="-p $standardq"
-datadir=/astro/mwasci/$USER/$project
+datadir=/astro/mwasci/$pipeuser/$project
 
 # set dependency
 if [[ ! -z ${dep} ]]
@@ -103,7 +105,8 @@ cat ${codedir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:TASKLINE:${taskline}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:IONOTEST:${ion}:g" \
-                                     -e "s:ACCOUNT:${account}:g" > ${script}
+                                     -e "s:ACCOUNT:${account}:g" \
+                                     -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 
 output="${codedir}queue/logs/autocal_${obsnum}.o%A"
 error="${codedir}queue/logs/autocal_${obsnum}.e%A"
