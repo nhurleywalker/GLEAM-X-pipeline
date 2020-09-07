@@ -131,6 +131,7 @@ calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -
 test_fail $?
 
 # Create a version divided through by the reference antenna, so that all observations have the same relative XY phase, allowing polarisation calibration solutions to be transferred
+# This also sets the cross-terms to zero by default
 /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/aocal_phaseref.py ${solutions} ${solutions%.bin}_ref.bin ${refant}
 
 # plot calibration solutions
