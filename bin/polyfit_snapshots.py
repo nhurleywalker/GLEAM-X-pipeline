@@ -262,7 +262,7 @@ else:
 if results.do_rescale is True:
     for fitsimage in infiles:
         if results.correct_all is True:
-            extlist = ["", "_bkg", "_rms", "_weight"]
+            extlist = ["", "_bkg", "_rms", "_weight", "_comp"]
         else:
             extlist = [""]
         for ext in extlist:
@@ -272,43 +272,59 @@ if results.do_rescale is True:
                 print("Creating {0} from {1}".format(outfits, infits))
         # Modify each fits file to produce a new version
                 hdu_in = fits.open(infits)
-            # wcs in format [stokes,freq,y,x]; stokes and freq are length 1 if they exist
-                w = wcs.WCS(hdu_in[0].header, naxis=2)
-                naxes = hdu_in[0].header["NAXIS"]
-        # going to need the RA in order to calculate the RA offsets
-                path, fl = os.path.split(infits)
-                meta = fits.getheader("{0}/{1}.metafits".format(path, fl[0:10]))
-                ra_cent = meta["RA"]
-                if naxes == 4:
-                    m, n = 2, 3
-                elif naxes == 2:
-                    m, n = 0, 1
-                #create an array but don't set the values (they are random)
-                indexes = np.empty((hdu_in[0].data.shape[m]*hdu_in[0].data.shape[n],2), dtype=int)
-                idx = np.array([(j,0) for j in range(hdu_in[0].data.shape[n])])
-                j=hdu_in[0].data.shape[n]
-                for i in range(hdu_in[0].data.shape[m]):
-                    idx[:,1]=i
-                    indexes[i*j:(i+1)*j] = idx
-                 
-            #put ALL the pixels into our vectorized functions and minimise our overheads
-                ra, dec = w.wcs_pix2world(indexes,1).transpose()
-                dec_corr = np.zeros(dec.shape)
-                ra_corr = np.zeros(ra.shape)
-        # We generated log10 ratios so use 10^ to get back to raw correction 
-        # e.g. a 4th order polynomial would look like:
-        # corr = 10** ( a*(Dec)^3 + b*(Dec)^2 + c*Dec + d)
-                for i in range(0,results.poly_order+1):
-                    dec_corr += P_dec[i]*pow(dec, results.poly_order-i)
-                dec_corr = 10**dec_corr
-                if results.correct_ra is True:
+                if hdu_in[0].data is None:
+            # Then it is a source-finding catalogue not an image
+                    cat = hdu_in[1].data
+                    dec = cat["DEJ2000"]
+                    dec_corr = np.zeros(dec.shape)
+            # We generated log10 ratios so use 10^ to get back to raw correction 
+            # e.g. a 4th order polynomial would look like:
+            # corr = 10** ( a*(Dec)^3 + b*(Dec)^2 + c*Dec + d)
                     for i in range(0,results.poly_order+1):
-                        ra_corr += P_ra[i]*pow(ra-ra_cent, results.poly_order-i)
-                    ra_corr = 10**ra_corr
-                    corr = dec_corr * ra_corr
+                        dec_corr += P_dec[i]*pow(dec, results.poly_order-i)
+                    dec_corr = 10**dec_corr
+            # Obviously only modify columns which use the flux density    
+                    cols = ["background", "local_rms", "peak_flux", "err_peak_flux", "int_flux", "err_int_flux", "residual_mean", "residual_std"]
+                    for col in cols:
+                        cat[col] *= dec_corr
+                    hdu_in.writeto(outfits, overwrite=True)
+                    hdu_in.close()
                 else:
-                    corr = dec_corr
-                corr = corr.reshape(hdu_in[0].data.shape[m],hdu_in[0].data.shape[n])
-                hdu_in[0].data = np.array(corr*hdu_in[0].data, dtype=np.float32)
-                hdu_in.writeto(outfits, overwrite=True)
-                hdu_in.close()
+            # This is an image not a source-finding catalogue
+                # wcs in format [stokes,freq,y,x]; stokes and freq are length 1 if they exist
+                    w = wcs.WCS(hdu_in[0].header, naxis=2)
+                    naxes = hdu_in[0].header["NAXIS"]
+            # going to need the RA in order to calculate the RA offsets
+                    path, fl = os.path.split(infits)
+                    meta = fits.getheader("{0}/{1}.metafits".format(path, fl[0:10]))
+                    ra_cent = meta["RA"]
+                    if naxes == 4:
+                        m, n = 2, 3
+                    elif naxes == 2:
+                        m, n = 0, 1
+                    #create an array but don't set the values (they are random)
+                    indexes = np.empty((hdu_in[0].data.shape[m]*hdu_in[0].data.shape[n],2), dtype=int)
+                    idx = np.array([(j,0) for j in range(hdu_in[0].data.shape[n])])
+                    j=hdu_in[0].data.shape[n]
+                    for i in range(hdu_in[0].data.shape[m]):
+                        idx[:,1]=i
+                        indexes[i*j:(i+1)*j] = idx
+                     
+                #put ALL the pixels into our vectorized functions and minimise our overheads
+                    ra, dec = w.wcs_pix2world(indexes,1).transpose()
+                    dec_corr = np.zeros(dec.shape)
+                    ra_corr = np.zeros(ra.shape)
+                    for i in range(0,results.poly_order+1):
+                        dec_corr += P_dec[i]*pow(dec, results.poly_order-i)
+                    dec_corr = 10**dec_corr
+                    if results.correct_ra is True:
+                        for i in range(0,results.poly_order+1):
+                            ra_corr += P_ra[i]*pow(ra-ra_cent, results.poly_order-i)
+                        ra_corr = 10**ra_corr
+                        corr = dec_corr * ra_corr
+                    else:
+                        corr = dec_corr
+                    corr = corr.reshape(hdu_in[0].data.shape[m],hdu_in[0].data.shape[n])
+                    hdu_in[0].data = np.array(corr*hdu_in[0].data, dtype=np.float32)
+                    hdu_in.writeto(outfits, overwrite=True)
+                    hdu_in.close()
