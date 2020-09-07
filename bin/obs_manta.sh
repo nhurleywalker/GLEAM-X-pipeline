@@ -21,14 +21,14 @@ computer="zeus"
 account="mwasci"
 standardq="copyq"
 
-PIPEUSER=$(whoami)
+pipeuser=$(whoami)
 
 #initial variables
 
 scratch="/astro"
 group="/group"
-base="$scratch/mwasci/$PIPEUSER/"
-dbdir="$group/mwasci/$PIPEUSER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/"
+dbdir="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 tst=
@@ -123,7 +123,8 @@ script="${dbdir}queue/manta_${listbase}.sh"
 
 cat ${dbdir}/bin/manta.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:STEM:${stem}:g"  \
-                                 -e "s:BASEDIR:${base}:g"  > ${script}
+                                 -e "s:BASEDIR:${base}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 #                                 -e "s:ACCOUNT:${account}:g"
 
 output="${dbdir}queue/logs/manta_${listbase}.o%A"
