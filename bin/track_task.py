@@ -4,6 +4,7 @@ __author__ = ["Paul Hancock",
               "Natasha Hurley-Walker",
               "Tim Galvin"]
 
+from __future__ import print_function
 import os
 import sys
 import mysql_db as mdb
@@ -146,7 +147,7 @@ def require(args, reqlist):
     """
     for r in reqlist:
         if not getattr(args, r):
-            print "Directive {0} requires argument {1}".format(args.directive, r)
+            print("Directive {0} requires argument {1}".format(args.directive, r))
             sys.exit(1)
         
         # an sqlite to mysql change
@@ -154,7 +155,7 @@ def require(args, reqlist):
             args.__dict__[r] = args.__dict__[r].replace('date +%s', 'NOW()')
             
         if r == 'status' and args.status.lower() not in OBS_STATUS:
-            print "Observation status `{0}` is not in the allowed list {1}. Exiting without updating. \n".format(args.status, OBS_STATUS)
+            print("Observation status `{0}` is not in the allowed list {1}. Exiting without updating. \n".format(args.status, OBS_STATUS))
             sys.exit(1)
 
     return True
@@ -221,4 +222,4 @@ if __name__ == "__main__":
         finish_mosaic(args.job_id, args.task_id, args.host_cluster,  args.subband, args.finish_time)
 
     else:
-        print "I don't know what you are asking; please include a queue/start/finish/fail directive"
+        print("I don't know what you are asking; please include a queue/start/finish/fail directive")
