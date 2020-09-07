@@ -15,7 +15,19 @@ ncpus=NCPUS
 debug=DEBUG
 pipeuser=PIPEUSER
 
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    exit $1
+fi
+}
+
 cd $basedir/${obsnum}
+
+track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
 
 # S/N Threshold at which to stop cleaning
 tsigma=3
@@ -69,6 +81,9 @@ do
 
     BANE --compress --noclobber ${obsnum}_${dir}-image.fits
     aegean --autoload --table=${obsnum}_${dir}-image.fits ${obsnum}_${dir}-image.fits
+
+    test_fail $?
+
     rm -rf ${obsnum}_flag.ms
     rm ${obsnum}_${dir}-image.fits
     rm ${obsnum}_${dir}-image_bkg.fits
@@ -77,3 +92,6 @@ do
     rm ${obsnum}_${dir}-dirty.fits
     rm ${obsnum}_${dir}-residual.fits
 done
+
+
+track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
