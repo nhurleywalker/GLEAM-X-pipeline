@@ -130,7 +130,8 @@ echo "obslist is $obslist"
 
 cat ${dbdir}/bin/manta.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:STEM:${stem}:g"  \
-                                 -e "s:BASEDIR:${base}:g"  > ${script}
+                                 -e "s:BASEDIR:${base}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 #                                 -e "s:ACCOUNT:${account}:g"
 
 output="${dbdir}queue/logs/manta_${listbase}.o%A"
