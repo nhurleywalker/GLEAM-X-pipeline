@@ -21,7 +21,7 @@ computer="zeus"
 account="mwasci"
 standardq="copyq"
 
-PIPEUSER=$(whoami)
+pipeuser=$(whoami)
 
 #initial variables
 
