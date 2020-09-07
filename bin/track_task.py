@@ -1,8 +1,8 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 __author__ = "PaulHancock & Natasha Hurley-Walker"
 
-from __future__ import print_function
 import os
 import sqlite3
 import sys
