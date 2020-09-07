@@ -27,8 +27,8 @@ pipeuser=$(whoami)
 
 scratch="/astro"
 group="/group"
-base="$scratch/mwasci/$PIPEUSER/"
-dbdir="$group/mwasci/$PIPEUSER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/"
+dbdir="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 tst=
