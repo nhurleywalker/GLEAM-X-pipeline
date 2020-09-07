@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 __author__ = ["Paul Hancock", 
               "Natasha Hurley-Walker",
               "Tim Galvin"]
 
-from __future__ import print_function
 import os
 import sys
 import mysql_db as mdb
