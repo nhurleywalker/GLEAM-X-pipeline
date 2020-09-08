@@ -275,7 +275,7 @@ if results.do_rescale is True:
                 if hdu_in[0].data is None:
             # Then it is a source-finding catalogue not an image
                     cat = hdu_in[1].data
-                    dec = cat["DEJ2000"]
+                    dec = cat["dec"]
                     dec_corr = np.zeros(dec.shape)
             # We generated log10 ratios so use 10^ to get back to raw correction 
             # e.g. a 4th order polynomial would look like:

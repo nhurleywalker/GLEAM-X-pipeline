@@ -24,7 +24,7 @@ subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
 
 cd ${base}
 
-obslist=`cat $obslist`
+obs=`cat $obslist`
 
 sublist=${obslist%.txt}_${subchan}.txt
 
@@ -33,7 +33,7 @@ then
     rm $sublist
 fi
 
-for file in ${obslist}
+for file in ${obs}
 do
     if [[ -e ${file}/${file}_deep-${subchan}-image-pb_warp.fits ]]
     then
