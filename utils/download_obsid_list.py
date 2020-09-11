@@ -23,10 +23,10 @@ def get_observations(fds_only=True,
         df = df[df['obsname'].str.contains('FDS')]
     
     if start_obsid is not None:
-        df = df[df['obsid'] >= int(start_obsid)]
+        df = df[df['obs_id'] >= int(start_obsid)]
 
     if finish_obsid is not None:
-        df = df[df['obsid'] <= int(finish_obsid)]
+        df = df[df['obs_id'] <= int(finish_obsid)]
 
     if obs_date is not None:
         gps = Time(df['obs_id'], format='gps', location=MWA)
