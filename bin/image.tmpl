@@ -66,7 +66,7 @@ elif [[ $obsnum -ge 1191580576 ]] ; then
     telescope="MWALB"
     basescale=0.6
     imsize=8000
-    robust=0.0
+    robust=0.5
 fi
 
 # Set up channel-dependent options
@@ -84,18 +84,8 @@ freqrange="${lowfreq}-${highfreq}"
 # Calculate min uvw in metres
 minuvm=`echo "234 * $minuv / $chan" | bc -l`
 
-# Set up position-dependent options
-RA=`pyhead.py -p RA $metafits | awk '{print $3}'`
-Dec=`pyhead.py -p Dec $metafits | awk '{print $3}'`
-
-# Multiscale clean original GLEAM Galactic plane, normal clean for everything else
-b=`fk5_to_gal.py $RA $Dec | awk '{printf("%d",$2)}' | sed "s/-//"`
-if [[ $b -le 15 ]] && [[ $telescope == "MWA128T" ]]
-then
-    multiscale="-multiscale -mgain 0.6"
-else
-    multiscale="-mgain 0.85"
-fi
+# Found that multiscale cleaning recovers flux density in the extragalactic sky better than not, and doesn't add much to processing time
+multiscale="-multiscale -mgain 0.85 -multiscale-gain 0.15"
 
 # Check whether the phase centre has already changed
 current=`chgcentre ${obsnum}.ms`
@@ -146,7 +136,7 @@ do
     fi
     for pol in $pols
     do
-        ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_deep-000${n}-beam-${pol}.fits
+        ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_deepr1-000${n}-beam-${pol}.fits
     done
 done
 
@@ -159,7 +149,7 @@ wsclean $multiscale \
     -apply-primary-beam \
     -auto-mask $msigma \
     -auto-threshold $tsigma \
-    -name ${obsnum}_deep \
+    -name ${obsnum}_deepr1 \
     -size ${imsize} ${imsize} \
     -scale ${scale:0:8} \
     -weight briggs ${robust} \
@@ -176,7 +166,7 @@ track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
 # Rename files
 #for subchan in $subchans
 #do
-#    deep="${obsnum}_deep-$subchan-image.fits"
+#    deep="${obsnum}_deepr1-$subchan-image.fits"
 #    newfilename=`wsclean2gleam.py -f $deep -v $version`
 #    mv $deep $newfilename
 #done
