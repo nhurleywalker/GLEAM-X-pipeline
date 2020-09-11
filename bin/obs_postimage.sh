@@ -97,6 +97,7 @@ script="${code}queue/postimage_${obsnum}.sh"
 cat ${code}/bin/postimage.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:NCPUS:${ncpus}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g" \
                                  -e "s:HOST:${computer}:g" \
                                  -e "s:STANDARDQ:${standardq}:g" \
                                  -e "s:ACCOUNT:${account}:g" > ${script}

@@ -64,7 +64,7 @@ do
 	o)
 	    obslist=${OPTARG} ;;
     r)
-        readfile=1 ;;
+        readfile="--read" ;;
     t)
         tst=1 ;;
     g)
@@ -110,7 +110,7 @@ cat ${dbdir}/bin/rescale.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
 output="${dbdir}queue/logs/rescale_${listbase}.o%A_%a"
 error="${dbdir}queue/logs/rescale_${listbase}.e%A_%a"
 
-#sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+#sub="sbatch --begin=now+4hours --output=${output} --error=${error} ${depend} ${queue} ${script}"
 sub="sbatch --output=${output} --error=${error} ${depend} ${queue} ${script}"
 if [[ ! -z ${tst} ]]
 then

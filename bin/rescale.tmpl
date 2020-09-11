@@ -24,7 +24,7 @@ subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
 
 cd ${base}
 
-obslist=`cat $obslist`
+obs=`cat $obslist`
 
 sublist=${obslist%.txt}_${subchan}.txt
 
@@ -33,7 +33,7 @@ then
     rm $sublist
 fi
 
-for file in ${obslist}
+for file in ${obs}
 do
     if [[ -e ${file}/${file}_deep-${subchan}-image-pb_warp.fits ]]
     then
@@ -45,3 +45,17 @@ python /group/mwasci/${pipeuser}/GLEAM-X-pipeline/bin/polyfit_snapshots.py \
                --filelist ${sublist} \
                --skymodel=/group/mwasci/${pipeuser}/GLEAM-X-pipeline/models/skymodel_only_alpha_sparse_unresolved.fits \
                $readfile $write --rescale --correctall --overwrite --plot
+
+# Check that all files created so I can use the right exit code
+exitcode=0
+files=`cat $sublist`
+for file in ${files}
+do
+    if [[ ! -e ${file%.fits}_rescaled.fits ]]
+    then
+        echo "Failed to create ${file%.fits}_rescaled.fits"
+        exitcode=1
+    fi
+done
+
+exit $exitcode
