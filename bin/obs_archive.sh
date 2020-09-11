@@ -47,7 +47,7 @@ dep=
 tst=
 endpoint='146.118.69.100' #HOST is already used as a keyword in other script
 user='ubuntu'
-remote='/mnt/dav/GLEAM-X/public/Archived_Obsids'
+remote='/mnt/dav/GLEAM-X/Archived_Obsids'
 # parse args and set options
 while getopts ':td:a:p:u:h:r:' OPTION
 do
