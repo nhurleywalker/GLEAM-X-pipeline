@@ -136,7 +136,7 @@ do
     fi
     for pol in $pols
     do
-        ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_deepr1-000${n}-beam-${pol}.fits
+        ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_deep-000${n}-beam-${pol}.fits
     done
 done
 
@@ -149,7 +149,7 @@ wsclean $multiscale \
     -apply-primary-beam \
     -auto-mask $msigma \
     -auto-threshold $tsigma \
-    -name ${obsnum}_deepr1 \
+    -name ${obsnum}_deep \
     -size ${imsize} ${imsize} \
     -scale ${scale:0:8} \
     -weight briggs ${robust} \
@@ -167,7 +167,7 @@ track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
 # Rename files
 #for subchan in $subchans
 #do
-#    deep="${obsnum}_deepr1-$subchan-image.fits"
+#    deep="${obsnum}_deep-$subchan-image.fits"
 #    newfilename=`wsclean2gleam.py -f $deep -v $version`
 #    mv $deep $newfilename
 #done
