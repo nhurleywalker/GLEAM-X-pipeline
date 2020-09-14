@@ -156,9 +156,11 @@ wsclean $multiscale \
     -pol I \
     -join-channels \
     -channels-out 4 \
-    -save-source-list \
     -data-column ${datacolumn} \
     ${obsnum}.ms | tee wsclean.log
+
+#    -save-source-list \
+#    -fit-spectral-pol 1 \
 
 test_fail $?
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
