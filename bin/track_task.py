@@ -148,7 +148,6 @@ def require(args, reqlist):
     for r in reqlist:
         if not getattr(args, r):
             print("Directive {0} requires argument {1}".format(args.directive, r))
-<<<<<<< HEAD
             sys.exit(1)
         
         # an sqlite to mysql change
@@ -159,10 +158,7 @@ def require(args, reqlist):
             print("Observation status `{0}` is not in the allowed list {1}. Exiting without updating. \n".format(args.status, OBS_STATUS))
             sys.exit(1)
 
-=======
-            sys.exit()
->>>>>>> upstream/master
-    return True
+return True
 
 
 if __name__ == "__main__":
