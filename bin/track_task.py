@@ -158,7 +158,7 @@ def require(args, reqlist):
             print("Observation status `{0}` is not in the allowed list {1}. Exiting without updating. \n".format(args.status, OBS_STATUS))
             sys.exit(1)
 
-return True
+    return True
 
 
 if __name__ == "__main__":
