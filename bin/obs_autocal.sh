@@ -15,7 +15,7 @@ echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
 exit 1;
 }
 
-pipeline=$(whoami)
+pipeuser=$(whoami)
 
 dep=
 tst=
