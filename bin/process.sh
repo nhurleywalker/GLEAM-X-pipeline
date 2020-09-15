@@ -35,6 +35,15 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
+
+base="$scratch/mwasci/$pipeuser/$project/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+script="${code}queue/process_${obsnum}.sh"
+
+echo $base
+echo $code
+echo $script
+
 if [[ -z ${obsnum} ]] || [[ -z $project ]]
 then
     usage
@@ -45,9 +54,6 @@ then
     account=pawsey0272
 fi
 
-base="$scratch/mwasci/$pipeuser/$project/"
-code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
-script="${code}queue/process_${obsnum}.sh"
 
 cat ${code}/bin/chain.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:PROJECT:${project}:g" \
