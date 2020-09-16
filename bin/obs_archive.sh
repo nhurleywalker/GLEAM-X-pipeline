@@ -137,6 +137,11 @@ jobid=($(${sub}))
 jobid=${jobid[3]}
 taskid=1
 
+# record submission
+track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='archive' --submission_time=`date +%s` --batch_file=${script} \
+                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+
+
 # rename the err/output files as we now know the jobid
 error=`echo ${error} | sed "s/%A/${jobid}/"`
 output=`echo ${output} | sed "s/%A/${jobid}/"`

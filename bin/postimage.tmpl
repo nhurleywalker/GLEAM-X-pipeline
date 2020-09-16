@@ -179,5 +179,13 @@ then
         # and extract
         getfits -o ${crop} $x1-$x2 $y1-$y2 ${psf}
     fi
+
+    # Compress the primary beam warped weight map
+    warp=${obsnum}_deep-${subchan}-image-pb_warp_weight.fits
+    compress=${warp}.sr6
+    if [[ ! -e ${compress} ]]
+    then
+        SR6 -o ${compress} $warp
+    fi
 done
 
