@@ -1,22 +1,28 @@
 #! /bin/bash
 
+endpoint='146.118.69.100' #HOST is already used as a keyword in other script
+user='ubuntu'
+remote='/mnt/dav/GLEAM-X/Archived_Obsids'
+
 usage()
 {
 echo "obs_archive.sh [-d dep] [-p project] [-a account] [-u user] [-e endpoint] [-r remote_directory] [-t] obsnum
 
-Archives the processed data products onto the data central archive system. By default traffic is routed through a nimbus instance, requiring a public ssh key to first be added to list of authorized keys. Data Central runs ownCloud, and at the moment easiest way through is a `davfs2` mount. Consult Natasha or Tim. 
+Archives the processed data products onto the data central archive system. By default traffic is routed through a nimbus instance, requiring a public ssh key to first be added to list of authorized keys. Data Central runs ownCloud, and at the moment easiest way through is a 'davfs2' mount. Consult Natasha or Tim. 
 
   -d dep      : job number for dependency (afterok)
   -a account  : computing account, default pawsey0272
   -p project  : project, (must be specified, no default)
-  -u user     : user name of system to archive to (default: 'ubuntu')
-  -e endpoint : hostname to copy the archive data to (default: '146.118.69.100')
-  -r remote   : remote directory to copy files to (default: '/mnt/dav/GLEAM-X/public/Archived_Obsids)
+  -u user     : user name of system to archive to (default: '$user')
+  -e endpoint : hostname to copy the archive data to (default: '$endpoint')
+  -r remote   : remote directory to copy files to (default: '$remote')
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
   obsnum      : the obsid to process" 1>&2;
 exit 1;
 }
+
+pipeuser=$(whoami)
 
 # Supercomputer options
 if [[ "${HOST:0:4}" == "zeus" ]]
@@ -45,9 +51,7 @@ group="/group"
 #initial variables
 dep=
 tst=
-endpoint='146.118.69.100' #HOST is already used as a keyword in other script
-user='ubuntu'
-remote='/mnt/dav/GLEAM-X/Archived_Obsids'
+
 # parse args and set options
 while getopts ':td:a:p:u:h:r:' OPTION
 do
@@ -83,8 +87,8 @@ shift  "$(($OPTIND -1))"
 obsnum=$1
 
 queue="-p $standardq"
-base="$scratch/mwasci/$USER/$project/"
-code="$group/mwasci/$USER/GLEAM-X-pipeline/"
+base="$scratch/mwasci/$pipeuser/$project/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 
 # if obsid is empty then just print help
 
@@ -113,7 +117,8 @@ cat ${code}/bin/archive.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:ENDUSER:${user}:g" \
                                  -e "s:ENDPOINT:${endpoint}:g" \
-                                 -e "s:REMOTE:${remote}:g"> ${script}
+                                 -e "s:REMOTE:${remote}:g" \
+                                 -e "s:PIPEUSER:${pipeuser}:g"> ${script}
 
 output="${code}queue/logs/archive_${obsnum}.o%A"
 error="${code}queue/logs/archive_${obsnum}.e%A"

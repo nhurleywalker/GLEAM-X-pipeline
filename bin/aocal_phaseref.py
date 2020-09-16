@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import os, logging
 from optparse import OptionParser #NB zeus does not have argparse!
-from aocal import fromfile
+#from aocal import fromfile
+from mwapy.aocal import fromfile
 import numpy as np
 parser = OptionParser(usage = "usage: %prog inbinfile outbinfile refant" +
 """

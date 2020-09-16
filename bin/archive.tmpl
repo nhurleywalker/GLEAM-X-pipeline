@@ -7,7 +7,9 @@
 #SBATCH --ntasks=NCPUS
 #SBATCH --nodes=1
 
-source /group/mwasci/$SLURM_JOB_USER/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
+pipeuser=PIPEUSER
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 function test_fail {
 if [[ $1 != 0 ]]
@@ -34,9 +36,6 @@ rsync -avh --progress --stats *csv \
                               ${obsnum}_deep-*-psf_crop.fits \
                               ${obsnum}_deep-*-image-pb.fits \
                               ${obsnum}_deep-*-image-pb_warp_weight.fits \
-                              ${obsnum}_deep-*-image-pb_warp_rms.fits \
-                              ${obsnum}_deep-*-image-pb_warp_bkg.fits \
-                              ${obsnum}_deep-*-image-pb_warp_comp.fits \
                               ${obsnum}_*_xm.fits \
                               $user@$host:"$remote/$obsnum"
 
