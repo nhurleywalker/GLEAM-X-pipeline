@@ -152,40 +152,48 @@ do
 done
 
 
-# Post procressing tasks unrelated to fitswarp
-for subchan in ${subchans}
-then
-    # Compress the near empty model files
-    zip ${obsnum}_deep-${subchan}-models.zip ${obsid}_deep-${subchan}-model*.zip
+# # Post procressing tasks unrelated to fitswarp
+# for subchan in ${subchans}
+# do
+#     # Compress the near empty model files
+#     zip ${obsnum}_deep-${subchan}-models.zip ${obsid}_deep-${subchan}-model*.fits
 
-    # Create an extract of the psf
-    psf=${obsnum}_deep-${subchan}-psf.fits
-    crop=${psf%.fits}_crop.fits
-    if [[ ! -e ${crop} ]]
-    then
-        # Get size of the total image
-        x=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f1)
-        y=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f2)
+#     # Create an extract of the psf
+#     psf=${obsnum}_deep-${subchan}-psf.fits
+#     crop=${psf%.fits}_crop.fits
+#     if [[ ! -e ${crop} ]]
+#     then
+#         # Get size of the total image
+#         x=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f1)
+#         y=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f2)
         
-        # Pixels in central region to extract
-        SIZE=200 
+#         # Pixels in central region to extract
+#         SIZE=200 
 
-        # Bounds of region
-        let "x1 = $x/2 - $SIZE/2" 
-        let "x2 = $x/2 + $SIZE/2"
-        let "y1 = $y/2 - $SIZE/2"
-        let "y2 = $y/2 + $SIZE/2"
+#         # Bounds of region
+#         let "x1 = $x/2 - $SIZE/2" 
+#         let "x2 = $x/2 + $SIZE/2"
+#         let "y1 = $y/2 - $SIZE/2"
+#         let "y2 = $y/2 + $SIZE/2"
 
-        # and extract
-        getfits -o ${crop} $x1-$x2 $y1-$y2 ${psf}
-    fi
+#         # and extract
+#         getfits -o ${crop} $x1-$x2 $y1-$y2 ${psf}
+#     fi
 
-    # Compress the primary beam warped weight map
-    warp=${obsnum}_deep-${subchan}-image-pb_warp_weight.fits
-    compress=${warp}.sr6
-    if [[ ! -e ${compress} ]]
-    then
-        SR6 -o ${compress} $warp
-    fi
-done
+#     # Compress the primary beam warped weight map
+#     warp=${obsnum}_deep-${subchan}-image-pb_warp_weight.fits
+#     compress=${warp}.sr6
+#     if [[ ! -e ${compress} ]]
+#     then
+#         SR6 -o ${compress} $warp
+#     fi
+
+#     # Zip the model components
+#     model=${obsnum}_deep-${subchan}-model
+#     zip=${model}.zip
+#     if [[ ! -e ${zip} ]]
+#     then
+#         zip -r ${zip} ${model}*.fits
+#     fi
+# done
 
