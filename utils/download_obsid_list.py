@@ -11,10 +11,14 @@ import mysql_db as mdb
 
 MWA = EarthLocation.from_geodetic(lat=-26.703319*u.deg, lon=116.67081*u.deg, height=377*u.m)
 
-def get_observations(fds_only=True, 
-                     start_obsid=None,
-                     finish_obsid=None,
-                     obs_date=None):
+def get_observations(
+    fds_only=True, 
+    start_obsid=None,
+    finish_obsid=None,
+    obs_date=None,
+    cen_chan=None,
+    hour_angle=None
+):
 
     df = pd.read_sql_table('observation',
                           mdb.dbc.dfconn)
@@ -34,11 +38,33 @@ def get_observations(fds_only=True,
 
         df = df[gps_date == obs_date]
 
+    if hour_angle is not None:
+        gps = Time(df['obs_id'], format='gps', location=MWA)
+        lst = gps.sidereal_time('mean')
+
+        ra = df['ra_pointing'].values 
+        ha = np.round((lst.deg - ra)/15)
+        
+        mask = ha > 12
+        ha[mask] = ha[mask] - 24.
+
+        mask = ha < -12
+        ha[mask] = ha[mask] + 24.
+
+        df = df[ha.astype(int) == hour_angle]
+
+    if cen_chan is not None:
+        df = df[df['cenchan'] == cen_chan]
+
     return df
 
 
 def create_obsids_txt(df, out):
-    df['obs_id'].to_csv(out, index=False)
+    df['obs_id'].to_csv(
+                    out, 
+                    index=False,
+                    header=False
+                )
 
 
 if __name__ == '__main__':
@@ -48,6 +74,8 @@ if __name__ == '__main__':
     parser.add_argument('-f','--finish-obsid', default=None, type=int, help='Last `obs_id` in a range of obsids')
     parser.add_argument('-d','--date', default=None, help='Obsids on this date are returned. Date is expected in YYY-MM-DD format')
     parser.add_argument('-o', '--out', default=None, help='Output path of a line delimited set of obsids. Only supports text output file and ignores file extension. ')
+    parser.add_argument('-c','--cen-chan', default=None, type=int, choices=[ 69,  93, 121, 145, 169], help='Obsids matching the specified cenchan are returned. ')
+    parser.add_argument('-i','--hour-angle', default=None, type=int, choices=[ -1, 0, -1], help='Specifies the hour-angle of the obsids to be returned. ')
 
     args = parser.parse_args()
 
@@ -57,7 +85,9 @@ if __name__ == '__main__':
             fds_only=not args.all_obs, 
             start_obsid=args.start_obsid,
             finish_obsid=args.finish_obsid,
-            obs_date=args.date 
+            obs_date=args.date, 
+            cen_chan=args.cen_chan,
+            hour_angle=args.hour_angle
         )
 
     print(df.shape)
