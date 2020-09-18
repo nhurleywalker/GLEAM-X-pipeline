@@ -52,7 +52,8 @@ def clip_components(
         fits.writeto(
             out_file,
             copy_data,
-            comp_head
+            comp_head,
+            overwrite=True
         )
 
 
