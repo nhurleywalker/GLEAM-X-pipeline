@@ -159,6 +159,24 @@ wsclean $multiscale \
     -data-column ${datacolumn} \
     ${obsnum}.ms | tee wsclean.log
 
+# Shallow clean for a test
+# wsclean $multiscale \
+#     -nmiter 1 \
+#     -niter 100 \
+#     -reuse-primary-beam \
+#     -apply-primary-beam \
+#     -auto-mask $msigma \
+#     -auto-threshold $tsigma \
+#     -name ${obsnum}_deep \
+#     -size ${imsize} ${imsize} \
+#     -scale ${scale:0:8} \
+#     -weight briggs ${robust} \
+#     -pol I \
+#     -join-channels \
+#     -channels-out 4 \
+#     -data-column ${datacolumn} \
+#     ${obsnum}.ms | tee wsclean.log
+
 #    -save-source-list \
 #    -fit-spectral-pol 1 \
 

@@ -36,7 +36,9 @@ subchans="0000 0001 0002 0003 MFS"
 for subchan in ${subchans}
 do
     # Compress the near empty model files
-    zip ${obsnum}_deep-${subchan}-models.zip ${obsid}_deep-${subchan}-model*.fits
+    python clip_clean_components ${obsid}_deep-${subchan}-model.fits
+    python clip_clean_components ${obsid}_deep-${subchan}-model-pb.fits
+    zip ${obsnum}_deep-${subchan}-models-clip.zip ${obsid}_deep-${subchan}-model*-clip.fits
 
     # Zip the model components
     # model=${obsnum}_deep-${subchan}-model
@@ -79,13 +81,12 @@ done
 
 
 rsync -avh --progress --stats *csv \
-                              *zip \
+                              *clip.zip \
                               *png \
                               *log \
                               *fits.sr6 \
                               ${obsnum}_deep-*-psf_crop.fits \
                               ${obsnum}_deep-*-image-pb.fits \
-                              ${obsnum}_deep-*-image-pb_warp_weight.fits \
                               ${obsnum}_*_xm.fits \
                               $user@$host:"$remote/$obsnum"
 
