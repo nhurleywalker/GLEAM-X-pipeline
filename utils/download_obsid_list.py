@@ -10,12 +10,14 @@ from astropy.coordinates import SkyCoord, EarthLocation
 import mysql_db as mdb
 
 MWA = EarthLocation.from_geodetic(lat=-26.703319*u.deg, lon=116.67081*u.deg, height=377*u.m)
+DEC_POINTINGS = [-71, -55, -41, -39, -26, -12, 3,  20]
 
 def get_observations(
     fds_only=True, 
     start_obsid=None,
     finish_obsid=None,
     obs_date=None,
+    dec_pointing=None,
     cen_chan=None,
     hour_angle=None
 ):
@@ -37,6 +39,13 @@ def get_observations(
         gps_date = gps.strftime('%Y-%m-%d')
 
         df = df[gps_date == obs_date]
+
+    if dec_pointing is not None:
+        dec = np.array([-71., -55., -41., -39., -26., -12., 3.,  20.])
+        min_dec = lambda x: dec[np.argmin(np.abs(dec-x['dec_pointing']))]
+        df['Dec Strip'] = df.apply(min_dec, axis=1)
+
+        df = df[df['Dec Strip'] == dec_pointing]
 
     if hour_angle is not None:
         gps = Time(df['obs_id'], format='gps', location=MWA)
@@ -73,6 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('-s','--start-obsid', default=None, type=int, help='First `obs_id` in a range of obsids')
     parser.add_argument('-f','--finish-obsid', default=None, type=int, help='Last `obs_id` in a range of obsids')
     parser.add_argument('-d','--date', default=None, help='Obsids on this date are returned. Date is expected in YYY-MM-DD format')
+    parser.add_argument('-e','--dec', default=None, type=int, choice=DEC_POINTINGS, help='Obsids from this dec strip are returned. ')
     parser.add_argument('-o', '--out', default=None, help='Output path of a line delimited set of obsids. Only supports text output file and ignores file extension. ')
     parser.add_argument('-c','--cen-chan', default=None, type=int, choices=[ 69,  93, 121, 145, 169], help='Obsids matching the specified cenchan are returned. ')
     parser.add_argument('-i','--hour-angle', default=None, type=int, choices=[ -1, 0, 1], help='Specifies the hour-angle of the obsids to be returned. ')
