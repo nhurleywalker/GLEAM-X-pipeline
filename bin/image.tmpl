@@ -104,7 +104,8 @@ fi
 # Create a template image that has all the same properties as our eventual WSClean image
 if [[ ! -e ${obsnum}_template.fits ]]
 then
-    wsclean -mgain 1.0 \
+singularity exec -B /pawsey  -B "$PWD"  /pawsey/mwa/singularity/wsclean/wsclean_2.9.2.img bash -c \
+    "wsclean -mgain 1.0 \
         -nmiter 1 \
         -niter 0 \
         -name ${obsnum}_template \
@@ -115,7 +116,7 @@ then
         -channel-range 4 5 \
         -interval 4 5 \
         -nwlayers ${cores} \
-        $obsnum.ms
+        $obsnum.ms"
     rm ${obsnum}_template-dirty.fits
     mv ${obsnum}_template-image.fits ${obsnum}_template.fits
 fi
@@ -140,9 +141,10 @@ do
     done
 done
 
-
 # Deep clean (for pipeline)
-wsclean $multiscale \
+module load singularity
+singularity exec -B /pawsey  -B "$PWD"  /pawsey/mwa/singularity/wsclean/wsclean_2.9.2.img bash -c \
+"wsclean $multiscale \
     -nmiter 5 \
     -niter 10000000 \
     -reuse-primary-beam \
@@ -156,11 +158,10 @@ wsclean $multiscale \
     -pol I \
     -join-channels \
     -channels-out 4 \
+    -save-source-list \
+    -fit-spectral-pol 2 \
     -data-column ${datacolumn} \
-    ${obsnum}.ms | tee wsclean.log
-
-#    -save-source-list \
-#    -fit-spectral-pol 1 \
+    ${obsnum}.ms | tee wsclean.log"
 
 test_fail $?
 track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
