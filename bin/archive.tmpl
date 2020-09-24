@@ -36,8 +36,8 @@ subchans="0000 0001 0002 0003 MFS"
 for subchan in ${subchans}
 do
     # Compress the near empty model files
-    python clip_clean_components.py ${obsid}_deep-${subchan}-model.fits
-    python clip_clean_components.py ${obsid}_deep-${subchan}-model-pb.fits
+    clip_clean_components.py ${obsid}_deep-${subchan}-model.fits
+    clip_clean_components.py ${obsid}_deep-${subchan}-model-pb.fits
     zip ${obsnum}_deep-${subchan}-models-clip.zip ${obsid}_deep-${subchan}-model*-clip.fits
 
     # Zip the model components
