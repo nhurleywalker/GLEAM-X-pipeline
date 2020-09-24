@@ -36,8 +36,8 @@ subchans="0000 0001 0002 0003 MFS"
 for subchan in ${subchans}
 do
     # Compress the near empty model files
-    python clip_clean_components ${obsid}_deep-${subchan}-model.fits
-    python clip_clean_components ${obsid}_deep-${subchan}-model-pb.fits
+    python clip_clean_components.py ${obsid}_deep-${subchan}-model.fits
+    python clip_clean_components.py ${obsid}_deep-${subchan}-model-pb.fits
     zip ${obsnum}_deep-${subchan}-models-clip.zip ${obsid}_deep-${subchan}-model*-clip.fits
 
     # Zip the model components
@@ -54,8 +54,8 @@ do
     if [[ ! -e ${crop} ]]
     then
         # Get size of the total image
-        x=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f1)
-        y=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f2)
+        x=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f7 | cut -d 'x' -f1)
+        y=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f7 | cut -d 'x' -f2)
         
         # Pixels in central region to extract
         SIZE=200 
@@ -67,7 +67,7 @@ do
         let "y2 = $y/2 + $SIZE/2"
 
         # and extract
-        getfits -o ${crop} $x1-$x2 $y1-$y2 ${psf}
+        getfits -o ${crop} ${x1}-${x2} ${y1}-${y2} ${psf}
     fi
 
     # Compress the primary beam warped weight map
