@@ -8,12 +8,15 @@ echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-z] [-t] o
   -a account : computing account, default pawsey0272
   -c calid    : obsid for calibrator.
                 project/calid/calid_*_solutions.bin will be used
-                to calibrate if it exists, otherwise job will fail.
+                to calibrate if it exists. A file can be supplied with the 
+                obsids for the calibration fields that correspond to the 
+                obsids specified in the obsid file, if it is provided. 
+                Otherwise job will fail.
   -z          : Debugging mode: create a new CORRECTED_DATA column
                 instead of applying to the DATA column
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
-  obsnum      : the obsid to process" 1>&2;
+  obsnum      : the obsid to process, or a text file of obsids (newline separated)" 1>&2;
 exit 1;
 }
 
@@ -41,6 +44,7 @@ fi
 
 #initial variables
 scratch=/astro
+group=/group
 dep=
 calid=
 tst=
@@ -89,7 +93,12 @@ fi
 
 if [[ ! -z ${dep} ]]
 then
-    dep="--dependency=afterok:${dep}"
+    if [[ -f ${obsnum} ]]
+    then
+        depend="--dependency=aftercorr:${dep}"
+    else
+        depend="--dependency=afterok:${dep}"
+    fi
 fi
 
 if [[ -z ${account} ]]
@@ -97,10 +106,21 @@ then
     account=pawsey0272
 fi
 
+# Establish job array options
+if [[ -f ${obsnum} ]]
+then
+    numfiles=$(wc -l ${obsnum} | awk '{print $1}')
+    arrayline="#SBATCH --array=1-${numfiles}"
+else
+    numfiles=1
+    arrayline=''
+fi
+
 # Set directories
 queue="-p $standardq"
 dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 base="$scratch/mwasci/$pipeuser/$project/"
+code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 
 if [[ $? != 0 ]]
 then
@@ -112,21 +132,26 @@ fi
 
 script="${dbdir}queue/apply_cal_${obsnum}.sh"
 
-cd $dbdir/bin
-
-cat apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+cat ${code}/bin/apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:BASEDIR:${base}:g" \
                                      -e "s:HOST:${computer}:g" \
                                      -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:ACCOUNT:${account}:g" \
                                      -e "s:DEBUG:${debug}:g" \
                                      -e "s:CALID:${calid}:g" \
-                                     -e "s:PIPEUSER:${pipeuser}:g" > ${script}
+                                     -e "s:PIPEUSER:${pipeuser}:g" \
+                                     -e "s:ARRAYLINE:${arrayline}:g" > ${script}
 
 output="${dbdir}queue/logs/apply_cal_${obsnum}.o%A"
 error="${dbdir}queue/logs/apply_cal_${obsnum}.e%A"
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${dep} ${queue} ${script}"
+if [[ -f ${obsnum} ]]
+then
+    output="${output}_%a"
+    error="${error}_%a"
+fi
+
+sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -138,17 +163,26 @@ fi
 # submit job
 jobid=($(${sub}))
 jobid=${jobid[3]}
-taskid=1
-
-# rename the err/output files as we now know the jobid
-error=`echo ${error} | sed "s/%A/${jobid}/"`
-output=`echo ${output} | sed "s/%A/${jobid}/"`
-
-# record submission
-track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
-                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
 
 echo "Submitted ${script} as ${jobid} . Follow progress here:"
-echo $output
-echo $error
 
+for taskid in $(seq ${numfiles})
+    do
+    # rename the err/output files as we now know the jobid
+    obserror=`echo ${error} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
+    obsoutput=`echo ${output} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
+
+    if [[ -f ${obsnum} ]]
+    then
+        obs=$(sed -n -e ${taskid}p ${obsnum})
+    else
+        obs=$obsnum
+    fi
+
+    # record submission
+    track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
+                        --obs_id=${obs} --stderr=${obserror} --stdout=${obsoutput}
+
+    echo $obsoutput
+    echo $obserror
+done

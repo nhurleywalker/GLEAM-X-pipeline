@@ -6,14 +6,38 @@
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=NCPUS
 #SBATCH --nodes=1
+ARRAYLINE
 
 # Perform binocular imaging and source-finding
 
-basedir=BASEDIR
+pipeuser=PIPEUSER
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
+
+# If obsnum is a file, then we are in an array job
+if [[ -f ${obsnum} ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    echo "binoc obsid ${obsnum}"
+else
+    taskid=1
+    jobid=${SLURM_JOB_ID}
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+
+basedir=BASEDIR
 ncpus=NCPUS
 debug=DEBUG
 pipeuser=PIPEUSER
+
+# start
+track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
 
 cd $basedir/${obsnum}
 
@@ -77,3 +101,5 @@ do
     rm ${obsnum}_${dir}-dirty.fits
     rm ${obsnum}_${dir}-residual.fits
 done
+
+track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`

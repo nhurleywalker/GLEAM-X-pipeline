@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('-s','--start-obsid', default=None, type=int, help='First `obs_id` in a range of obsids')
     parser.add_argument('-f','--finish-obsid', default=None, type=int, help='Last `obs_id` in a range of obsids')
     parser.add_argument('-d','--date', default=None, help='Obsids on this date are returned. Date is expected in YYY-MM-DD format')
-    parser.add_argument('-e','--dec', default=None, type=int, choice=DEC_POINTINGS, help='Obsids from this dec strip are returned. ')
+    parser.add_argument('-e','--dec', default=None, type=int, choices=DEC_POINTINGS, help='Obsids from this dec strip are returned. ')
     parser.add_argument('-o', '--out', default=None, help='Output path of a line delimited set of obsids. Only supports text output file and ignores file extension. ')
     parser.add_argument('-c','--cen-chan', default=None, type=int, choices=[ 69,  93, 121, 145, 169], help='Obsids matching the specified cenchan are returned. ')
     parser.add_argument('-i','--hour-angle', default=None, type=int, choices=[ -1, 0, 1], help='Specifies the hour-angle of the obsids to be returned. ')

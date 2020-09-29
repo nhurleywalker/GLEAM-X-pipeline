@@ -6,20 +6,38 @@
 #SBATCH --time=02:00:00
 #SBATCH --nodes=1
 TASKLINE
+ARRAYLINE
 
 pipeuser=PIPEUSER
 source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+obsnum=OBSNUM
+
+# If obsnum is a file, then we are in an array job
+if [[ -f ${obsnum} ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    echo "autocal obsid ${obsnum}"
+else
+    taskid=1
+    jobid=${SLURM_JOB_ID}
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
 
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
     exit $1
 fi
 }
 
 cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
-obsnum=OBSNUM
 datadir=DATADIR
 modeldir="/group/mwasci/code/anoko/mwa-reduce/models"
 refant=127
@@ -42,7 +60,7 @@ ion=IONOTEST
 ts=10
 
 # start
-track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
 
 cd ${datadir}/${obsnum}
 metafits="${obsnum}.metafits"
@@ -53,6 +71,7 @@ then
 fi
 
 calibrator=$( pyhead.py -p CALIBSRC $metafits | awk '{print $3}' )
+echo "Calibrator is $calibrator"
 
 if [[ $calibrator == "None" ]] || [[ $calibrator == "open" ]] || [[ $calibrator == 3C444 ]] || [[ $calibrator == HydA ]] || [[ $calibrator == VirA ]] || [[ $calibrator == PKS2356-61 ]] || [[ $calibrator == PKS0442-28 ]] || [[ $calibrator == 3C409 ]] || [[ $calibrator == PKS0349-27 ]]
 then
@@ -111,11 +130,14 @@ maxuvm=`echo "390000 / ($chan + 11)" | bc -l`
 
 if [[ ! -z $ion ]]
 then
+    echo "Performing ionospheric triage. "
     # Ionospheric triage
     solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
     # Remove duplicate obsnum
     solutions=${solutions/${obsnum}_${obsnum}_/${obsnum}_}
     calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -applybeam -mwa-path ${MWAPATH} ${obsnum}.ms ${solutions}
+    
+    echo "Ionospheric calibration finished. Creating plots and statistics. "
     aocal_plot.py --refant=${refant} --amp_max=2 ${solutions}
     aocal_diff.py --metafits=$metafits --names $solutions
     iono_update.py --ionocsv ${obsnum}_ionodiff.csv
@@ -138,4 +160,4 @@ test_fail $?
 aocal_plot.py --refant=${refant} --amp_max=2 ${solutions%.bin}_ref.bin
 test_fail $?
 
-track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`

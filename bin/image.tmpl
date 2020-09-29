@@ -6,15 +6,33 @@
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=NCPUS
 #SBATCH --nodes=1
+ARRAYLINE
 
 pipeuser=PIPEUSER
-
 source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+obsnum=OBSNUM
+
+# If obsnum is a file, then we are in an array job
+if [[ -f ${obsnum} ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    echo "image obsid ${obsnum}"
+else
+    taskid=1
+    jobid=${SLURM_JOB_ID}
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
 
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
     exit $1
 fi
 }
@@ -22,7 +40,6 @@ fi
 # Set version number
 version=3.0 # First GLEAM-X pipeline data reduction April 2018
 cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
-obsnum=OBSNUM
 base=BASEDIR
 debug=DEBUG
 # Which data column to image
@@ -44,7 +61,7 @@ tsigma=1
 
 # Update database
 cd ${base}
-track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
 
 datadir=${base}/${obsnum}
 cd ${datadir}
@@ -181,7 +198,7 @@ wsclean $multiscale \
 #    -fit-spectral-pol 1 \
 
 test_fail $?
-track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
 track_task.py obs_status --obs_id=${obsnum} --status='imaged'
 
 ### TODO fix wsclean2gleam.py so it more cleverly handles lack of polarisation

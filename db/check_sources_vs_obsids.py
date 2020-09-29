@@ -328,9 +328,9 @@ if __name__ == "__main__":
 
     # Configure the obsids to process
     if args.file is not None:
-        obsids = [int(i.strip()) for i in open(args.file, 'r')]
+        obsids = [int(i.strip()) for i in open(args.file[0], 'r')]
     elif args.obsid is not None:
-        obsids = (int(args.obsid), )
+        obsids = (int(args.obsid[0]), )
     else:
         obsids = get_all_obsids()
 

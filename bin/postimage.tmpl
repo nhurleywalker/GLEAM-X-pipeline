@@ -6,9 +6,38 @@
 #SBATCH --time=03:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=NCPUS
+ARRAYLINE
 
 pipeuser=PIPEUSER
 source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+obsnum=OBSNUM
+
+# If obsnum is a file, then we are in an array job
+if [[ -f ${obsnum} ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    echo "postimage obsid ${obsnum}"
+else
+    taskid=1
+    jobid=${SLURM_JOB_ID}
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+    exit $1
+fi
+}
+
+track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
 
 # Makes fits_warp parallelisation work on Zeus
 KMP_INIT_AT_FORK=false
@@ -24,7 +53,6 @@ separation=$(echo "60/3600" | bc -l)
 exclusion=$(echo "180/3600" | bc -l)
 
 datadir=BASEDIR
-obsnum=OBSNUM
 
 cd $datadir/$obsnum
 
@@ -150,6 +178,8 @@ do
         fi
     fi
 done
+
+track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
 
 
 # # Post procressing tasks unrelated to fitswarp

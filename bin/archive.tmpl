@@ -6,22 +6,40 @@
 #SBATCH --time=6:00:00
 #SBATCH --ntasks=NCPUS
 #SBATCH --nodes=1
-
+ARRAYLINE
 
 pipeuser=PIPEUSER
 source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+obsnum=OBSNUM
+
+# If obsnum is a file, then we are in an array job
+if [[ -f ${obsnum} ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    echo "archive obsid ${obsnum}"
+else
+    taskid=1
+    jobid=${SLURM_JOB_ID}
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+
 
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${SLURM_JOBID} --taskid=1 --finish_time=`date +%s`
+    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
     exit $1
 fi
 }
 
-track_task.py start --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
 
-obsnum=OBSNUM
 base=BASEDIR
 user=ENDUSER
 host=ENDPOINT
@@ -36,9 +54,11 @@ subchans="0000 0001 0002 0003 MFS"
 for subchan in ${subchans}
 do
     # Compress the near empty model files
-    clip_clean_components.py ${obsid}_deep-${subchan}-model.fits
-    clip_clean_components.py ${obsid}_deep-${subchan}-model-pb.fits
-    zip ${obsnum}_deep-${subchan}-models-clip.zip ${obsid}_deep-${subchan}-model*-clip.fits
+    clip_clean_components.py ${obsnum}_deep-${subchan}-model.fits
+    clip_clean_components.py ${obsnum}_deep-${subchan}-model-pb.fits
+    
+    # Dont like having to do I/O redirection for gzip to keep original file
+    zip ${obsnum}_deep-${subchan}-models-clip.zip ${obsnum}_deep-${subchan}-model*-clip.fits
 
     # Zip the model components
     # model=${obsnum}_deep-${subchan}-model
@@ -95,7 +115,7 @@ rsync -avh --progress --stats *csv \
 test_fail $?
 
 echo 'Updating database'
-track_task.py finish --jobid=${SLURM_JOBID} --taskid=1 --start_time=`date +%s`
+track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
 
 track_task.py obs_status --obs_id=${obsnum} --status=archived
 echo "Database updated. Obsid $obsid has been archived. "
