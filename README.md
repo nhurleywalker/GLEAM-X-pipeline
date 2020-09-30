@@ -3,7 +3,7 @@
 The goal of this pipeline is to reduce the data observed as part of the GLEAM-X project (G0008), but it is also applicable to many other MWA datasets. The pipeline is written for the Pawsey Magnus and Zeus systems which use a SLURM job scheduler. It borrows significantly from the MWA-Fast-Transients pipeline written by Paul Hancock and Gemma Anderson: https://github.com/PaulHancock/MWA-fast-image-transients.
 
 ## Credits
-Please credit Natasha Hurley-Walker, Paul Hancock, Gemma Anderson and John Morgan if you use this code, or incorporate it into your own workflow. Please acknowledge the use of this code by citing this repository, and until we have a publication accepted on this work, we request that we be added as co-authors on papers that rely on this code.
+Please credit Natasha Hurley-Walker, Paul Hancock, Gemma Anderson, John Morgan, Stefan Duchesne, and Tim Galvin, if you use this code, or incorporate it into your own workflow. Please acknowledge the use of this code by citing this repository, and until we have a publication accepted on this work, we request that we be added as co-authors on papers that rely on this code.
 
 ## Structure
 Code directory (git clone here): /group/mwasci/$USER/GLEAM-X-pipeline
