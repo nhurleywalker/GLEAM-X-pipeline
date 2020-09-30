@@ -6,7 +6,7 @@ echo "obs_cotter.sh [-p project] [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -d dep      : job number for dependency (afterok)
   -a account : computing account, default pawsey0272
-  -s timeres  : time resolution in sec. default = 2 s
+  -s timeres  : time resolution in sec. default = 4 s
   -k freqres  : freq resolution in KHz. default = 40 kHz
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
