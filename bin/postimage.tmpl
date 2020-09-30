@@ -42,7 +42,7 @@ do
     if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_comp.fits  ]]
     then
         BANE --compress --noclobber ${obsnum}_deep-${subchan}-image-pb.fits
-        aegean --autoload --table=./${obsnum}_deep-${subchan}-image-pb.fits ./${obsnum}_deep-${subchan}-image-pb.fits > >(tee -a ${obsnum}_deep-${subchan}_aegean.log) 2> >(tee -a ${obsnum}_deep-${subchan}_aegean.log >&2)
+        aegean --autoload --table=./${obsnum}_deep-${subchan}-image-pb.fits ./${obsnum}_deep-${subchan}-image-pb.fits > >(tee ${obsnum}_deep-${subchan}_aegean.log) 2> >(tee ${obsnum}_deep-${subchan}_aegean.log >&2)
     fi
     nsrc=`grep "INFO found" ${obsnum}_deep-${subchan}_aegean.log | head -1 | awk '{print $3}'`
     if [[ $nsrc -lt 500 ]]
