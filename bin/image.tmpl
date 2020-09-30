@@ -178,32 +178,7 @@ singularity exec -B /pawsey  -B "$PWD"  /pawsey/mwa/singularity/wsclean/wsclean_
     -save-source-list \
     -fit-spectral-pol 2 \
     -data-column ${datacolumn} \
-<<<<<<< HEAD
-    ${obsnum}.ms | tee wsclean.log
-
-# Shallow clean for a test
-# wsclean $multiscale \
-#     -nmiter 1 \
-#     -niter 100 \
-#     -reuse-primary-beam \
-#     -apply-primary-beam \
-#     -auto-mask $msigma \
-#     -auto-threshold $tsigma \
-#     -name ${obsnum}_deep \
-#     -size ${imsize} ${imsize} \
-#     -scale ${scale:0:8} \
-#     -weight briggs ${robust} \
-#     -pol I \
-#     -join-channels \
-#     -channels-out 4 \
-#     -data-column ${datacolumn} \
-#     ${obsnum}.ms | tee wsclean.log
-
-#    -save-source-list \
-#    -fit-spectral-pol 1 \
-=======
     ${obsnum}.ms | tee wsclean.log"
->>>>>>> upstream/master
 
 test_fail $?
 track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
