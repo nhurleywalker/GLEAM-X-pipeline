@@ -116,14 +116,14 @@ cd "${datadir}/${obsnum}" || exit
 # Check whether the phase centre has already changed
 # Calibration will fail if it has, so measurement set must be shifted back to its original position
 
-# TODO: Singularity exec here and onwards, TG
+# TODO: Singularity exec here, seems like `chgcentre` is not currently in singularity container
 current=$(chgcentre "${obsnum}.ms") 
 if [[ $current == *"shift"* ]] 
 then
     echo "Detected that this measurement set has undergone a denormal shift; this must be undone before calibration."
-    coords=`python /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
+    coords=$(calc_pointing.py --metafits="${metafits}")
     echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
-    chgcentre ${obsnum}.ms $coords
+    chgcentre "${obsnum}.ms" "${coords}"
 else
     echo "Detected that this measurement set has not yet had its phase centre changed. Not shifting."
 fi
@@ -131,42 +131,60 @@ fi
 # uv range for calibration based on GLEAM-based sky model
 # Calibrate takes a maximum uv range in metres
 # Calculate min uvw in metres
-minuvm=`echo "234 * $minuv / $chan" | bc -l`
+minuvm=$(echo "234 * ${minuv} / ${chan}" | bc -l)
 # In wavelengths, maximum 128T baseline at 200MHz was 1667 lambda long
 # 300/1.28 * 1667 = 390000
 # Calculate max uvw in metres
-maxuvm=`echo "390000 / ($chan + 11)" | bc -l`
+maxuvm=$(echo "390000 / (${chan} + 11)" | bc -l)
 
 if [[ ! -z $ion ]]
 then
     echo "Performing ionospheric triage. "
     # Ionospheric triage
-    solutions=${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin
+    solutions="${obsnum}_${calmodel%%.txt}_solutions_ts${ts}.bin"
     # Remove duplicate obsnum
-    solutions=${solutions/${obsnum}_${obsnum}_/${obsnum}_}
-    calibrate -t ${ts} -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -applybeam -mwa-path ${MWAPATH} ${obsnum}.ms ${solutions}
+    solutions="${solutions/${obsnum}_${obsnum}_/${obsnum}_}"
+    
+    singularity exec -B "${modeldir}" -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
+                "calibrate \
+                        -t ${ts} \
+                        -j ${cores} \
+                        -m ${modeldir}/${calmodel} \
+                        -minuv ${minuvm} \
+                        -maxuv ${maxuvm} \
+                        -applybeam -mwa-path \
+                        ${MWAPATH} ${obsnum}.ms \
+                        ${solutions}"
     
     echo "Ionospheric calibration finished. Creating plots and statistics. "
-    aocal_plot.py --refant=${refant} --amp_max=2 ${solutions}
-    aocal_diff.py --metafits=$metafits --names $solutions
-    iono_update.py --ionocsv ${obsnum}_ionodiff.csv
+    aocal_plot.py --refant="${refant}" --amp_max=2 "${solutions}"
+    aocal_diff.py --metafits="${metafits}" --names "${solutions}"
+    iono_update.py --ionocsv "${obsnum}_ionodiff.csv"
 fi
 
 # At the moment, assume that the ionosphere is OK, and derive some real solutions
-solutions=${obsnum}_${calmodel%%.txt}_solutions_initial.bin
+solutions="${obsnum}_${calmodel%%.txt}_solutions_initial.bin"
 # Remove duplicate obsnum
-solutions=${solutions/${obsnum}_${obsnum}_/${obsnum}_}
+solutions="${solutions/${obsnum}_${obsnum}_/${obsnum}_}"
 
 # calibrate
-calibrate -j ${cores} -m ${modeldir}/${calmodel} -minuv $minuvm -maxuv $maxuvm -applybeam -mwa-path ${MWAPATH} ${obsnum}.ms ${solutions}
+singularity exec -B "${modeldir}" -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
+        "calibrate \
+                -j ${cores} \
+                -m ${modeldir}/${calmodel} \
+                -minuv $minuvm \
+                -maxuv $maxuvm \
+                -applybeam -mwa-path ${MWAPATH} \
+                ${obsnum}.ms \
+                ${solutions}"
 test_fail $?
 
 # Create a version divided through by the reference antenna, so that all observations have the same relative XY phase, allowing polarisation calibration solutions to be transferred
 # This also sets the cross-terms to zero by default
-/group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/aocal_phaseref.py ${solutions} ${solutions%.bin}_ref.bin ${refant}
+aocal_phaseref.py "${solutions}" "${solutions%.bin}_ref.bin" "${refant}"
 
 # plot calibration solutions
-aocal_plot.py --refant=${refant} --amp_max=2 ${solutions%.bin}_ref.bin
+aocal_plot.py --refant="${refant}" --amp_max=2 "${solutions%.bin}_ref.bin"
 test_fail $?
 
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"

@@ -8,7 +8,6 @@
 ARRAYLINE
 
 pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
 calid=CALID
 
@@ -19,7 +18,7 @@ then
     jobid=${SLURM_ARRAY_JOB_ID}
 
     echo "obsfile ${obsnum}"
-    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
     echo "apply_cal obsid ${obsnum}"
 else
     taskid=1
@@ -30,7 +29,7 @@ fi
 if [[ -f ${calid} ]]
 then
     echo "calid file is ${calid}"
-    calid=$(sed -n -e ${taskid}p ${calid})
+    calid=$(sed -n -e "${taskid}"p "${calid}")
     echo "apply_cal calid ${calid}"
 fi
 
@@ -40,8 +39,8 @@ echo "taskid: ${taskid}"
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-    exit $1
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
 fi
 }
 
@@ -49,10 +48,11 @@ base=BASEDIR
 debug=DEBUG
 
 # apply calibration
-track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-cd ${base}/${obsnum}
+cd "${base}/${obsnum}" || exit
 
+# TODO: replace with read -a
 # look for the calibrator solutions file
 calfile=($( ls -1t ${base}/${calid}/${calid}*solutions*.bin))
 calfile=${calfile[0]}
@@ -61,7 +61,7 @@ if [[ $? != 0 ]]
 then
     echo "Could not find calibrator file"
     echo "looked for latest of: ${base}/${calid}/${calid}*solutions*.bin"
-    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
     exit 1
 fi
 
@@ -70,12 +70,19 @@ echo "Calibration file is ${calfile}"
 # If in debugging mode, apply to the CORRECTED_DATA column
 if [[ ! -z $debug ]]
 then
-    applysolutions ${obsnum}.ms ${calfile}
+    singularity exec -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
+            "applysolutions \
+                        ${obsnum}.ms \
+                        ${calfile}"
 # If in production mode, apply to the DATA column
 else
-    applysolutions -nocopy ${obsnum}.ms ${calfile}
+    singularity exec -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
+            "applysolutions \
+                    -nocopy 
+                    ${obsnum}.ms \
+                    ${calfile}"
 fi
 
 test_fail $?
 
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"

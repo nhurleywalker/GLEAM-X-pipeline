@@ -8,8 +8,9 @@
 TASKLINE
 ARRAYLINE
 
+module load python-casacore
+
 pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
 
 # If obsnum is a file, then we are in an array job
@@ -19,7 +20,7 @@ then
     jobid=${SLURM_ARRAY_JOB_ID}
 
     echo "obsfile ${obsnum}"
-    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
     echo "uvflag obsid ${obsnum}"
 else
     taskid=1
@@ -29,7 +30,6 @@ fi
 echo "jobid: ${jobid}"
 echo "taskid: ${taskid}"
 
-module load python-casacore
 
 datadir=DATADIR
 debug=DEBUG
@@ -37,38 +37,34 @@ debug=DEBUG
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-    exit $1
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
 fi
 }
 
-track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
-
-CASA_LOCATION=/group/mwasci/software/casa-release-5.1.2-4.el7/bin/casa
-
-cd $datadir/${obsnum}
+cd "$datadir/${obsnum}" || exit
 if [[ -z $debug ]]
 then
-    python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
+    ms_flag_by_uvdist.py "${obsnum}.ms" DATA > baselines_to_flag.txt
     if [[ -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
+        ${GXCASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi
 else
-    python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
+    ms_flag_by_uvdist.py "${obsnum}.ms" CORRECTED_DATA > baselines_to_flag.txt
     if [[ ! -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
+        ${GXCASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi
 fi
 
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
 

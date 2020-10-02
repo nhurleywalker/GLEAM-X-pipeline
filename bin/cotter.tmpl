@@ -74,7 +74,7 @@ then
     fi
     
     # Use 80% of the memory
-    singular exec -B "${PWD}" "${GXSINGULARITY}/cotter/cotter_latest.sif" bash -c \
+    singularity exec -B "${PWD}" "${GXSINGULARITY}/cotter/cotter_latest.sif" bash -c \
             "cotter \
                     ${flagfiles} \
                    -absmem ${GXMEMORY} \

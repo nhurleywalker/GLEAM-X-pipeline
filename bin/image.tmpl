@@ -12,17 +12,17 @@ pipeuser=PIPEUSER
 obsnum=OBSNUM
 
 # If obsnum is a file, then we are in an array job
-if [[ -f ${obsnum} ]]
+if [[ -f "${obsnum}" ]]
 then
-    taskid=${SLURM_ARRAY_TASK_ID}
-    jobid=${SLURM_ARRAY_JOB_ID}
+    taskid="${SLURM_ARRAY_TASK_ID}"
+    jobid="${SLURM_ARRAY_JOB_ID}"
 
     echo "obsfile ${obsnum}"
-    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
     echo "image obsid ${obsnum}"
 else
     taskid=1
-    jobid=${SLURM_JOB_ID}
+    jobid="${SLURM_JOB_ID}"
 fi
 
 echo "jobid: ${jobid}"
@@ -31,14 +31,12 @@ echo "taskid: ${taskid}"
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-    exit $1
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
 fi
 }
 
 # Set version number
-version=3.0 # First GLEAM-X pipeline data reduction April 2018
-cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 base=BASEDIR
 debug=DEBUG
 # Which data column to image
@@ -59,13 +57,14 @@ msigma=3
 tsigma=1
 
 # Update database
-cd ${base}
-track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
+cd "${base}" || exit
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-datadir=${base}/${obsnum}
-cd ${datadir}
+datadir="${base}/${obsnum}"
+cd "${datadir}" || exit
 
-metafits=`ls -t ${obsnum}*metafits* | head -1`
+# TODO: replace with find
+metafits="$(ls -t ${obsnum}*metafits* | head -1)"
 
 # Set up telescope-configuration-dependent options
 if [[ $obsnum -lt 1151402936 ]] ; then
@@ -86,54 +85,62 @@ elif [[ $obsnum -ge 1191580576 ]] ; then
 fi
 
 # Set up channel-dependent options
-chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
-bandwidth=`pyhead.py -p BANDWDTH ${metafits} | awk '{print $3}'`
-centfreq=`pyhead.py -p FREQCENT ${metafits} | awk '{print $3}'`
-chans=`pyhead.py -p CHANNELS ${metafits} | awk '{print $3}' | sed "s/,/ /g"`
+chan="$(pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}')"
+bandwidth="$(pyhead.py -p BANDWDTH ${metafits} | awk '{print $3}')"
+centfreq="$(pyhead.py -p FREQCENT ${metafits} | awk '{print $3}')"
+chans="$(pyhead.py -p CHANNELS ${metafits} | awk '{print $3}' | sed 's/,/ /g')"
 chans=($chans)
-    # Pixel scale
-scale=`echo "$basescale / $chan" | bc -l` # At least 4 pix per synth beam for each channel
-    # Naming convention for output files
-lowfreq=`echo "$centfreq $bandwidth" | awk '{printf("%00d\n",$1-($2/2.)+0.5)}'`
-highfreq=`echo "$centfreq $bandwidth" | awk '{printf("%00d\n",$1+($2/2.)+0.5)}'`
+
+# Pixel scale
+ # At least 4 pix per synth beam for each channel
+scale=$(echo "$basescale / $chan" | bc -l)
+
+# Naming convention for output files
+lowfreq=$(echo "${centfreq}" "${bandwidth}" | awk '{printf("%00d\n",$1-($2/2.)+0.5)}')
+highfreq=$(echo "$centfreq $bandwidth" | awk '{printf("%00d\n",$1+($2/2.)+0.5)}')
 freqrange="${lowfreq}-${highfreq}"
+
 # Calculate min uvw in metres
-minuvm=`echo "234 * $minuv / $chan" | bc -l`
+minuvm=$(echo "234 * $minuv / $chan" | bc -l)
 
 # Found that multiscale cleaning recovers flux density in the extragalactic sky better than not, and doesn't add much to processing time
 multiscale="-multiscale -mgain 0.85 -multiscale-gain 0.15"
 
+# TODO: Change chgcentre here once the container has been set up
 # Check whether the phase centre has already changed
-current=`chgcentre ${obsnum}.ms`
+current=$(chgcentre ${obsnum}.ms)
 if [[ $current == *"shift"* ]]
 then
     echo "Detected that this measurement set has already had its phase centre changed. Not shifting."
 else
     # Determine whether to shift the pointing centre to be more optimally-centred on the peak of the primary beam sensitivity
-    coords=`python /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/calc_pointing.py --metafits=${metafits}`
+    coords=$(calc_pointing.py --metafits="${metafits}")
     echo "Optimally shifting co-ordinates of measurement set to $coords, with zenith shiftback."
-    chgcentre ${obsnum}.ms $coords
+    chgcentre "${obsnum}.ms" "${coords}"
     # Now shift the pointing centre to point straight up, which approximates minw without making the phase centre rattle around
-    chgcentre -zenith -shiftback ${obsnum}.ms
+    chgcentre -zenith -shiftback "${obsnum}.ms"
 fi
 
 # Create a template image that has all the same properties as our eventual WSClean image
-if [[ ! -e ${obsnum}_template.fits ]]
+if [[ ! -e "${obsnum}_template.fits" ]]
 then
-    wsclean -mgain 1.0 \
-        -nmiter 1 \
-        -niter 0 \
-        -name ${obsnum}_template \
-        -size ${imsize} ${imsize} \
-        -scale ${scale:0:8} \
-        -pol XX \
-        -data-column ${datacolumn} \
-        -channel-range 4 5 \
-        -interval 4 5 \
-        -nwlayers ${cores} \
-        $obsnum.ms
-    rm ${obsnum}_template-dirty.fits
-    mv ${obsnum}_template-image.fits ${obsnum}_template.fits
+    singularity exec -B "${PWD}" "${GXSINGULARITY}/wsclean/wsclean_2.9.2.img" bash -c \
+        "wsclean \
+            -mgain 1.0 \
+            -nmiter 1 \
+            -niter 0 \
+            -name ${obsnum}_template \
+            -size ${imsize} ${imsize} \
+            -scale ${scale:0:8} \
+            -pol XX \
+            -data-column ${datacolumn} \
+            -channel-range 4 5 \
+            -interval 4 5 \
+            -nwlayers ${GXNCPUS} \
+            $obsnum.ms"
+
+    rm "${obsnum}_template-dirty.fits"
+    mv "${obsnum}_template-image.fits" "${obsnum}_template.fits"
 fi
 
 # Hardcoding John's PB script location for now
@@ -146,34 +153,52 @@ do
     cstart=${chans[$i]}
     j=$((i + 5))
     cend=${chans[$j]}
-    if [[ ! -e ${obsnum}_000${n}-${pol}-beam.fits ]]
+    if [[ ! -e "${obsnum}_000${n}-${pol}-beam.fits" ]]
     then
-        python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_jones.py ${obsnum} _template.fits ${obsnum}_000${n}- -c $cstart-$cend --wsclean_names --beam_path /group/mwasci/pb_lookup/gleam_jones.hdf5
+        ${GXPBLOOKUP} "${obsnum}" "_template.fits ${obsnum}_000${n}-" -c "$cstart-$cend" --wsclean_names --beam_path "${GXPBLOOKUPBEAM}"
     fi
     for pol in $pols
     do
-        ln -s ${obsnum}_000${n}-${pol}-beam.fits ${obsnum}_deep-000${n}-beam-${pol}.fits
+        ln -s "${obsnum}_000${n}-${pol}-beam.fits" "${obsnum}_deep-000${n}-beam-${pol}.fits"
     done
 done
 
 
 # Deep clean (for pipeline)
-wsclean $multiscale \
-    -nmiter 5 \
-    -niter 10000000 \
-    -reuse-primary-beam \
-    -apply-primary-beam \
-    -auto-mask $msigma \
-    -auto-threshold $tsigma \
-    -name ${obsnum}_deep \
-    -size ${imsize} ${imsize} \
-    -scale ${scale:0:8} \
-    -weight briggs ${robust} \
-    -pol I \
-    -join-channels \
-    -channels-out 4 \
-    -data-column ${datacolumn} \
-    ${obsnum}.ms | tee wsclean.log
+singularity exec -B "${PWD}" "${GXSINGULARITY}/wsclean/wsclean_2.9.2.img" bash -c \
+        "wsclean \
+        $multiscale \
+        -nmiter 5 \
+        -niter 10000000 \
+        -reuse-primary-beam \
+        -apply-primary-beam \
+        -auto-mask ${msigma} \
+        -auto-threshold ${tsigma} \
+        -name ${obsnum}_deep \
+        -size ${imsize} ${imsize} \
+        -scale ${scale:0:8} \
+        -weight briggs ${robust} \
+        -pol I \
+        -join-channels \
+        -channels-out 4 \
+        -save-source-list \
+        -fit-spectral-pol 2 \
+        -data-column ${datacolumn} \
+        ${obsnum}.ms | tee wsclean.log"
+
+test_fail $?
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+track_task.py obs_status --obs_id="${obsnum}" --status='imaged'
+
+### TODO fix wsclean2gleam.py so it more cleverly handles lack of polarisation
+# Rename files
+#for subchan in $subchans
+#do
+#    deep="${obsnum}_deep-$subchan-image.fits"
+#    newfilename=`wsclean2gleam.py -f $deep -v $version`
+#    mv $deep $newfilename
+#done
+
 
 # Shallow clean for a test
 # wsclean $multiscale \
@@ -195,19 +220,6 @@ wsclean $multiscale \
 
 #    -save-source-list \
 #    -fit-spectral-pol 1 \
-
-test_fail $?
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-track_task.py obs_status --obs_id=${obsnum} --status='imaged'
-
-### TODO fix wsclean2gleam.py so it more cleverly handles lack of polarisation
-# Rename files
-#for subchan in $subchans
-#do
-#    deep="${obsnum}_deep-$subchan-image.fits"
-#    newfilename=`wsclean2gleam.py -f $deep -v $version`
-#    mv $deep $newfilename
-#done
 
 
 ## Shallow clean (for workshop)
