@@ -6,6 +6,10 @@ echo "loading profile"
 # Get a CASA container and remove the GXCASA_LOCATION
 # Remove the module loads that are redundant with the songularirt containers
 # MWA_PB_LOOKUP needs to be packaged somehow as well
+# Set up alias terms for the singularity containers called throughout the pipeline?
+# Need to refine the mwa_pb_lookup in postimage.tmpl
+#            - python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
+
 
 if [[ ! -z "$SLURM_CLUSTER_NAME" ]]
 then
@@ -54,6 +58,12 @@ then
     GXPBLOOKUPBEAM=/group/mwasci/pb_lookup/gleam_jones.hdf5
     export GXPBLOOKUPBEAM
 
+    # TODO: Update to be more consistent with the above lookup
+    GXBEAMLOOKUP=/group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
+    export GXBEAMLOOKUP
+    GXBEAMLOOKUPBEAM="/group/mwasci/pb_lookup/gleam_xx_yy.hdf5"
+    export GXBEAMLOOKUPBEAM
+
 elif [[ "${cluster}" == "magnus" ]]
 then
     echo "Magnus!"
@@ -89,6 +99,12 @@ then
     export GXPBLOOKUP
     GXPBLOOKUPBEAM=/group/mwasci/pb_lookup/gleam_jones.hdf5
     export GXPBLOOKUPBEAM
+
+    # TODO: Update to be more consistent with the above lookup
+    GXBEAMLOOKUP=/group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
+    export GXBEAMLOOKUP
+    GXBEAMLOOKUPBEAM="/group/mwasci/pb_lookup/gleam_xx_yy.hdf5"
+    export GXBEAMLOOKUPBEAM
 else
     echo "Where am i?"
 fi
