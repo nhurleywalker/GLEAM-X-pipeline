@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import urllib
 import urllib2
 import json
@@ -18,12 +18,19 @@ BASEURL = 'http://mwa-metadata01.pawsey.org.au/metadata/'
 dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
 
 def update_ionosphere(obsid, med, peak, std, cur):
+    
+    # Need to convert from numpy types to native python types
+    obsid = int(obsid) if not isinstance(obsid, int) else obsid
+    med = float(med) if isinstance(med, np.floating) else med
+    peak = float(peak) if isinstance(peak, np.floating) else peak
+    std = float(std) if isinstance(std, np.floating) else std
+
     cur.execute("SELECT count(*) FROM observation WHERE obs_id =%s",(obsid,))
     if cur.fetchone()[0] > 0:
-        print "Updating observation {0} with median = {1}, peak = {2}, std = {3}".format(obsid, med, peak, std)
+        print("Updating observation {0} with median = {1}, peak = {2}, std = {3}".format(obsid, med, peak, std))
         cur.execute("UPDATE observation SET ion_phs_med = %s, ion_phs_peak = %s, ion_phs_std = %s WHERE obs_id =%s", (med, peak, std, obsid))
     else:
-        print "observation not in database: ", obsid
+        print("observation not in database: ", obsid)
         return
 
 if __name__ == "__main__":
@@ -42,7 +49,7 @@ if __name__ == "__main__":
             peak = arr[2]
             std = arr[3]
         else:
-            print "Other file formats not yet enabled."
+            prin("Other file formats not yet enabled.")
             sys.exit(1)
 
     conn = mdb.connect()
