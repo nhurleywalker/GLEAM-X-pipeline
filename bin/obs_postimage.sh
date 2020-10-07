@@ -90,7 +90,7 @@ cat "${GXBASE}/bin/postimage.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:ARRAYLINE:${arrayline}:g" > "${script}"
 
 output="${GXLOG}/postimage_${obsnum}.o%A"
-error="${GCLOG}/postimage_${obsnum}.e%A"
+error="${GXLOG}/postimage_${obsnum}.e%A"
 
 if [[ -f ${obsnum} ]]
 then

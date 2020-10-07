@@ -15,31 +15,7 @@ echo "obs_binoc.sh [-d dep] [-p project] [-a account] [-z] [-t] obsnum
 exit 1;
 }
 
-pipeuser=$(whoami)
-
-# Supercomputer options
-if [[ "${HOST:0:4}" == "zeus" ]]
-then
-    computer="zeus"
-    standardq="workq"
-    ncpus=28
-#    absmem=60
-#    standardq="gpuq"
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    computer="magnus"
-    standardq="workq"
-    ncpus=24
-#    absmem=60
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    standardq="gpuq"
-#    absmem=30 # Check this
-fi
-
-scratch="/astro"
-group="/group"
+pipeuser="${GXUSER}"
 
 #initial variables
 dep=
@@ -73,10 +49,8 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
-queue="-p $standardq"
-base="$scratch/mwasci/$pipeuser/$project/"
-code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
-dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+queue="-p ${GXSTANDARDQ}"
+base="${GXSCRATCH}/$project"
 
 # if obsid is empty then just print help
 
@@ -103,7 +77,7 @@ fi
 # Establish job array options
 if [[ -f ${obsnum} ]]
 then
-    numfiles=$(wc -l ${obsnum} | awk '{print $1}')
+    numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
     arrayline="#SBATCH --array=1-${numfiles}"
 else
     numfiles=1
@@ -112,19 +86,19 @@ fi
 
 # start the real program
 
-script="${code}queue/binoc_${obsnum}.sh"
-cat ${code}/bin/binocular.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+script="${GXBASE}/queue/binoc_${obsnum}.sh"
+cat "${GXBASE}/bin/binocular.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
-                                 -e "s:NCPUS:${ncpus}:g" \
-                                 -e "s:HOST:${computer}:g" \
-                                 -e "s:STANDARDQ:${standardq}:g" \
+                                 -e "s:NCPUS:${GXNCPUS}:g" \
+                                 -e "s:HOST:${GXCOMPUTE}:g" \
+                                 -e "s:STANDARDQ:${GXSTANDARDQ}:g" \
                                  -e "s:DEBUG:${debug}:g" \
                                  -e "s:ACCOUNT:${account}:g" \
                                  -e "s:PIPEUSER:${pipeuser}:g" \
-                                 -e "s:ARRAYLINE:${arrayline}:g"> ${script}
+                                 -e "s:ARRAYLINE:${arrayline}:g"> "${script}"
 
-output="${code}queue/logs/binoc_${obsnum}.o%A"
-error="${code}queue/logs/binoc_${obsnum}.e%A"
+output="${GXLOG}/binoc_${obsnum}.o%A"
+error="${GXLOG}/binoc_${obsnum}.e%A"
 
 if [[ -f ${obsnum} ]]
 then
@@ -151,20 +125,20 @@ echo "Submitted ${script} as ${jobid} Follow progress here:"
 for taskid in $(seq ${numfiles})
 do
     # rename the err/output files as we now know the jobid
-    obserror=`echo ${error} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
-    obsoutput=`echo ${output} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
+    obserror=$(echo "${error}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
+    obsoutput=$(echo "${output}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
     
     if [[ -f ${obsnum} ]]
     then
-        obs=$(sed -n -e ${taskid}p ${obsnum})
+        obs=$(sed -n -e "${taskid}p" "${obsnum}")
     else
-        obs=$obsnum
+        obs="$obsnum"
     fi
 
     # record submission
-    python ${code}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='binocular' --submission_time=`date +%s` --batch_file=${script} \
-                        --obs_id=${obs} --stderr=${obserror} --stdout=${obsoutput}
+    track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='binocular' --submission_time="$(date +%s)" \
+                        --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
 
-    echo $obsoutput
-    echo $obserror
+    echo "$obsoutput"
+    echo "$obserror"
 done

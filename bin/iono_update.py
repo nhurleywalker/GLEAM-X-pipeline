@@ -18,6 +18,13 @@ BASEURL = 'http://mwa-metadata01.pawsey.org.au/metadata/'
 dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
 
 def update_ionosphere(obsid, med, peak, std, cur):
+    
+    # Need to convert from numpy types to native python types
+    obsid = int(obsid) if not isinstance(obsid, int) else obsid
+    med = float(med) if isinstance(med, np.floating) else med
+    peak = float(peak) if isinstance(peak, np.floating) else peak
+    std = float(std) if isinstance(std, np.floating) else std
+
     cur.execute("SELECT count(*) FROM observation WHERE obs_id =%s",(obsid,))
     if cur.fetchone()[0] > 0:
         print "Updating observation {0} with median = {1}, peak = {2}, std = {3}".format(obsid, med, peak, std)
