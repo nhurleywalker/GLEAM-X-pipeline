@@ -2,7 +2,6 @@
 
 echo "loading profile"
 # TODOs:
-# Ensure that there is a chgcentre in the wsclean container and update chgcentre
 # Get a CASA container and remove the GXCASA_LOCATION
 # Remove the module loads that are redundant with the songularirt containers
 # MWA_PB_LOOKUP needs to be packaged somehow as well
