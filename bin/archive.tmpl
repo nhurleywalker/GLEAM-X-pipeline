@@ -65,17 +65,17 @@ do
     if [[ ! -e ${crop} ]]
     then
         # Get size of the total image
-        x=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f7 | cut -d 'x' -f1)
-        y=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f7 | cut -d 'x' -f2)
+        x=$(imsize "${psf}" | tr -s '[:blank:]' ' ' | cut -d ' ' -f7 | cut -d 'x' -f1)
+        y=$(imsize "${psf}" | tr -s '[:blank:]' ' ' | cut -d ' ' -f7 | cut -d 'x' -f2)
         
         # Pixels in central region to extract
         SIZE=200 
 
         # Bounds of region
-        (( x1 = x/2 - SIZE/2)) 
-        (( x2 = x/2 + SIZE/2))
-        (( y1 = y/2 - SIZE/2))
-        (( y2 = y/2 + SIZE/2))
+        (( x1 = x/2 - SIZE/2 )) 
+        (( x2 = x/2 + SIZE/2 ))
+        (( y1 = y/2 - SIZE/2 ))
+        (( y2 = y/2 + SIZE/2 ))
 
         # and extract
         getfits -o "${crop}" "${x1}-${x2}" "${y1}-${y2}" "${psf}"
