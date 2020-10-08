@@ -103,7 +103,7 @@ fi
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l ${obsnum} | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    arrayline="#SBATCH --array=1-${numfiles}%30"
 else
     numfiles=1
     arrayline=''

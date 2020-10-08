@@ -5,11 +5,11 @@ project=PROJECT
 account=ACCOUNT
 cotter=COTTER 
 
-echo "Processing ${obsnum}" >&2
+echo "Processing ${obsnum}"
 
 if [[ ${cotter} -eq 1 ]]
 then
-# Only need to run cotter if you downloaded the raw visibility data
+    # Only need to run cotter if you downloaded the raw visibility data
     dep=($(obs_cotter.sh -s 4 -k 40 -p $project -a $account $obsnum))
     depend=${dep[3]}
     echo "cotter jobid: $depend"
@@ -24,7 +24,7 @@ echo "flag jobid: $depend"
 
 dep=($(obs_autocal.sh -i -p $project -a $account -d $depend $obsnum))
 depend=${dep[3]}
-echo "cal jobid: $depend"
+echo "autocal jobid: $depend"
 
 dep=($(obs_apply_cal.sh -p $project -a $account -d $depend -c $obsnum $obsnum))
 depend=${dep[3]}
