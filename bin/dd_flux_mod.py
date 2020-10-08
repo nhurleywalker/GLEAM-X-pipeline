@@ -34,6 +34,7 @@ w = wcs.WCS(mosaic[0].header)
 
 #create an array but don't set the values (they are random)
 indexes = np.empty( (mosaic[0].data.shape[0]*mosaic[0].data.shape[1],2),dtype=int)
+
 #since I know exactly what the index array needs to look like I can construct
 # it faster than list comprehension would allow
 #we do this only once and then recycle it
@@ -48,6 +49,7 @@ ra,dec = w.wcs_pix2world(indexes,1).transpose()
 
 # Read in the PSF
 psf = fits.open(options.psf)
+
 # Specifically, the blur factor
 blur = psf[0].data[3]
 
@@ -62,5 +64,17 @@ l_int = [x if (x>=0) and (x<=180) else 0 for x in l_int]
 blur_tmp = blur[l_int,k_int]
 blur_corr = blur_tmp.reshape(mosaic[0].data.shape[0],mosaic[0].data.shape[1])
 mosaic[0].data *= blur_corr
+
+# Testing this suggests it is 100x+ faster. 
+# k_int = np.floor(k).astype(np.int)
+# k_mask = ( (k_int >= 0) & ( k_int <= 360 ) )
+# k_int[~k_mask] = 0
+
+# l_int = np.floor(l).astype(np.int)
+# l_mask = ( (l_int >= 0 ) & ( l_int <= 180 ) )
+# l_int[~l_mask] = 0
+
+# blur_tmp = blur[l_int,k_int]
+# blur_corrn = blur_tmp.reshape(mosaic_shape)
 
 mosaic.writeto(options.output,clobber=True)
