@@ -18,6 +18,9 @@ def main():
     """
     """
 
+    user = os.environ['PIPEUSER']
+    default_path = "/group/mwasci/{0}/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits".format(user)
+
     parser = ArgumentParser()
     parser.add_argument('--input', dest="input", default=None,
                         help="Input FITS table to downselect.")
@@ -33,9 +36,9 @@ def main():
                         help="Output psf FITS file -- default is input_psfcat.fits")
     # allow manual specification of NVSS/SUMSS catalogue (e.g. if running locally...)
     parser.add_argument("--nscat", dest="nscat", type=str,
-                        default="/group/mwasci/$pipeuser/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits",
+                        default=default_path,
                         help="NVSS-SUMSS catalogue filtering extended sources. Default is located at " \
-                             "'/group/mwasci/$pipeuser/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits'")
+                             "'{0}'".format(default_path))
 
     options = parser.parse_args()
 
@@ -66,8 +69,10 @@ def main():
         nscat = options.nscat
         # Snapshot: Get rid of crazy-bright sources, really super-extended sources, and sources with high residuals after fit
         os.system('stilts tpipe in='+sparse+' cmd=\'select ((local_rms<1.0)&&((int_flux/peak_flux)<3)&&((residual_std/peak_flux)<0.1))\' out=temp_crop.fits')
+        
         # Match GLEAM with NVSS/SUMSS
         os.system('stilts tmatch2 matcher=sky params=30 in1='+nscat+' in2=temp_crop.fits out=temp_ns_match.fits values1="RAJ2000 DEJ2000" values2="ra dec" fixcols="dups" suffix1="_ns" suffix2=""')
+        
         # Keep only basic aegean headings
         os.system('stilts tpipe in=temp_ns_match.fits cmd=\'keepcols "ra dec peak_flux err_peak_flux int_flux err_int_flux local_rms a err_a b err_b pa err_pa psf_a psf_b psf_pa residual_std flags"\' out='+outputfile)
 
@@ -84,7 +89,7 @@ def main():
     if max(x) > 360.:
         # raise ValueError("RA goes higher than 360 degrees ({}: {})! Panic!".format(np.where(x == max(x)), 
         #                                                                            max(x)))
-        print "RA goes higher than 360 degrees! Panic!"
+        print("RA goes higher than 360 degrees! Panic!")
         sys.exit(1)
     y = data['dec']
       
