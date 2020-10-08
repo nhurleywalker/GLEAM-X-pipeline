@@ -18,7 +18,7 @@ def main():
     """
     """
 
-    user = os.environ['PIPEUSER']
+    user = os.environ['pipeuser']
     default_path = "/group/mwasci/{0}/GLEAM-X-pipeline/models/NVSS_SUMSS_psfcal.fits".format(user)
 
     parser = ArgumentParser()
