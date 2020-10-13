@@ -5,7 +5,12 @@ Built with:
 sudo singularity build gleamx_tools.img gleamx_build.txt
 
 To Add:
-    - pb_lookup
+    - pb_lookup into gleamx_build.txt
         - Need to find appropriate place to host HDF5 files. 
         - Recipe itself is built and tested against local copy
+
+    - Script to pull down
+        - cotter
+        - manta-ray-client
+        - wsclean
 
