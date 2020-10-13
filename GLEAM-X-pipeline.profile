@@ -2,9 +2,9 @@
 
 echo "loading profile"
 # TODOs:
-# Get a CASA container and remove the GXCASA_LOCATION
 # Remove the module loads that are redundant with the songularirt containers
-# MWA_PB_LOOKUP needs to be packaged somehow as well
+#    - whats pigz?
+#    - pawsey tools?
 # Set up alias terms for the singularity containers called throughout the pipeline?
 # Need to refine the mwa_pb_lookup in postimage.tmpl
 #            - python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
@@ -27,10 +27,7 @@ then
     module load manta-ray-client
     module load pigz
     module load MWA_Tools/mwa-sci_test
-    module load wsclean/master
-    module load wcstools/3.8.7
     module load singularity
-    module load python-casacore
 
     export PATH=${PATH}:/group/mwasci/$USER/bin/
     export PYTHONPATH=$PYTHONPATH:/group/mwasci/$USER/lib/python2.7/site-packages/:~/lib/
@@ -50,18 +47,6 @@ then
     export GXLOG="${GXBASE}/queue/logs"
     export GXFMODELS="/group/mwasci/code/anoko/mwa-reduce/models"
     export GXMWAPB="/group/mwasci/software/mwa_pb/mwa_pb/data/"
-    GXCASA_LOCATION="/group/mwasci/software/casa-release-5.1.2-4.el7/bin/casa"
-    export GXCASA_LOCATION
-    GXPBLOOKUP="/group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_jones.py"
-    export GXPBLOOKUP
-    GXPBLOOKUPBEAM=/group/mwasci/pb_lookup/gleam_jones.hdf5
-    export GXPBLOOKUPBEAM
-
-    # TODO: Update to be more consistent with the above lookup
-    GXBEAMLOOKUP=/group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
-    export GXBEAMLOOKUP
-    GXBEAMLOOKUPBEAM="/group/mwasci/pb_lookup/gleam_xx_yy.hdf5"
-    export GXBEAMLOOKUPBEAM
 
 elif [[ "${cluster}" == "magnus" ]]
 then
@@ -70,8 +55,6 @@ then
     module use /group/mwa/software/modulefiles
     module load MWA_Tools/mwa-sci 
     module load pigz
-    module load wsclean/master
-    module load wcstools/3.8.7
     module load singularity
 
     export PATH=${PATH}:/group/mwasci/$USER/bin/
@@ -92,20 +75,9 @@ then
     export GXLOG="${GXBASE}/queue/logs"
     export GXFMODELS="/group/mwasci/code/anoko/mwa-reduce/models"
     export GXMWAPB="/group/mwasci/software/mwa_pb/mwa_pb/data/"
-    GXCASA_LOCATION=/group/mwasci/software/casa-release-5.1.2-4.el7/bin/casa
-    export GXCASA_LOCATION
-    GXPBLOOKUP="/group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_jones.py"
-    export GXPBLOOKUP
-    GXPBLOOKUPBEAM=/group/mwasci/pb_lookup/gleam_jones.hdf5
-    export GXPBLOOKUPBEAM
-
-    # TODO: Update to be more consistent with the above lookup
-    GXBEAMLOOKUP=/group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
-    export GXBEAMLOOKUP
-    GXBEAMLOOKUPBEAM="/group/mwasci/pb_lookup/gleam_xx_yy.hdf5"
-    export GXBEAMLOOKUPBEAM
 else
-    echo "Where am i?"
+    echo "Where am i? Apparently ${cluster}"
+    exit 1
 fi
 
 # Create the log directory if it does not exists

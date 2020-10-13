@@ -8,8 +8,6 @@
 TASKLINE
 ARRAYLINE
 
-module load python-casacore
-
 pipeuser=PIPEUSER
 obsnum=OBSNUM
 
@@ -51,7 +49,7 @@ then
     if [[ -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        ${GXCASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
+        singularity exec "${GXSINGULARITY}/casa.img" -B "${PWD}" --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi
@@ -60,7 +58,7 @@ else
     if [[ ! -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        ${GXCASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
+        singularity exec "${GXSINGULARITY}/casa.img" -B "${PWD}" --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi
