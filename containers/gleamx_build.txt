@@ -1,0 +1,91 @@
+Bootstrap: docker
+From: ubuntu:18.04
+
+%help
+A container for the CASA (Common Astronomy Software Application) radio interferometric and single-dish data reduction package. 
+
+%post
+echo "Updating apt repositories"
+apt update && apt upgrade -y 
+apt install -y \
+            git \
+            wget \
+            pigz \
+            swarp \
+            stilts \
+            xorg \
+            xvfb \
+            xz-utils \
+            build-essential \
+            python3 \
+            python3-pip
+
+apt clean -y
+
+# ------------------------------------------------
+# CASA
+# ------------------------------------------------
+# Note second version defined in %environment needs to match
+version="6.1.0-118"
+echo "Pulling CASA version ${version}"
+wget https://casa.nrao.edu/download/distro/casa/release/rhel/casa-"${version}".tar.xz \
+        && tar -xf casa-"${version}".tar.xz \
+        && rm -rf casa-"${version}".tar.xz
+# ------------------------------------------------
+
+# ------------------------------------------------
+# WCSTools
+# ------------------------------------------------
+wget http://tdc-www.harvard.edu/software/wcstools/wcstools-3.9.6.tar.gz \
+        && tar xvfz wcstools-3.9.6.tar.gz \
+        && cd ./wcstools-3.9.6 \
+        && make -j8
+# ------------------------------------------------
+
+
+
+# ------------------------------------------------
+# Python 3 and associated modules
+# ------------------------------------------------
+# Make sure that python3 is the default
+update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+
+pip3 install --no-cache-dir \
+            cython \
+            numpy \
+            scipy \
+            matplotlib \
+            pandas \
+            astropy \
+            mysql-connector-python \
+            AegeanTools \
+            git+https://gitlab.com/Sunmish/flux_warp.git
+# ------------------------------------------------
+
+
+%environment
+# ------------------------------------------------
+# CASA
+# ------------------------------------------------
+# CASA version needs to be specified here as well
+version="6.1.0-118"
+export PATH="${PATH}:/casa-${version}/bin"
+
+
+export LC_ALL=C # Suppress perl locale errors
+# ------------------------------------------------
+
+# ------------------------------------------------
+# WCSTools 
+# ------------------------------------------------
+export PATH="/wcstools-3.9.6/bin:$PATH"
+# ------------------------------------------------
+
+# ------------------------------------------------
+# Alias 
+# ------------------------------------------------
+alias swarp=SWarp
+# ------------------------------------------------
+
+%runscript
+exec "$@"
