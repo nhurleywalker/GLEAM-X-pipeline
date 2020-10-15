@@ -29,6 +29,10 @@ obsnum=OBSNUM
 cd $datadir/$obsnum
 
 metafits=`ls -t ${obsnum}*metafits* | head -1`
+if [[ ! -e ${obsnum}.metafits ]]
+then
+    ln -s ${metafits} ${obsnum}.metafits
+fi
 
 for subchan in ${subchans}
 do
