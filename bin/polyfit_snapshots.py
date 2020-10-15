@@ -146,7 +146,9 @@ else:
         centfreq = hdr["CRVAL3"] / 1.e6 #MHz
     # But the metafits is better for the RA, because of the denormal projection
         path, _ = os.path.split(fitsimage)
-        meta = fits.getheader("{0}/{1}.metafits".format(path, fitsimage[0:10]))
+        metafits = glob.glob("{0}/{1}*metafits*".format(path, fitsimage[0:10]))
+        metafits = metafits[0]
+        meta = fits.getheader(metafits)
         ra_cent = meta["RA"]
     # Get the cross-matched catalogue
         hdu = fits.open(sfm)
@@ -257,7 +259,7 @@ else:
             
         # RA plot after RA (and Dec) correction
             y = final_c[good][indices]
-        make_plot(x, y, w, zmodel, title, "RA offset (deg)", ra_corrected_plot)
+            make_plot(x, y, w, zmodel, title, "RA offset (deg)", ra_corrected_plot)
 
 if results.do_rescale is True:
     for fitsimage in infiles:
@@ -296,7 +298,9 @@ if results.do_rescale is True:
                     naxes = hdu_in[0].header["NAXIS"]
             # going to need the RA in order to calculate the RA offsets
                     path, fl = os.path.split(infits)
-                    meta = fits.getheader("{0}/{1}.metafits".format(path, fl[0:10]))
+                    metafits = glob.glob("{0}/{1}*metafits*".format(path, fl[0:10]))
+                    metafits = metafits[0]
+                    meta = fits.getheader(metafits)
                     ra_cent = meta["RA"]
                     if naxes == 4:
                         m, n = 2, 3
