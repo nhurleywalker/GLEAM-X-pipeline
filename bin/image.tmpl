@@ -10,6 +10,7 @@
 pipeuser=PIPEUSER
 
 source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+module load singularity
 
 function test_fail {
 if [[ $1 != 0 ]]
@@ -104,7 +105,7 @@ fi
 # Create a template image that has all the same properties as our eventual WSClean image
 if [[ ! -e ${obsnum}_template.fits ]]
 then
-singularity exec -B /pawsey  -B "$PWD"  /pawsey/mwa/singularity/wsclean/wsclean_2.9.2.img bash -c \
+    singularity exec -B /pawsey  -B "$PWD"  /pawsey/mwa/singularity/wsclean/wsclean_2.9.2.img bash -c \
     "wsclean -mgain 1.0 \
         -nmiter 1 \
         -niter 0 \
@@ -142,7 +143,6 @@ do
 done
 
 # Deep clean (for pipeline)
-module load singularity
 singularity exec -B /pawsey  -B "$PWD"  /pawsey/mwa/singularity/wsclean/wsclean_2.9.2.img bash -c \
 "wsclean $multiscale \
     -nmiter 5 \
