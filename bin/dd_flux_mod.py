@@ -12,20 +12,17 @@ import numpy as np
 
 from astropy.io import fits
 from astropy import wcs
-from optparse import OptionParser
+from argparse import ArgumentParser
 
-usage="Usage: %prog [options] <file>\n"
-parser = OptionParser(usage=usage)
-parser.add_option('--mosaic',type="string", dest="mosaic",
-                    help="The filename of the mosaic you want to read in.")
-parser.add_option('--psf',type="string", dest="psf",
-                    help="The filename of the psf image you want to read in. \
-                    The fourth slice should contain the blur factor to apply.")
-parser.add_option('--output',type="string", dest="output",
-                    help="The filename of the output rescaled image.")
-(options, args) = parser.parse_args()
+parser = ArgumentParser(description='Apply direction dependent de-blurring flux correction')
+parser.add_argument('mosaic', type=str, help="The filename of the mosaic you want to read in.")
+parser.add_argument('psf', type=str, help="The filename of the psf image you want to read in. The fourth slice should contain the blur factor to apply.")
+parser.add_argument('output', type=str, help="The filename of the output rescaled image.")
+parser.add_argument('-o','--old-method', default=False, action='store_true', help='Invoke original correction code based on list comphrensions. By default will used a numpy approach that is significantly faster.')
 
-input_mosaic = options.mosaic
+args = parser.parse_args()
+
+input_mosaic = args.mosaic
 input_root=input_mosaic.replace(".fits","")
 
 # Read in the mosaic to be modified
@@ -47,20 +44,35 @@ for i in xrange(mosaic[0].data.shape[0]):
 ra,dec = w.wcs_pix2world(indexes,1).transpose()
 
 # Read in the PSF
-psf = fits.open(options.psf)
+psf = fits.open(args.psf)
 # Specifically, the blur factor
 blur = psf[0].data[3]
 
 w_psf = wcs.WCS(psf[0].header,naxis=2)
 
-# Apply the blur correction
-k, l = w_psf.wcs_world2pix(ra,dec,1)
-k_int = [int(np.floor(x)) for x in k]
-k_int = [x if (x>=0) and (x<=360) else 0 for x in k_int]
-l_int = [int(np.floor(x)) for x in l]
-l_int = [x if (x>=0) and (x<=180) else 0 for x in l_int]
-blur_tmp = blur[l_int,k_int]
-blur_corr = blur_tmp.reshape(mosaic[0].data.shape[0],mosaic[0].data.shape[1])
-mosaic[0].data *= blur_corr
+if args.old_method:
+    # Apply the blur correction
+    k, l = w_psf.wcs_world2pix(ra,dec,1)
+    k_int = [int(np.floor(x)) for x in k]
+    k_int = [x if (x>=0) and (x<=360) else 0 for x in k_int]
+    l_int = [int(np.floor(x)) for x in l]
+    l_int = [x if (x>=0) and (x<=180) else 0 for x in l_int]
+    blur_tmp = blur[l_int,k_int]
+    blur_corr = blur_tmp.reshape(mosaic[0].data.shape[0],mosaic[0].data.shape[1])
+    mosaic[0].data *= blur_corr
+else:
+    # Testing this suggests it is 100x+ faster. 
+    k_int = np.floor(k).astype(np.int)
+    k_mask = ( (k_int >= 0) & ( k_int <= 360 ) )
+    k_int[~k_mask] = 0
 
-mosaic.writeto(options.output,clobber=True)
+    l_int = np.floor(l).astype(np.int)
+    l_mask = ( (l_int >= 0 ) & ( l_int <= 180 ) )
+    l_int[~l_mask] = 0
+
+    blur_tmp = blur[l_int,k_int]
+    blur_corrn = blur_tmp.reshape(mosaic_shape)
+
+
+
+mosaic.writeto(args.output,clobber=True)

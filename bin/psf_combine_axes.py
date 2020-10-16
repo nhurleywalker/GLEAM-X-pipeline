@@ -3,10 +3,7 @@
 import os
 import numpy as np
 from astropy.io import fits
-
 from argparse import ArgumentParser
-
-
 
 def make_psf(bmaj_image, bmin_image, bpa_image, outname):
     """Make the PSF map from the individual BMAJ, BMIN, BPA maps."""

@@ -12,7 +12,6 @@ __author__ = "Natasha Hurley-Walker"
 
 # Append the service name to this base URL, eg 'con', 'obs', etc.
 BASEURL = 'http://mwa-metadata01.pawsey.org.au/metadata/'
-#dbfile = 'GLEAM-X.sqlite'
 
 def truncate(f, n):
     '''Truncates/pads a float f to n decimal places without rounding'''

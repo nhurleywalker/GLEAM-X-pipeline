@@ -1,6 +1,3 @@
-#import urllib
-#import urllib2
-#import json
 import sys
 from astropy.coordinates import SkyCoord
 

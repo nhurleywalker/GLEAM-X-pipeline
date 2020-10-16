@@ -3,9 +3,21 @@
 echo "loading profile"
 # TODOs:
 # Remove the module loads that are redundant with the songularirt containers
-#    - whats pigz?
-#    - pawsey tools?
+# Test calc_pointing.py calling scripts
+#       - made it argparse
+# Need to optparser -> argparse:
+#      - crop_catalogue.py
+#      - new_fk5_template.py
+#      - vo2model.py
+#      - check_src_fov.py
+# remove urllib2 from:
+#     - generate_beam_list.py
+#     - iono_update.py
+# Need to update track_task.py
+#     - needs to contain the connection information
 # Set up alias terms for the singularity containers called throughout the pipeline?
+# Remove the mwapy.pb from:
+#     - beam_value_at_radec.py
 # Need to refine the mwa_pb_lookup in postimage.tmpl
 #            - python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
 
@@ -22,11 +34,7 @@ fi
 if [[ "${cluster}" == "zeus" ]]
 then
     echo "Zeus!"
-    module load pawseytools
-    module use /group/mwa/software/modulefiles
     module load manta-ray-client
-    module load pigz
-    module load MWA_Tools/mwa-sci_test
     module load singularity
 
     export PATH=${PATH}:/group/mwasci/$USER/bin/
@@ -51,10 +59,7 @@ then
 elif [[ "${cluster}" == "magnus" ]]
 then
     echo "Magnus!"
-    module load pawseytools
-    module use /group/mwa/software/modulefiles
     module load MWA_Tools/mwa-sci 
-    module load pigz
     module load singularity
 
     export PATH=${PATH}:/group/mwasci/$USER/bin/

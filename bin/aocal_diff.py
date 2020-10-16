@@ -10,13 +10,11 @@ import numpy as np
 import math
 import matplotlib
 matplotlib.use('Agg')
-#import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-#from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from matplotlib.offsetbox import AnchoredText
-#import pylab
+
 from astropy.io import fits
-from mwapy import aocal
+from calplots import aocal
 
 def get_tile_info(metafits):
     hdus = fits.open(metafits)
