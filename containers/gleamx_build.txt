@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: ubuntu:18.04
+From: ubuntu:20.04
 
 %help
 A container for the CASA (Common Astronomy Software Application) radio interferometric and single-dish data reduction package. 
@@ -18,19 +18,53 @@ apt install -y \
             xz-utils \
             build-essential \
             python3 \
-            python3-pip
-
+            python3-pip \
+            liberfa-dev \
+            casacore-dev \
+            cmake \
+            gfortran \
+            libopenblas-dev \
+            libcfitsio-dev \
+            libfftw3-dev \
+            libpng-dev \
+            libxml++2.6-dev \
+            python3-dev \
+            python3-pip \
+            libgtkmm-3.0-dev \
+            xorg \
+            libhdf5-dev \
+            libcairo2-dev \
+            doxygen \
+            libboost-dev \
+            libgsl-dev \
+            libboost-dev \
+            liblua5.3-dev \
+            mpich \
+            python3-distutils \
+            libblas-dev \
+            liblapack-dev \
+            libeigen3-dev \
+            pybind11-dev \
+            libboost-filesystem-dev \
+            libboost-date-time-dev \
+            libboost-system-dev \
+            libboost-thread-dev \
+            libboost-program-options-dev \
+            libboost-python-dev \
+            libboost-test-dev \
+            
+apt autoremove -y
 apt clean -y
 
 # ------------------------------------------------
 # CASA
 # ------------------------------------------------
 # Note second version defined in %environment needs to match
-version="6.1.0-118"
+version="release-5.7.0-134.el6"
 echo "Pulling CASA version ${version}"
-wget https://casa.nrao.edu/download/distro/casa/release/rhel/casa-"${version}".tar.xz \
-        && tar -xf casa-"${version}".tar.xz \
-        && rm -rf casa-"${version}".tar.xz
+wget https://casa.nrao.edu/download/distro/casa/release/el6/casa-"${version}".tar.gz \
+        && tar -xf casa-"${version}".tar.gz \
+        && rm -rf casa-"${version}".tar.gz
 # ------------------------------------------------
 
 # ------------------------------------------------
@@ -41,8 +75,6 @@ wget http://tdc-www.harvard.edu/software/wcstools/wcstools-3.9.6.tar.gz \
         && cd ./wcstools-3.9.6 \
         && make -j8
 # ------------------------------------------------
-
-
 
 # ------------------------------------------------
 # Python 3 and associated modules
@@ -58,8 +90,83 @@ pip3 install --no-cache-dir \
             pandas \
             astropy \
             mysql-connector-python \
+            pytest \
             AegeanTools \
-            git+https://gitlab.com/Sunmish/flux_warp.git
+            git+https://gitlab.com/Sunmish/flux_warp.git \
+            git+https://github.com/nhurleywalker/fits_warp.git \
+            git+https://github.com/MWATelescope/mwa-calplots.git
+# ------------------------------------------------
+
+# ------------------------------------------------
+# WSClean
+# ------------------------------------------------
+cd / \
+    && git clone https://git.astron.nl/RD/EveryBeam.git \
+    && cd EveryBeam \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf EveryBeam
+
+cd / \
+    && ln -s /usr/include
+
+cd / \
+    && git clone https://gitlab.com/aroffringa/wsclean.git \
+    && cd wsclean \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf wsclean
+# ------------------------------------------------
+
+# ------------------------------------------------
+# AOFlagger
+# ------------------------------------------------
+cd / \
+    && git clone https://gitlab.com/aroffringa/aoflagger.git \
+    && cd aoflagger \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+     -DCFITSIO_ROOT_DIR="/usr/local" \
+   && make -j8 \
+   && make install \
+   && cd / \
+   && rm -rf aoflagger
+# ------------------------------------------------
+
+# ------------------------------------------------
+# Cotter
+# ------------------------------------------------
+cd / \
+    && wget "https://github.com/Starlink/pal/releases/download/v0.9.7/pal-0.9.7.tar.gz" \
+    && tar -xf pal-0.9.7.tar.gz \
+    && cd pal-0.9.7 \
+    && ./configure --prefix=/usr/local --without-starlink --with-erfa=/usr \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf pal-0.9.7 \
+    && ln -s /usr/local/include/star/* /usr/local/include
+
+cd / \
+    && git clone "https://github.com/MWATelescope/cotter.git" \
+    && cd cotter \
+    && mkdir build \
+    && cd build \
+    && cmake ../ \
+        -DLIBPAL_INCLUDE_DIR=/usr/local/include  \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf cotter
 # ------------------------------------------------
 
 
@@ -68,7 +175,7 @@ pip3 install --no-cache-dir \
 # CASA
 # ------------------------------------------------
 # CASA version needs to be specified here as well
-version="6.1.0-118"
+version="release-5.7.0-134.el6"
 export PATH="${PATH}:/casa-${version}/bin"
 
 
@@ -79,6 +186,14 @@ export LC_ALL=C # Suppress perl locale errors
 # WCSTools 
 # ------------------------------------------------
 export PATH="/wcstools-3.9.6/bin:$PATH"
+# ------------------------------------------------
+
+# ------------------------------------------------
+# PB Lookup
+# ------------------------------------------------
+export MWA_PB_BEAM='/pb_lookup/gleam_xx_yy.hdf5'
+export MWA_PB_JONES='/pb_lookup/gleam_jones.hdf5'
+export PATH="/pb_lookup/mwa_pb_lookup:${PATH}"
 # ------------------------------------------------
 
 # ------------------------------------------------
