@@ -94,7 +94,8 @@ pip3 install --no-cache-dir \
             AegeanTools \
             git+https://gitlab.com/Sunmish/flux_warp.git \
             git+https://github.com/nhurleywalker/fits_warp.git \
-            git+https://github.com/MWATelescope/mwa-calplots.git
+            git+https://github.com/MWATelescope/mwa-calplots.git \
+            git+https://github.com/ICRAR/manta-ray-client.git
 # ------------------------------------------------
 
 # ------------------------------------------------
