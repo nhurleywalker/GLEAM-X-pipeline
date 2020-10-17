@@ -91,6 +91,7 @@ pip3 install --no-cache-dir \
             astropy \
             mysql-connector-python \
             pytest \
+            h5py \
             AegeanTools \
             git+https://gitlab.com/Sunmish/flux_warp.git \
             git+https://github.com/nhurleywalker/fits_warp.git \
@@ -170,6 +171,15 @@ cd / \
     && rm -rf cotter
 # ------------------------------------------------
 
+# ------------------------------------------------
+# PB Lookup
+# ------------------------------------------------
+cd / \
+    && wget -O pb_lookup.tar.gz \
+           https://cloudstor.aarnet.edu.au/plus/s/1kUQFqQPOJODU8Q/download \
+    && tar xvzf pb_lookup.tar.gz \
+    && rm pb_lookup.tar.gz
+# ------------------------------------------------
 
 %environment
 # ------------------------------------------------
@@ -178,7 +188,6 @@ cd / \
 # CASA version needs to be specified here as well
 version="release-5.7.0-134.el6"
 export PATH="${PATH}:/casa-${version}/bin"
-
 
 export LC_ALL=C # Suppress perl locale errors
 # ------------------------------------------------
