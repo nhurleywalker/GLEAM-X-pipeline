@@ -13,10 +13,12 @@ apt install -y \
             pigz \
             swarp \
             stilts \
+            graphviz-dev \
             xorg \
             xvfb \
             xz-utils \
             build-essential \
+            groff \
             python3 \
             python3-pip \
             liberfa-dev \
@@ -92,6 +94,11 @@ pip3 install --no-cache-dir \
             mysql-connector-python \
             pytest \
             h5py \
+            scikit-image \
+            scikit-learn \
+            requests \
+            pillow \
+            seaborn \
             AegeanTools \
             git+https://gitlab.com/Sunmish/flux_warp.git \
             git+https://github.com/nhurleywalker/fits_warp.git \
@@ -103,6 +110,19 @@ pip3 install --no-cache-dir \
 # WSClean
 # ------------------------------------------------
 cd / \
+    && ln -s /usr/include
+
+cd / \
+    && wget https://www2.graphviz.org/Packages/stable/portable_source/graphviz-2.44.1.tar.gz \
+    && tar -xvzf graphviz-2.44.1.tar.gz \
+    && cd graphviz-2.44.1 \
+    && ./configure \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -r graphviz-2.44.1 graphviz-2.44.1.tar.gz
+
+cd / \
     && git clone https://git.astron.nl/RD/EveryBeam.git \
     && cd EveryBeam \
     && mkdir build \
@@ -112,9 +132,6 @@ cd / \
     && make install \
     && cd / \
     && rm -rf EveryBeam
-
-cd / \
-    && ln -s /usr/include
 
 cd / \
     && git clone https://gitlab.com/aroffringa/wsclean.git \
