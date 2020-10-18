@@ -2,24 +2,22 @@
 
 echo "loading profile"
 # TODOs:
-# Remove the module loads that are redundant with the songularirt containers
-# Test calc_pointing.py calling scripts
-#       - made it argparse
-# Need to optparser -> argparse:
+# Test calling scripts of (after optparse to argparse)
+#       - calc_pointing,py
 #      - crop_catalogue.py
+# Need to optparser -> argparse:
 #      - new_fk5_template.py
 #      - vo2model.py
 #      - check_src_fov.py
 # remove urllib2 from:
 #     - generate_beam_list.py
 #     - iono_update.py
+#     - import_observation_from_db.py
 # Need to update track_task.py
 #     - needs to contain the connection information
 # Set up alias terms for the singularity containers called throughout the pipeline?
 # Remove the mwapy.pb from:
 #     - beam_value_at_radec.py
-# Need to refine the mwa_pb_lookup in postimage.tmpl
-#            - python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py
 
 
 if [[ ! -z "$SLURM_CLUSTER_NAME" ]]
@@ -34,7 +32,6 @@ fi
 if [[ "${cluster}" == "zeus" ]]
 then
     echo "Zeus!"
-    module load manta-ray-client
     module load singularity
 
     export PATH=${PATH}:/group/mwasci/$USER/bin/
@@ -59,7 +56,6 @@ then
 elif [[ "${cluster}" == "magnus" ]]
 then
     echo "Magnus!"
-    module load MWA_Tools/mwa-sci 
     module load singularity
 
     export PATH=${PATH}:/group/mwasci/$USER/bin/

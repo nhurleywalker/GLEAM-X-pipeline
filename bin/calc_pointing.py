@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 __author__ = "Natasha Hurley-Walker"
 __date__ = "10/09/2019"
 
@@ -32,12 +32,8 @@ if __name__ == '__main__':
     parser.add_argument("metafits", default=None, help="Metafits filename")
     args = parser.parse_args()
 
-    if len(sys.argv) <= 1:
-        parser.print_help()
-        sys.exit()
-    else:
-        radec = calc_optimal_ra_dec(args.metafits)
-        print radec.to_string("hmsdms")
+    radec = calc_optimal_ra_dec(args.metafits)
+    print(radec.to_string("hmsdms"))
 
 
 

@@ -182,7 +182,6 @@ do
             fi
             cstart=${chans[$i]}
             cend=${chans[$j]}
-            # TODO: Need to refine this
             lookup_beam.py "${obsnum} _deep-${subchan}-image-pb_warp.fits" \
                            "${obsnum}_deep-${subchan}-image-pb_warp-" \
                            -c "$cstart-$cend" \
