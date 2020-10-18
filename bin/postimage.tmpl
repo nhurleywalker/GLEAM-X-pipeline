@@ -183,9 +183,9 @@ do
             cstart=${chans[$i]}
             cend=${chans[$j]}
             # TODO: Need to refine this
-            ${GXBEAMLOOKUP} "${obsnum} _deep-${subchan}-image-pb_warp.fits" \
-                            "${obsnum}_deep-${subchan}-image-pb_warp-" \
-                            -c "$cstart-$cend" \
+            lookup_beam.py "${obsnum} _deep-${subchan}-image-pb_warp.fits" \
+                           "${obsnum}_deep-${subchan}-image-pb_warp-" \
+                           -c "$cstart-$cend" \
                             --beam_path "${GXBEAMLOOKUPBEAM}"
             "${GXBASE}"/bin/generate_weight_map.py "${obsnum}_deep-${subchan}-image-pb_warp-XX-beam.fits" \
                                                    "${obsnum}_deep-${subchan}-image-pb_warp-YY-beam.fits" \
