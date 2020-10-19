@@ -4,7 +4,7 @@ __author__ = "Natasha Hurley-Walker"
 __date__ = "15/08/2019"
 
 import os, sys
-from optparse import OptionParser #NB zeus does not have argparse!
+from argparse import ArgumentParser
 import numpy as np
 from astropy.io import fits
 from astropy import wcs
@@ -26,10 +26,11 @@ def new_fk5_template(ra, dec, nx, ny, pixscale, fwhm, output, noise=0.0, backgro
         w.wcs.ctype = ["RA---SIN", "DEC--SIN"]
         header = w.to_header()
         stdev = (fwhm/std2fwhm)/pixscale
-# Set up the convolution kernel
-        kernel = np.outer(signal.gaussian(krsize*krsize, stdev), signal.gaussian(krsize*krsize, stdev))
+        
+        # Set up the convolution kernel
+        kernel = np.outer(signal.windows.gaussian(krsize*krsize, stdev), signal.windows.gaussian(krsize*krsize, stdev))
 
-#Simulate the data
+        # Simulate the data
         if noise > 0.0:
             data = np.random.normal(loc=0, scale=noise, size=(nx, ny))
             blurred = signal.fftconvolve(data, kernel, mode = 'same')
@@ -50,25 +51,24 @@ def new_fk5_template(ra, dec, nx, ny, pixscale, fwhm, output, noise=0.0, backgro
     return output
 
 if __name__ == '__main__':
-    parser = OptionParser(usage = "usage: %prog [options]" +
-    """
+    parser = ArgumentParser(description="""
     Make a new FK5 SIN projected FITS file
     """)
-    parser.add_option("--ra", default=180.0, dest="racent", type="float", help="RA centre in decimal deg")
-    parser.add_option("--dec", default=0.0, dest="decent", type="float", help="Dec centre in decimal deg")
-    parser.add_option("--nx", default=100, dest="nx", type="int", help="Length of RA axis in pixels")
-    parser.add_option("--ny", default=100, dest="ny", type="int", help="Length of Dec axis in pixels")
-    parser.add_option("--pixscale", default=0.02, dest="pixscale", type="float", help="Pixel scale in degrees")
-    parser.add_option("--fwhm", default=0.07, dest="fwhm", type="float", help="Beam size in degrees")
-    parser.add_option("--noise", default=0.0, dest="noise", type="float", help="Noise level in Jy/pix")
-    parser.add_option("--background", default=0.0, dest="background", type="float", help="Background level in Jy/pix")
-    parser.add_option("--output", default="template.fits", dest="output", help="Output filename")
-    parser.add_option("--overwrite", default=False, action="store_true", dest="overwrite", help="Overwrite existing file (default False)")
+    parser.add_argument("--ra", default=180.0, dest="racent", type=float, help="RA centre in decimal deg")
+    parser.add_argument("--dec", default=0.0, dest="decent", type=float, help="Dec centre in decimal deg")
+    parser.add_argument("--nx", default=100, dest="nx", type=int, help="Length of RA axis in pixels")
+    parser.add_argument("--ny", default=100, dest="ny", type=int, help="Length of Dec axis in pixels")
+    parser.add_argument("--pixscale", default=0.02, dest="pixscale", type=float, help="Pixel scale in degrees")
+    parser.add_argument("--fwhm", default=0.07, dest="fwhm", type=float, help="Beam size in degrees")
+    parser.add_argument("--noise", default=0.0, dest="noise", type=float, help="Noise level in Jy/pix")
+    parser.add_argument("--background", default=0.0, dest="background", type=float, help="Background level in Jy/pix")
+    parser.add_argument("--output", default="template.fits", dest="output", help="Output filename")
+    parser.add_argument("--overwrite", default=False, action="store_true", dest="overwrite", help="Overwrite existing file (default False)")
 
-    options, args = parser.parse_args()
+    args = parser.parse_args()
 
     if len(sys.argv) <= 1:
         parser.print_help()
         sys.exit()
     else:
-        new_fk5_template(options.racent, options.decent, options.nx, options.ny, options.pixscale, options.fwhm, options.output, options.noise, options.background, options.overwrite)
+        new_fk5_template(args.racent, args.decent, args.nx, args.ny, args.pixscale, args.fwhm, args.output, args.noise, args.background, args.overwrite)
