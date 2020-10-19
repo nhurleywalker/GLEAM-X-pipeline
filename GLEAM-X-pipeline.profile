@@ -5,7 +5,6 @@ echo "loading profile"
 # Test calling scripts of (after optparse to argparse)
 #       - calc_pointing,py
 #      - crop_catalogue.py
-# Need to optparser -> argparse:
 #      - new_fk5_template.py
 #      - vo2model.py
 #      - check_src_fov.py
