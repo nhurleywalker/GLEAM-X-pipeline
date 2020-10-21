@@ -7,6 +7,13 @@ __author__ = ["Paul Hancock",
 
 import os
 import sys
+try:
+    if os.environ['GXTRACK'] != 'track':
+        print('Task process tracking is disabled. ')
+        sys.exit(0)
+except:
+    pass
+
 import mysql_db as mdb
 
 # This is the list of acceptable observation status' that are 'hard coded' in the 

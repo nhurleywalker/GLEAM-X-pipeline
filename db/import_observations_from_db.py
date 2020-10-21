@@ -1,6 +1,8 @@
-import urllib
-import urllib2
+from __future__ import print_function
+
+import requests
 import json
+import time
 import sys
 import os
 import time
@@ -13,53 +15,45 @@ __author__ = ["PaulHancock",
               "Tim Galvin"]
 
 # Append the service name to this base URL, eg 'con', 'obs', etc.
-BASEURL = 'http://ws.mwatelescope.org/metadata/'
+BASEURL = 'http://ws.mwatelescope.org/metadata'
 
 dbconn = mdb.connect()
 
 # Function to call a JSON web service and return a dictionary: This function by Andrew Williams
-def getmeta(service='obs', params=None, failed=0):
-    """
-    Given a JSON web service ('obs', find, or 'con') and a set of parameters as
-    a Python dictionary, return a Python dictionary containing the result.
-    """
-    if params:
-        data = urllib.urlencode(params)  # Turn the dictionary into a string with encoded 'name=value' pairs
-    else:
-        data = ''
+# Function to call a JSON web service and return a dictionary: This function by Andrew Williams
+def getmeta(service='obs', params=None, level=0):
+    
     # Validate the service name
     if service.strip().lower() in ['obs', 'find', 'con']:
         service = service.strip().lower()
     else:
-        print "\tinvalid service name: %s" % service
+        print("invalid service name: {0}".format(service))
         return
-    # Get the data
+    
+    service_url = "{0}/{1}".format(BASEURL, service)
     try:
-        print "\t" + BASEURL + service + '?' + data
-        result = json.load(urllib2.urlopen(BASEURL + service + '?' + data))
-    except urllib2.HTTPError as error:
-        if failed <= 3:
+        response = requests.get(service_url, params=params, timeout=1.)
+        response.raise_for_status()
+
+    except requests.HTTPError as error:
+        if level <= 2:
+            print("HTTP encountered. Retrying...")
             time.sleep(3)
-            print '\tRetrying...'
-            return getmeta(service=service, params=params, failed=failed+1)
+            getmeta(service=service, params=params, level=level+1)
         else:
-            print "\tHTTP error from server: code=%d, response:\n %s" % (error.code, error.read())
-            return
-    except urllib2.URLError as error:
-        print "\tURL or network error: %s" % error.reason
-        return
-    # Return the result dictionary
-    return result
+            raise error
+    
+    return response.json()
 
 
 def copy_obs_info(obsid, cur):
     cur.execute("SELECT count(*) FROM observation WHERE obs_id = %s",(obsid,))
     if cur.fetchone()[0] > 0:
-        print "\tObsid `{0}` is already imported.".format(obsid)
+        print("\tObsid `{0}` is already imported.".format(obsid))
         return
     meta = getmeta(service='obs', params={'obs_id':obsid})
     if meta is None:
-        print "\t{0} has no metadata!".format(obsids)
+        print("\t{0} has no metadata!".format(obsid))
         return
     metadata = meta['metadata']
     
@@ -105,10 +99,9 @@ if __name__ == "__main__":
         if file_extension == ".txt":
             ids = np.loadtxt(args.obsids, comments="#", dtype=int, ndmin=1)
         else:
-            print "Other file formats not yet enabled."
+            print("Other file formats not yet enabled.")
             sys.exit(1)
 
-    
     cur = dbconn.cursor()
     
     # Skip the existing obs_ids that are in the observation table
@@ -116,11 +109,11 @@ if __name__ == "__main__":
         existing_obs = check_obsids(cur)
         ids = list( set(ids) - set(existing_obs) )
 
-    print '\n{0} obs_ids to download... '.format(len(ids))
+    print('\n{0} obs_ids to download... '.format(len(ids)))
     for count, obs_id in enumerate(ids):
         # A numpy int64 is not the same as a python int, and 
         # mysql connector gets a little upset. 
-        print '{0}) {1}'.format(count, obs_id)
+        print('{0}) {1}'.format(count, obs_id))
         copy_obs_info(int(obs_id),cur)
         dbconn.commit()
 

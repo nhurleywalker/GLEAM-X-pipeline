@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import sys
 import os,logging,datetime,platform
 import numpy as np
@@ -10,7 +12,9 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
 #from mwapy import ephem_utils
-from mwa_pb.primary_beam import MWA_Tile_full_EE
+# from mwa_pb.primary_beam import MWA_Tile_full_EE
+from mwa_pb_lookup.lookup_beam import gleamx_beam_lookup
+
 import argparse
 
 # configure the logging
@@ -22,32 +26,14 @@ logger=logging.getLogger(__name__)
 MWA = EarthLocation.from_geodetic(lat=-26.703319*u.deg, lon=116.67081*u.deg, height=377*u.m)
 
 ######################################################################
-def beam_value(ra, dec, t, delays, freq, pol='i', interp=True):
+def beam_value(ra, dec, t, delays, freq, gridnum, pol='i', interp=True):
 
     logger.info('Computing for %s' % t)
 
     pol = pol.upper()
     assert pol in ('I', 'XX', 'YY', 'HALF'), 'pol %s is not supported' % pol
-    assert len(delays)==16,'Require 16 delays but %d supplied' % len(delays)
 
-    # convert to alt az
-    radec = SkyCoord(ra*u.deg, dec*u.deg)
-    altaz = radec.transform_to(AltAz(obstime=t,location=MWA))
-
-    # theta phi (and rX, rY) are 1D arrays.
-    theta = (pi/2) - altaz.alt.rad # [up]
-    phi = altaz.az.rad #[up]
-
-# Test if more than one RA and Dec value has been specified
-    if not hasattr(theta,"__getitem__"):
-       theta = [theta]
-       phi = [phi]
-
-    #rX,rY=mwapy.pb.primary_beam.MWA_Tile_full_EE(theta, phi,
-    rX,rY=MWA_Tile_full_EE([theta], [phi],
-          freq=freq, delays=delays,
-          zenithnorm=True, power=True,
-          interp=interp)
+    rX, rY = gleamx_beam_lookup(ra, dec, gridnum, t, freq)
 
     return np.squeeze(rX), np.squeeze(rY)
 
@@ -55,7 +41,7 @@ def parse_metafits(metafits):
 # Delays needed for beam model calculation
     try:
         f = fits.open(metafits)
-    except Exception,e:
+    except Exception as e:
         logger.error('Unable to open FITS file %s: %s' % (metafits,e))
         sys.exit(1)
     if not 'DELAYS' in f[0].header.keys():
@@ -69,14 +55,16 @@ def parse_metafits(metafits):
     duration = f[0].header['EXPOSURE']*u.s
     t = Time(start_time, format='isot', scale='utc') + 0.5*duration
 
-# Just use the central frequency
-# Nice update would be to use the whole bandwidth and calculate spectral term
+    # Just use the central frequency
+    # Nice update would be to use the whole bandwidth and calculate spectral term
     try:
         freq = f[0].header['FREQCENT'] * 1000000.
     except:
-        logger.error('Unable to read frequency FREQCENT from %s' % filename)
+        logger.error('Unable to read frequency FREQCENT from %s' % metafits)
 
-    return t, delays, freq
+    gridnum = f[0].header['GRIDNUM']
+
+    return t, delays, freq, gridnum
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -89,10 +77,10 @@ if __name__ == "__main__":
                         help="The metafits file for your observation")
     options = parser.parse_args()
 
-    t, delays, freq = parse_metafits(metafits)
+    t, delays, freq, gridnum = parse_metafits(options.metafits)
 
-    val = beam_value(options.ra,options.dec, t, delays, freq)
-    print val[0], val[1]
+    val = beam_value(options.ra, options.dec, t, delays, freq, gridnum)
+    print(val[0], val[1])
 
 # Leaving this code here for later; might be useful when returning different pols
 #    header = hdu.header
@@ -126,3 +114,23 @@ if __name__ == "__main__":
 #    hdu2.data = np.float32(d.reshape(hdu.data.shape))
 #    return hdu, hdu2
 
+    # # convert to alt az
+    # radec = SkyCoord(ra*u.deg, dec*u.deg)
+    # altaz = radec.transform_to(AltAz(obstime=t,location=MWA))
+
+    # # theta phi (and rX, rY) are 1D arrays.
+    # theta = (pi/2) - altaz.alt.rad # [up]
+    # phi = altaz.az.rad #[up]
+
+    # # Test if more than one RA and Dec value has been specified
+    # if not hasattr(theta,"__getitem__"):
+    #    theta = [theta]
+    #    phi = [phi]
+
+    # #rX,rY=mwapy.pb.primary_beam.MWA_Tile_full_EE(theta, phi,
+    # rX,rY=MWA_Tile_full_EE([theta], [phi],
+    #       freq=freq, delays=delays,
+    #       zenithnorm=True, power=True,
+    #       interp=interp)
+
+    # return np.squeeze(rX), np.squeeze(rY)

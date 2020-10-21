@@ -1,8 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
-import urllib
-import urllib2
-import json
 import sys
 import os
 import numpy as np
@@ -12,10 +10,6 @@ import mysql_db as mdb
 __author__ = ["Natasha Hurley-Walker", 
               "Tim Galvin"]
 __date__ = "25/09/2018"
-
-# Append the service name to this base URL, eg 'con', 'obs', etc.
-BASEURL = 'http://mwa-metadata01.pawsey.org.au/metadata/'
-dbfile = '/group/mwasci/nhurleywalker/GLEAM-X-pipeline/db/GLEAM-X.sqlite'
 
 def update_ionosphere(obsid, med, peak, std, cur):
     
@@ -27,10 +21,10 @@ def update_ionosphere(obsid, med, peak, std, cur):
 
     cur.execute("SELECT count(*) FROM observation WHERE obs_id =%s",(obsid,))
     if cur.fetchone()[0] > 0:
-        print "Updating observation {0} with median = {1}, peak = {2}, std = {3}".format(obsid, med, peak, std)
+        print("Updating observation {0} with median = {1}, peak = {2}, std = {3}".format(obsid, med, peak, std))
         cur.execute("UPDATE observation SET ion_phs_med = %s, ion_phs_peak = %s, ion_phs_std = %s WHERE obs_id =%s", (med, peak, std, obsid))
     else:
-        print "observation not in database: ", obsid
+        print("observation not in database: ", obsid)
         return
 
 if __name__ == "__main__":

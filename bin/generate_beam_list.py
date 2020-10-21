@@ -44,7 +44,6 @@ def getmeta(service='obs', params=None, level=0):
         else:
             raise error
     
-
     return response.json()
 
 def fake_image(metafits, imsize=5000, overwrite=False):

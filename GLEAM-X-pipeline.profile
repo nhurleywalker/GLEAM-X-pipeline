@@ -2,21 +2,22 @@
 
 echo "loading profile"
 # TODOs:
-# Test calling scripts of (after optparse to argparse)
+# Test calling scripts of (after optparse to argparse or urllib2 to requests)
 #       - calc_pointing,py
 #      - crop_catalogue.py
 #      - new_fk5_template.py
 #      - vo2model.py
 #      - check_src_fov.py
-# remove urllib2 from:
 #     - generate_beam_list.py
-#     - iono_update.py
 #     - import_observation_from_db.py
+# remove urllib2 from:
+#     - iono_update.py
 # Need to update track_task.py
 #     - needs to contain the connection information
 # Set up alias terms for the singularity containers called throughout the pipeline?
 # Remove the mwapy.pb from:
 #     - beam_value_at_radec.py
+#          - made pb_lookup a python module to replace this. Waiting for QA from JM. 
 
 
 if [[ ! -z "$SLURM_CLUSTER_NAME" ]]
@@ -50,7 +51,7 @@ then
     export GXTASKLINE="#SBATCH --ntasks=${GXNCPUS}"
     export GXLOG="${GXBASE}/queue/logs"
     export GXFMODELS="/group/mwasci/code/anoko/mwa-reduce/models"
-    export GXMWAPB="/group/mwasci/software/mwa_pb/mwa_pb/data/"
+    export GXTRACK='track'
 
 elif [[ "${cluster}" == "magnus" ]]
 then
@@ -74,7 +75,7 @@ then
     export GXTASKLINE=""
     export GXLOG="${GXBASE}/queue/logs"
     export GXFMODELS="/group/mwasci/code/anoko/mwa-reduce/models"
-    export GXMWAPB="/group/mwasci/software/mwa_pb/mwa_pb/data/"
+    export GXTRACK='track'
 else
     echo "Where am i? Apparently ${cluster}"
     exit 1
