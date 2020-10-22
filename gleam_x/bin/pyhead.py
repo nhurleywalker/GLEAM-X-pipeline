@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """ use python/fits to add/print/update/delete header keywords"""
-from __futre__ import print_function
+from __future__ import print_function
 
 import copy, os, shutil, glob, sys, string, re, types
 import math
@@ -157,7 +157,7 @@ def evalhdr(hdr,arg):
             sys.exit(1)
         x=hdr.get(card)
         if (isinstance(x,bool)):
-            if (x == fits.TRUE):
+            if (x == True):
                 x=1
             else:
                 x=0
@@ -197,7 +197,7 @@ def usage():
 
     print("Usage:  {0} [-p keyword/expression] [-d keyword] [-u/-a keyword value/expression]  [-H value/expression] [-f <command_filename>] [-i] <filename(s)>".format(xname))
     print("\t-p will print the value of the keyword")
-    print"\t-d will delete the keyword")
+    print("\t-d will delete the keyword")
     print("\t-u will update the keyword")
     print("\t-a will add a keyword")
     print("\t-H will add to the history")
@@ -214,7 +214,7 @@ def main():
     filelist=[]
     cmdlist=[]
     arglist=[]
-    argfile=[];
+    argfile=[]
 
     if (len(sys.argv)==1):
         usage()
@@ -282,14 +282,14 @@ def main():
                         x=lines[i].split()
                         if (x[0].find('u')> -1 or x[0].find('a')> -1):
                             cmdlist.append('u')
-                            arglist.append("%s %s" % (x[1],string.join(x[2:],' ')))
+                            arglist.append("%s %s" % (x[1], ' '.join(x[2:])))
                         if (x[0].find('d')> -1):
                             cmdlist.append('d')
                             arglist.append(x[1])
                             update+=1
                         if (x[0].find('p')> -1):
                             cmdlist.append('p')
-                            arglist.append(string.join(x[1:],' '))
+                            arglist.append(' '.join(x[1:]))
             except:
                 print("Unable to open file {0}".format(file))
                     

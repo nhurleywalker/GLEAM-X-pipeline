@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import sys
 from astropy.coordinates import SkyCoord
@@ -7,15 +9,15 @@ from astropy.time import Time
 import astropy.units as u
 from astropy.table import Table
 import json
-import mysql_db as mdb
+import gleam_x.db.mysql_db as mdb
 import numpy as np
 import argparse
 
 from multiprocessing import Pool
 
-from populate_sources_table import Source
-from check_src_fov import check_coords
-from beam_value_at_radec import beam_value
+from gleam_x.db.populate_sources_table import Source
+from gleam_x.db.check_src_fov import check_coords
+from gleam_x.bin.beam_value_at_radec import beam_value
 
 __author__ = ["Natasha Hurley-Walker",
               "Tim Galvin"]
@@ -86,13 +88,13 @@ def get_obs(cur, obs_id = None):
     """
     if obs_id is None:
         cur.execute("""
-                    SELECT obs_id, ra_pointing, dec_pointing, cenchan, starttime, delays
+                    SELECT obs_id, ra_pointing, dec_pointing, cenchan, starttime, delays, gridnum
                     FROM observation
                     """)
         
     else:
         cur.execute("""
-                    SELECT obs_id, ra_pointing, dec_pointing, cenchan, starttime, delays 
+                    SELECT obs_id, ra_pointing, dec_pointing, cenchan, starttime, delays, gridnum 
                     FROM observation WHERE obs_id = %s 
                     """, 
                     (obs_id, ))
@@ -112,9 +114,9 @@ def get_all_obsids():
     conn = mdb.connect()
     cur = conn.cursor()
 
-    print 'Getting all obsids from the user database...'
+    print('Getting all obsids from the user database...')
     obsids = get_obs(cur)
-    print '...{0} obsids found'.format(len(obsids))
+    print('...{0} obsids found'.format(len(obsids)))
 
     return [o[0] for o in obsids]
 
@@ -169,14 +171,14 @@ def insert_sources_obsid(obsid, force_update=False):
         force_update {bool} -- Perform check and database insert even is obsid has already been processed
     """
     if not isinstance(obsid, int):
-        print 'Expected type `int` for obsid, received {0}'.format(type(obsid))
+        print('Expected type `int` for obsid, received {0}'.format(type(obsid)))
         return
     
     conn, cur = create_conn_cur()
 
     # No need to do anything further if the obsid is already in the databvase
     if check_for_obsid(cur, obsid) and not force_update:
-        print 'Obsids already found for obsid {0}. Skipping.'.format(obsid)
+        print('Obsids already found for obsid {0}. Skipping.'.format(obsid))
         conn.close()
         return
 
@@ -191,13 +193,15 @@ def insert_sources_obsid(obsid, force_update=False):
                   obs_details[3])
     t = Time(int(obs_details[4]), format='gps')
     freq = 1.28 * obs_details[3]
-    
+    gridnum = obs_details[5]
+
     xx_srcs, yy_srcs = beam_value(
                         [s.pos.ra.deg for s in srclist], 
                         [s.pos.dec.deg for s in srclist], 
                         t, 
                         json.loads(obs_details[5]), 
-                        freq*1.e6
+                        freq*1.e6,
+                        gridnum
                     )
 
     for xx, yy, src in zip(xx_srcs, yy_srcs, srclist):
@@ -280,7 +284,7 @@ def check_obsid_peel(obsid, local_sky, check_exists=True, min_threshold=0.):
 
     # TODO: No point going further if all known sources are sufficently faint
     if max(peel_sources['appflux']) < min_threshold:
-        print 'No known bright sources require peeling. '
+        print('No known bright sources require peeling. ')
         return
 
     # Compute the FEE beam
@@ -290,13 +294,15 @@ def check_obsid_peel(obsid, local_sky, check_exists=True, min_threshold=0.):
                   obs_details[3])
     t = Time(int(obs_details[4]), format='gps')
     freq = 1.28 * obs_details[3]
+    gridnum = obs_details[5]
 
     xx_srcs, yy_srcs = beam_value(
                         local_sky['RAJ2000'],
                         local_sky['DEJ2000'], 
                         t, 
                         json.loads(obs_details[5]), 
-                        freq*1.e6
+                        freq*1.e6,
+                        gridnum
                     )
 
     local_sky['obs_flux'] = local_sky['S_200'] * (freq / 200.)**(local_sky['alpha']) * (xx_srcs + yy_srcs)/2
@@ -304,7 +310,7 @@ def check_obsid_peel(obsid, local_sky, check_exists=True, min_threshold=0.):
     peel_mask = max(local_sky['obs_flux']) < peel_sources['appflux']
 
     if np.sum(peel_mask) > 0:
-        print peel_sources['source'][peel_mask]
+        print(peel_sources['source'][peel_mask])
         model = create_peel_model(peel_sources['source'][peel_mask])
 
         return 
@@ -323,7 +329,7 @@ if __name__ == "__main__":
 
     # Some sanity checks
     if all([args.file is None, args.obsid is None, args.all_obsids is False]):
-        print 'Either `file`, `obsid` or `all-obsids` has to be set. Exiting. '
+        print('Either `file`, `obsid` or `all-obsids` has to be set. Exiting. ')
         sys.exit(1)
 
     # Configure the obsids to process
@@ -334,12 +340,12 @@ if __name__ == "__main__":
     else:
         obsids = get_all_obsids()
 
-    print '{0} obsids to process'.format(len(obsids))
+    print('{0} obsids to process'.format(len(obsids)))
 
     # When no peeling is needed, can process all ids as specified
     if args.peel_check is False:
         for count, obsid in enumerate(obsids):
-            print '{0}) {1}'.format(count+1, obsid)
+            print('{0}) {1}'.format(count+1, obsid))
             insert_sources_obsid(obsid, force_update=args.force_update)
 
     # Can not provide more than one obsid to look at at this time. 
@@ -347,12 +353,12 @@ if __name__ == "__main__":
     elif len(obsids) == 1:
         components = Table.read(args.peel_check)
 
-        print 'Loaded {0} table, with shape {1} components'.format(args.peel_check, len(components))
+        print('Loaded {0} table, with shape {1} components'.format(args.peel_check, len(components)))
     
         check_obsid_peel(obsids[0], components)
 
     # Something went wrong, we shall end it here
     else:
-        print '`--peel-check` ({0}) and provided obsids ({1}) appears misconfigured.'.format(args.peel_check, obsids)
+        print('`--peel-check` ({0}) and provided obsids ({1}) appears misconfigured.'.format(args.peel_check, obsids))
         sys.exit(1)
 

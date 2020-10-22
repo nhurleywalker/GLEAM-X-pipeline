@@ -34,9 +34,9 @@ indexes = np.empty( (mosaic[0].data.shape[0]*mosaic[0].data.shape[1],2),dtype=in
 #since I know exactly what the index array needs to look like I can construct
 # it faster than list comprehension would allow
 #we do this only once and then recycle it
-idx = np.array([ (j,0) for j in xrange(mosaic[0].data.shape[1])])
+idx = np.array([ (j,0) for j in range(mosaic[0].data.shape[1])])
 j=mosaic[0].data.shape[1]
-for i in xrange(mosaic[0].data.shape[0]):
+for i in range(mosaic[0].data.shape[0]):
     idx[:,1]=i
     indexes[i*j:(i+1)*j] = idx
 
@@ -59,7 +59,6 @@ if args.old_method:
     l_int = [x if (x>=0) and (x<=180) else 0 for x in l_int]
     blur_tmp = blur[l_int,k_int]
     blur_corr = blur_tmp.reshape(mosaic[0].data.shape[0],mosaic[0].data.shape[1])
-    mosaic[0].data *= blur_corr
 else:
     # Testing this suggests it is 100x+ faster. 
     k_int = np.floor(k).astype(np.int)
@@ -71,8 +70,7 @@ else:
     l_int[~l_mask] = 0
 
     blur_tmp = blur[l_int,k_int]
-    blur_corrn = blur_tmp.reshape(mosaic_shape)
+    blur_corr = blur_tmp.reshape(mosaic[0].data.shape)
 
-
-
+mosaic[0].data *= blur_corr
 mosaic.writeto(args.output,clobber=True)

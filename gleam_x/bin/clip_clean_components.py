@@ -1,15 +1,13 @@
 #!/usr/bin/env python
-"""Some of the cleaned component models have the majority of their pixels presenting with values on the order of 1e-20, but they appear random. This makes
+"""Some of the cleaned component models have the majority of their pixels presenting with values on the order of 1e-20, which have been introduced from the multiscale clean. This makes
 it impossible to compress efficiently. 
 
 Setting these to a constant number (i.e. zero) will let the compression work with extreme efficiency.
 """
-
 from __future__ import print_function
 
 __author__ = ["Tim Galvin",
               "Natasha Hurley-Walker"]
-
 
 import numpy as np
 from astropy.io import fits

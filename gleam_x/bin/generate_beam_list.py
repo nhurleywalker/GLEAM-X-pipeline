@@ -3,7 +3,6 @@ import requests
 import time
 import sys
 import os
-import sqlite3
 import numpy as np
 from astropy.io import fits
 from astropy import wcs
@@ -40,7 +39,7 @@ def getmeta(service='obs', params=None, level=0):
         if level <= 2:
             print("HTTP encountered. Retrying...")
             time.sleep(3)
-            getmeta(service=service, params=params, level=level+1)
+            return getmeta(service=service, params=params, level=level+1)
         else:
             raise error
     

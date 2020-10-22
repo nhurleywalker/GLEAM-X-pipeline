@@ -7,8 +7,7 @@ import numpy as np
 from astropy.io import fits
 from argparse import ArgumentParser
 
-from beam_value_at_radec import beam_value
-from beam_value_at_radec import parse_metafits
+from gleam_x.bin.beam_value_at_radec import beam_value, parse_metafits
 
 def unwrap(RA):
     if RA > 180.:
@@ -18,8 +17,7 @@ def unwrap(RA):
 vunwrap = np.vectorize(unwrap)
 
 if __name__ == '__main__':
-    usage="Usage: %prog [args] <file>\n"
-    parser = ArgumentParser()
+    parser = ArgumentParser(description='Will produce a crop catalogue from a sky-model catalogue.')
     parser.add_argument('--ra', type=str,
                         help="The RA center of your crop in decimal degrees")
 
@@ -32,7 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--minflux',type=float, default=1.0,
                         help="The minimum flux density of the source (default = 1.0 Jy)")
 
-    parser.add_argument('--nobeamselect', action="store_false",  default=True,
+    parser.add_argument('--nobeamselect', action="store_false",  default=True, dest="beamselect",
                         help="Use the primary beam to (crudely) attenuate the catalogue fluxes when calculating the minimum flux (default=True)")
 
     parser.add_argument('--attenuate', action="store_true", default=False,

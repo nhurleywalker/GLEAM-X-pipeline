@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 __author__ = "Natasha Hurley-Walker"
 __date__ = "12/09/2018"
@@ -30,14 +31,15 @@ def diff(ao, metafits, refant):
     non_nan_intervals = np.where([not np.isnan(ao[i, refant, :, 0]).all() for i in range(ao.n_int)])[0]
     t_start = non_nan_intervals.min()
     t_end = non_nan_intervals.max()
-# Divide through by refant
+    
+    # Divide through by refant
     ao = ao / ao[:, refant, :, :][:, np.newaxis, :, :]
-    ant_iter = xrange(ao.n_ant)
+    ant_iter = np.arange(ao.n_ant)
     for a, antenna in enumerate(ant_iter):
         temp = []
-# Only XX and YY
+        # Only XX and YY
         for pol in 0, 3:
-# Difference the complex gains, then convert to angles
+            # Difference the complex gains, then convert to angles
            temp.append(np.angle(ao[t_end, antenna, :, pol] / ao[t_start, antenna, :, pol], deg=True))
         diffs.append(temp)
     return diffs
@@ -47,27 +49,30 @@ def phi_rms(ao, metafits, refant):
     non_nan_intervals = np.where([not np.isnan(ao[i, refant, :, 0]).all() for i in range(ao.n_int)])[0]
     t_start = non_nan_intervals.min()
     t_end = non_nan_intervals.max()
-# Calculate middle interval
+    # Calculate middle interval
     t_mid = int((t_end - t_start)/2.0)
-    print t_mid
-# Divide through by refant
-# (Probably unnecessary)
+    print(t_mid)
+
+    # Divide through by refant
+    # (Probably unnecessary)
     ao = ao / ao[:, refant, :, :][:, np.newaxis, :, :]
-    ant_iter = xrange(ao.n_ant)
+    ant_iter = np.arange(ao.n_ant)
     for a, antenna in enumerate(ant_iter):
         temp = []
-# Only XX and YY
+        # Only XX and YY
         for pol in 0, 3:
-# Difference the complex gains
-# Divide all gains by t_mid value so central phase is zero (solves wrapping problem)
+            # Difference the complex gains
+            # Divide all gains by t_mid value so central phase is zero (solves wrapping problem)
            temp_gains = ao[:, antenna, :, pol] / ao[t_mid, antenna, :, pol]
-# then convert to angles
+            
+            # then convert to angles
            temp_angles = np.angle(ao[:, antenna, :, pol], deg=True)
-# Then find RMS -- over time axis only
+            
+            # Then find RMS -- over time axis only
            phi_rmss.append(np.std(temp_angles, axis=0))
-#           print np.std(ao[:, antenna, :, pol], axis=0)
-           print temp_angles.shape
-           print np.std(temp_angles, axis=0).shape
+        #    print(np.std(ao[:, antenna, :, pol], axis=0))
+           print(temp_angles.shape)
+           print(np.std(temp_angles, axis=0).shape)
     return phi_rmss
 
 def histo_diffs(diffs, obsid):
@@ -86,6 +91,7 @@ def histo_diffs(diffs, obsid):
     ax.add_artist(at)
     outname = obsid+"_histogram.png"
     fig.savefig(outname)
+
     return np.median(diffs), peak, np.std(diffs)
 
 def histo_rmss(rmss, obsid):
@@ -105,6 +111,7 @@ def histo_rmss(rmss, obsid):
     ax.add_artist(at)
     outname = obsid+"_rms_histogram.png"
     fig.savefig(outname)
+
     return np.median(rmss), peak, np.std(rmss)
 
 def phase_map(diffs, metafits, names, obsid):
@@ -112,7 +119,7 @@ def phase_map(diffs, metafits, names, obsid):
     Names, North, East = get_tile_info(metafits)
     ax = fig.add_axes([0.15, 0.1, 0.65, 0.75])
     ax.axis("equal")
-    sc = ax.scatter(North, East, marker='o', s=150, linewidths=4, c=diffs, cmap=plt.cm.hsv, vmin = -180., vmax = 180.)
+    sc = ax.scatter(North, East, marker='o', s=150, linewidths=4, c=diffs, cmap='hsv', vmin = -180., vmax = 180.)
     ax.set_xlabel("East / m")
     ax.set_ylabel("North / m")
     if names is True:
@@ -158,24 +165,25 @@ if __name__ == '__main__':
     if os.path.exists(filename):
         ao = aocal.fromfile(filename)
     else:
-        print filename+" does not exist!"
+        print(filename+" does not exist!")
         sys.exit(1)
 
     obsid = filename[0:10]
     diffs = np.array(diff(ao, options.metafits, options.refant))
-# Flatten array and delete NaNs for histogram
+    
+    # Flatten array and delete NaNs for histogram
     median, peak, std = histo_diffs(diffs[np.logical_not(np.isnan(diffs))].flatten(), obsid)
     csv_out(obsid, median, peak, std)
 
     if options.metafits is not None:
         if os.path.exists(options.metafits):
-# Plotting on a single frequency, single pol on map because it's impossible otherwise
+            # Plotting on a single frequency, single pol on map because it's impossible otherwise
             diffs = diffs[:, 0, 15]
-# Could also take the average of a few frequencies, but it doesn't change anything
-#            diffs = np.average(diffs[:, 0, 12:20], axis=1)
+            # Could also take the average of a few frequencies, but it doesn't change anything
+            # diffs = np.average(diffs[:, 0, 12:20], axis=1)
             phase_map(diffs, options.metafits, options.names, obsid)
 
-# New option: plot RMS
+    # New option: plot RMS
     if options.rms is True:
         rmss = np.array(phi_rms(ao, options.metafits, options.refant))
         median, peak, std = histo_rmss(rmss[np.logical_not(np.isnan(rmss))].flatten(), obsid)

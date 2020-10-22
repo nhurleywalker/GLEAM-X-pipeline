@@ -8,7 +8,7 @@ import os
 import time
 import numpy as np
 import argparse
-import mysql_db as mdb
+import gleam_x.db.mysql_db as mdb
 
 __author__ = ["PaulHancock",
               "Natasha Hurley-Walker", 

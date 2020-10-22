@@ -19,7 +19,7 @@ class Source:
 
 
 def insert_src(src, cur):
-    print src
+    print(src)
 
     cur.execute("""
     INSERT INTO sources

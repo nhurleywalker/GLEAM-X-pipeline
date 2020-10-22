@@ -84,7 +84,7 @@ def main():
     if max(x) > 360.:
         # raise ValueError("RA goes higher than 360 degrees ({}: {})! Panic!".format(np.where(x == max(x)), 
         #                                                                            max(x)))
-        print "RA goes higher than 360 degrees! Panic!"
+        print("RA goes higher than 360 degrees! Panic!")
         sys.exit(1)
     y = data['dec']
       

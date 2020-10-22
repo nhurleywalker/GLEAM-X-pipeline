@@ -167,11 +167,14 @@ def main(ms, data_column, sigma=3, window=5000):
 
 
 if __name__ == "__main__":
-    ps = ArgumentParser()
-    ps.add_argument("ms", type=str)
-    ps.add_argument("column", type=str)
-    ps.add_argument("-s", "--sigma", type=float, default=3)
-    ps.add_argument("-w", "--window", type=float, default=5000)  # full range
-    args = ps.parse_args()
-    main(args.ms, args.column, args.sigma, args.window)
+    parser = ArgumentParser()
+    parser.add_argument("ms", type=str)
+    parser.add_argument("column", type=str)
+    parser.add_argument("-s", "--sigma", type=float, default=3)
+    parser.add_argument("-w", "--window", type=float, default=5000)  # full range
+    
+    args = parser.parse_args()
+    main(
+        args.ms, args.column, args.sigma, args.window
+    )
     

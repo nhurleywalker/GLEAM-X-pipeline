@@ -1,8 +1,11 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import os, logging
-from optparse import OptionParser #NB zeus does not have argparse!
+from optparse import OptionParser 
 from calplots.aocal import fromfile
 import numpy as np
+
 parser = OptionParser(usage = "usage: %prog inbinfile outbinfile refant" +
 """
 Divide through by phase of a single reference antenna

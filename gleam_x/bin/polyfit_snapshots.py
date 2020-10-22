@@ -95,7 +95,7 @@ def make_plot(x, y, w, model, title, ylabel, outname):
     fitplot = plt.figure(figsize=figsize)
     ax = fitplot.add_subplot(111)
     ax.set_title(title, fontsize=10)
-    ax.scatter(x, y, marker='.', c=SNR, cmap=cm.Greys)
+    ax.scatter(x, y, marker='.', c=SNR, cmap='Greys')
     x = sorted(x)
     ax.plot(x, model(x), '-', ms=1)
     ax.set_xlabel(ylabel)
@@ -106,13 +106,13 @@ def make_plot(x, y, w, model, title, ylabel, outname):
 def zmodel(x):
     return np.zeros(len(x))
 
-    outformat = "{0},{1},{2},{3}\n"
-    outvars = [obsid, median, peak, std ]
-    outputfile = obsid+"_ionodiff.csv"
-    if not os.path.exists(outputfile):
-        with open(outputfile, 'w') as output_file:
-           output_file.write("#obsid,median,peak,std\n")
-           output_file.write(outformat.format(*outvars))
+    # outformat = "{0},{1},{2},{3}\n"
+    # outvars = [obsid, median, peak, std ]
+    # outputfile = obsid+"_ionodiff.csv"
+    # if not os.path.exists(outputfile):
+    #     with open(outputfile, 'w') as output_file:
+    #        output_file.write("#obsid,median,peak,std\n")
+    #        output_file.write(outformat.format(*outvars))
 
 if results.read_coefficients is True:
     P_dec = np.loadtxt(dec_coeff, delimiter=",")

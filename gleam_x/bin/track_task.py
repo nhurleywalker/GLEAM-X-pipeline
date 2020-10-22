@@ -14,7 +14,7 @@ try:
 except:
     pass
 
-import mysql_db as mdb
+import gleam_x.db.mysql_db as mdb
 
 # This is the list of acceptable observation status' that are 'hard coded' in the 
 # gleam-x website data/ui models. 

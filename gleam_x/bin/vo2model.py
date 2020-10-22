@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import os, sys
-from string import replace
+# from string import replace
 
 import numpy as np
 #tables and votables
@@ -44,10 +44,10 @@ parser.add_argument('--alpha',type=float, dest="alpha",
                     help="The value of alpha to use if there is no alpha column (default = -0.83)", default=-0.83)
 parser.add_argument('--beta',type=float, dest="beta",
                     help="The value of beta to use if there is no beta column (default = 0.0).", default=0.0)
-parser.add_argument('--point', dest='point', action='store_true' ,
-                    help="Output unresolved sources as point sources instead of Gaussians (default=False). Need to specify resolution, and both int and peak flux columns for this to work, or have blank major/minor axis columns to indicate unresolved sources.", default=False)
-parser.add_argument('--resolution',type=float, dest="resolution",
-                    help="The int/peak value below which a source is considered unresolved (default=1.2).", default=1.2)
+parser.add_argument('--point', dest='point', action='store_true' , default=False,
+                    help="Output unresolved sources as point sources instead of Gaussians (default=False). Need to specify resolution, and both int and peak flux columns for this to work, or have blank major/minor axis columns to indicate unresolved sources.")
+parser.add_argument('--resolution',type=float, dest="resolution", default=1.2,
+                    help="The int/peak value below which a source is considered unresolved (default=1.2).")
 parser.add_argument('--intflux',type="string", dest="intflux",
                     help="Int flux column (default=int_flux_wide).", default="int_flux_wide")
 parser.add_argument('--peakflux',type="string", dest="peakflux",

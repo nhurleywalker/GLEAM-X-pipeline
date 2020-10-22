@@ -1,13 +1,12 @@
 #! python
-import mysql.connector as mysql
-import mysql_db as mdb
+from __future__ import print_function
+from  gleam_x.db import mysql_db as mdb
 import sys
 
 __author__ = ['Paul Hancock', 
               'Natasha Hurley-Walker',
               'Tim Galvin']
 
-DEBUG = False
 dbname = mdb.dbname
 
 schema = """
@@ -106,26 +105,18 @@ FOREIGN KEY(obs_id) REFERENCES observation(obs_id)
 );
 """.format(dbname)
 
-def main(drop=False):
+def main():
     conn = mdb.connect()
     cur = conn.cursor()
-    
-    if drop:
-        print 'Dropping {0} from the mqsql database.'.format(dbname)
-        cur.execute("DROP DATABASE IF EXISTS {0}".format(dbname))
     
     for cmd in schema.split(';'):
         if cmd.strip() == "":
             continue
 
-        print cmd + ';'
+        print(cmd + ';')
         cur.execute(cmd)
     conn.close()
 
 if __name__ == '__main__':
 
-    # This should not be used, and will be removed 
-    if len(sys.argv) == 2 and sys.argv[1] in ['-d', '--drop-db']:
-        DROP = True
-    
-    main(drop=DROP)
+    main()

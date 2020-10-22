@@ -5,7 +5,7 @@ import sys
 import os
 import numpy as np
 import argparse
-import mysql_db as mdb
+import gleam_x.db.mysql_db as mdb
 
 __author__ = ["Natasha Hurley-Walker", 
               "Tim Galvin"]
@@ -29,10 +29,10 @@ def update_ionosphere(obsid, med, peak, std, cur):
 
 if __name__ == "__main__":
 
-    ps = argparse.ArgumentParser(description='add observations to database')
-    ps.add_argument('--ionocsv', type=str, help='ionospheric triage output csv file', default=None)
+    parser = argparse.ArgumentParser(description='add observations to database')
+    parser.add_argument('--ionocsv', type=str, help='ionospheric triage output csv file', default=None)
 
-    args = ps.parse_args()
+    args = parser.parse_args()
 
     if os.path.exists(args.ionocsv):
         filename, file_extension = os.path.splitext(args.ionocsv)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
             peak = arr[2]
             std = arr[3]
         else:
-            print "Other file formats not yet enabled."
+            print("Other file formats not yet enabled.")
             sys.exit(1)
 
     conn = mdb.connect()

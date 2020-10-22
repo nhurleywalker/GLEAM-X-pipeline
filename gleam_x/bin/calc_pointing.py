@@ -4,7 +4,7 @@ __author__ = "Natasha Hurley-Walker"
 __date__ = "10/09/2019"
 
 import sys
-from argparse import ArgumentParser #NB zeus does not have argparse!
+from argparse import ArgumentParser 
 from astropy.io import fits
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy import units as u
@@ -16,6 +16,7 @@ def calc_optimal_ra_dec(metafits):
         az = hdu[0].header["AZIMUTH"]
         date = hdu[0].header["DATE-OBS"]
         mwa = EarthLocation.of_site("Murchison Widefield Array")
+        
         # Empirical testing shows that if the altitude is < 55 degrees, the pointing is actually 8 degrees above where you think it is
         alt += 8.0
         newaltaz = SkyCoord(az, alt, frame="altaz", unit=(u.deg, u.deg), obstime=date, location=mwa)
