@@ -50,7 +50,7 @@ setup(
     description="Python scripts to support the processing of GLEAM-X data.",
     url="https://github.com/nhurleywalker/GLEAM-X-pipeline",
     long_description=open('README.md').read(),
-    packages=['gleam_x',],
+    packages=['gleam_x', 'gleam_x.bin', 'gleam_x.db'],
     requires=reqs,
     scripts=scripts,
 )
