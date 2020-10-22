@@ -2,7 +2,19 @@ Bootstrap: docker
 From: ubuntu:20.04
 
 %help
-A container for the CASA (Common Astronomy Software Application) radio interferometric and single-dish data reduction package. 
+A container for the key pieces of software that make up the GLEAM-X processing pipeline, including:
+
+CASA
+casacore
+aoflagger
+cotter
+wsclean
+chgcentre
+swarp
+python3
+wcstools
+stilts
+pb_lookup
 
 %post
 echo "Updating apt repositories"
@@ -85,6 +97,7 @@ wget http://tdc-www.harvard.edu/software/wcstools/wcstools-3.9.6.tar.gz \
 update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 pip3 install --no-cache-dir \
+            ipython \
             cython \
             numpy \
             scipy \
@@ -103,7 +116,9 @@ pip3 install --no-cache-dir \
             git+https://gitlab.com/Sunmish/flux_warp.git \
             git+https://github.com/nhurleywalker/fits_warp.git \
             git+https://github.com/MWATelescope/mwa-calplots.git \
-            git+https://github.com/ICRAR/manta-ray-client.git
+            git+https://github.com/ICRAR/manta-ray-client.git \
+            git+https://github.com/tjgalvin/mwa_pb_lookup.git \
+            git+https://github.com/tjgalvin/GLEAM-X-pipeline.git@generalise
 # ------------------------------------------------
 
 # ------------------------------------------------
@@ -220,7 +235,6 @@ export PATH="/wcstools-3.9.6/bin:$PATH"
 # ------------------------------------------------
 export MWA_PB_BEAM='/pb_lookup/gleam_xx_yy.hdf5'
 export MWA_PB_JONES='/pb_lookup/gleam_jones.hdf5'
-export PATH="/pb_lookup/mwa_pb_lookup:${PATH}"
 # ------------------------------------------------
 
 # ------------------------------------------------
