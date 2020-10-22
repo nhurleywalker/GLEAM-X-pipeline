@@ -8,7 +8,7 @@ __author__ = ["Paul Hancock",
 import os
 import sys
 
-if 'GXTRACK' not in os.environment.keys() or os.environ['GXTRACK'] != 'track':
+if 'GXTRACK' not in os.environ.keys() or os.environ['GXTRACK'] != 'track':
     print('Task process tracking is disabled. ')
     sys.exit(0)
 
