@@ -16,29 +16,29 @@ from argparse import ArgumentParser
 
 usage="Usage: %prog [args] <file>\n"
 parser = ArgumentParser(usage=usage)
-parser.add_argument('--catalogue',type="string", dest="catalogue",
+parser.add_argument('--catalogue',type=str, dest="catalogue",
                     help="The filename of the catalogue you want to read in.", default=None)
-parser.add_argument('--output',type="string", dest="output",
+parser.add_argument('--output',type=str, dest="output",
                     help="The filename of the output (default=test.txt).", default="test.txt")
-parser.add_argument('--namecol',type="string", dest="namecol",
+parser.add_argument('--namecol',type=str, dest="namecol",
                     help="The name of the Name column (no default).", default="Name")
-parser.add_argument('--racol',type="string", dest="racol",
+parser.add_argument('--racol',type=str, dest="racol",
                     help="The name of the RA column (default=ra_str).", default="ra_str")
-parser.add_argument('--decol',type="string", dest="decol",
+parser.add_argument('--decol',type=str, dest="decol",
                     help="The name of the Dec column (default=dec_str).", default="dec_str")
-parser.add_argument('--acol',type="string", dest="acol",
+parser.add_argument('--acol',type=str, dest="acol",
                     help="The name of the major axis column (default=a_wide).", default="a_wide")
-parser.add_argument('--bcol',type="string", dest="bcol",
+parser.add_argument('--bcol',type=str, dest="bcol",
                     help="The name of the minor axis column (default=b_wide).", default="b_wide")
-parser.add_argument('--pacol',type="string", dest="pacol",
+parser.add_argument('--pacol',type=str, dest="pacol",
                     help="The name of the position angle column (default=pa_wide).", default="pa_wide")
-parser.add_argument('--fluxcol',type="string", dest="fluxcol",
+parser.add_argument('--fluxcol',type=str, dest="fluxcol",
                     help="The name of the flux density column (default=int_flux_wide).", default="int_flux_wide")
 parser.add_argument('--freq',type=float, dest="freq",
                     help="The frequency at which the flux density measurements are made, in MHz (default=200).", default=200.)
-parser.add_argument('--alphacol',type="string", dest="alphacol",
+parser.add_argument('--alphacol',type=str, dest="alphacol",
                     help="The name of the spectral index alpha-term column (default=alpha).", default="alpha")
-parser.add_argument('--betacol',type="string", dest="betacol",
+parser.add_argument('--betacol',type=str, dest="betacol",
                     help="The name of the spectral index curvature beta-term column (default=beta).", default="beta")
 parser.add_argument('--alpha',type=float, dest="alpha",
                     help="The value of alpha to use if there is no alpha column (default = -0.83)", default=-0.83)
@@ -48,11 +48,11 @@ parser.add_argument('--point', dest='point', action='store_true' , default=False
                     help="Output unresolved sources as point sources instead of Gaussians (default=False). Need to specify resolution, and both int and peak flux columns for this to work, or have blank major/minor axis columns to indicate unresolved sources.")
 parser.add_argument('--resolution',type=float, dest="resolution", default=1.2,
                     help="The int/peak value below which a source is considered unresolved (default=1.2).")
-parser.add_argument('--intflux',type="string", dest="intflux",
+parser.add_argument('--intflux',type=str, dest="intflux",
                     help="Int flux column (default=int_flux_wide).", default="int_flux_wide")
-parser.add_argument('--peakflux',type="string", dest="peakflux",
+parser.add_argument('--peakflux',type=str, dest="peakflux",
                     help="Peak flux column (default=peak_flux_wide).", default="peak_flux_wide")
-#parser.add_option('--betacol',type="string", dest="betacol",
+#parser.add_option('--betacol',type=str, dest="betacol",
 #                    help="The name of the spectral index beta-term column (default=beta).", default="beta")
 args = parser.parse_args()
 
