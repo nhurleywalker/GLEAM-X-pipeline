@@ -8,7 +8,7 @@ echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -a account : computing account, default pawsey0272
   -d dep     : job number for dependency (afterok)
-  -i iono    : run the ionospheric metric tests (default = True)
+  -i         : run the ionospheric metric tests (default = False)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process, or a text file of obsids (newline separated). 
@@ -85,17 +85,12 @@ then
     fi
 fi
 
-script="${GXBASE}/queue/autocal_${obsnum}.sh"
+script="${GXSCRIPT}/autocal_${obsnum}.sh"
 
 cat "${GXBASE}/bin/autocal.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
-                                     -e "s:HOST:${GXCOMPUTER}:g" \
-                                     -e "s:TASKLINE:${GXTASKLINE}:g" \
-                                     -e "s:STANDARDQ:${GXSTANDARDQ}:g" \
                                      -e "s:IONOTEST:${ion}:g" \
-                                     -e "s:ACCOUNT:${account}:g" \
-                                     -e "s:PIPEUSER:${pipeuser}:g" \
-                                     -e "s:ARRAYLINE:${arrayline}:g" > "${script}"
+                                     -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
 
 output="${GXLOG}/autocal_${obsnum}.o%A"
@@ -107,7 +102,16 @@ then
    error="${error}_%a"
 fi
 
-sub="sbatch -M ${GXCOMPUTER} --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo 'which singularity' >> ${script}.sbatch
+echo 'whoami' >> ${script}.sbatch
+echo "singularity run -B '${GXFMODELS}' -B '${GXMWAPB}' -B '${GXSCRATCH}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+sub="sbatch --export=ALL --account=${account} --time=02:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -135,9 +139,12 @@ for taskid in $(seq ${numfiles})
         obs=$obsnum
     fi
 
-    # record submission
-    track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='calibrate' --submission_time="$(date +%s)" --batch_file="${script}" \
-                        --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='calibrate' --submission_time="$(date +%s)" --batch_file="${script}" \
+                            --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
     echo "$obsoutput"
     echo "$obserror"

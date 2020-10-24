@@ -1,12 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p workq
-#SBATCH --account=ACCOUNT
-#SBATCH --time=02:00:00
-#SBATCH --nodes=1
-TASKLINE
-ARRAYLINE
+set -x
+echo $PATH
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -46,6 +40,8 @@ catfile="${GXBASE}/models/skymodel_only_alpha.fits"
 
 # MWA beam information
 MWAPATH="${GXMWAPB}"
+
+ls -l ${MWAPATH}
 
 # Minimum baseline of 75 lambda (=250m at 88 MHz) for calibration
 minuv=75
@@ -115,19 +111,14 @@ cd "${datadir}/${obsnum}" || exit
 
 # Check whether the phase centre has already changed
 # Calibration will fail if it has, so measurement set must be shifted back to its original position
-
-# TODO: Singularity exec here, seems like `chgcentre` is not currently in singularity container
-current=$(singularity exec -B "${modeldir}" -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-            chgcentre \
-                    "${obsnum}.ms") 
+current=$(chgcentre "${obsnum}.ms") 
 
 if [[ $current == *"shift"* ]] 
 then
     echo "Detected that this measurement set has undergone a denormal shift; this must be undone before calibration."
     coords=$(calc_pointing.py --metafits="${metafits}")
     echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
-    singularity exec -B "${modeldir}" -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-            chgcentre \
+    chgcentre \
             "${obsnum}.ms" \
             "${coords}"
 else
@@ -151,16 +142,15 @@ then
     # Remove duplicate obsnum
     solutions="${solutions/${obsnum}_${obsnum}_/${obsnum}_}"
     
-    singularity exec -B "${modeldir}" -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-                "calibrate \
-                        -t ${ts} \
-                        -j ${cores} \
-                        -m ${modeldir}/${calmodel} \
-                        -minuv ${minuvm} \
-                        -maxuv ${maxuvm} \
-                        -applybeam -mwa-path \
-                        ${MWAPATH} ${obsnum}.ms \
-                        ${solutions}"
+    calibrate \
+            -t ${ts} \
+            -j ${cores} \
+            -m ${modeldir}/${calmodel} \
+            -minuv ${minuvm} \
+            -maxuv ${maxuvm} \
+            -applybeam -mwa-path "${MWAPATH}" \
+            "${obsnum}.ms" \
+            "${solutions}"
     
     echo "Ionospheric calibration finished. Creating plots and statistics. "
     aocal_plot.py --refant="${refant}" --amp_max=2 "${solutions}"
@@ -174,15 +164,14 @@ solutions="${obsnum}_${calmodel%%.txt}_solutions_initial.bin"
 solutions="${solutions/${obsnum}_${obsnum}_/${obsnum}_}"
 
 # calibrate
-singularity exec -B "${modeldir}" -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-        "calibrate \
-                -j ${cores} \
-                -m ${modeldir}/${calmodel} \
-                -minuv $minuvm \
-                -maxuv $maxuvm \
-                -applybeam -mwa-path ${MWAPATH} \
-                ${obsnum}.ms \
-                ${solutions}"
+calibrate \
+        -j ${cores} \
+        -m "${modeldir}/${calmodel}" \
+        -minuv $minuvm \
+        -maxuv $maxuvm \
+        -applybeam -mwa-path "${MWAPATH}" \
+        "${obsnum}".ms \
+        "${solutions}"
 test_fail $?
 
 # Create a version divided through by the reference antenna, so that all observations have the same relative XY phase, allowing polarisation calibration solutions to be transferred
