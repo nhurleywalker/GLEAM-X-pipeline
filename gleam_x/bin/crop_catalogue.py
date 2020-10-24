@@ -121,7 +121,7 @@ if __name__ == '__main__':
     nselected=indices.shape[0]
     noriginal=data.shape[0]
 
-    if indices.shape > 0:
+    if nselected > 0:
         # Write out the sources
         temp[1].data = data[indices]
         temp.writeto(args.output,overwrite=True)
