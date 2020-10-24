@@ -7,12 +7,10 @@ __author__ = ["Paul Hancock",
 
 import os
 import sys
-try:
-    if os.environ['GXTRACK'] != 'track':
-        print('Task process tracking is disabled. ')
-        sys.exit(0)
-except:
-    pass
+
+if 'GXTRACK' not in os.environ.keys() or os.environ['GXTRACK'] != 'track':
+    print('Task process tracking is disabled. ')
+    sys.exit(0)
 
 import gleam_x.db.mysql_db as mdb
 

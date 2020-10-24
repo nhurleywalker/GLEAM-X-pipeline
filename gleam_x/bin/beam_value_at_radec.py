@@ -29,11 +29,19 @@ def beam_value(ra, dec, t, delays, freq, gridnum, pol='i', interp=True):
     logger.info('Computing for %s' % t)
 
     pol = pol.upper()
-    assert pol in ('XX', 'YY'), 'pol %s is not supported' % pol
+    assert pol in ('I', 'XX', 'YY'), 'pol %s is not supported' % pol
 
     rX, rY = gleamx_beam_lookup(ra, dec, gridnum, t, freq)
 
-    return np.squeeze(rX), np.squeeze(rY)
+    if pol == 'I':
+        return np.squeeze(rX), np.squeeze(rY)
+    elif pol == 'XX':
+        return np.squeeze(rX)
+    elif pol == 'YY':
+        return np.squeeze(rY)
+    else:
+        # Shouldnt get here, but anyway..
+        raise ValueError('pol value is {0}, and not correctly set.'.format(pol))
 
 def parse_metafits(metafits):
 # Delays needed for beam model calculation
