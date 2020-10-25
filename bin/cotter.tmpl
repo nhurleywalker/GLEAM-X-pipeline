@@ -1,12 +1,4 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p STANDARDQ
-#SBATCH --account=ACCOUNT
-#SBATCH --time=04:00:00
-#SBATCH --nodes=1
-TASKLINE
-ARRAYLINE
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -36,7 +28,7 @@ fi
 datadir=DATADIR
 tres=TRES
 fres=FRES
-memory=MEMORY
+memory=${GXMEMORY}
 
 # start task
 track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
@@ -74,17 +66,16 @@ then
     fi
     
     # Use 80% of the memory
-    singularity exec -B "${PWD}" "${GXSINGULARITY}/cotter/cotter_latest.sif" bash -c \
-            "cotter \
-                    ${flagfiles} \
-                   -absmem ${GXMEMORY} \
-                   -timeres ${tres} \
-                   -freqres ${fres} \
-                   -allowmissing \
-                   -edgewidth 80 \
-                   -m ${metafits} \
-                   -o ${obsnum}.ms 
-                   ./*gpubox*.fits"
+    cotter \
+            ${flagfiles} \
+            -absmem ${memory} \
+            -timeres ${tres} \
+            -freqres ${fres} \
+            -allowmissing \
+            -edgewidth 80 \
+            -m ${metafits} \
+            -o ${obsnum}.ms \
+            ./*gpubox*.fits
 
     test_fail $?
     if [[ -d ${obsnum}.ms ]]

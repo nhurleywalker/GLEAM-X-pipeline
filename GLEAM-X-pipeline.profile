@@ -2,6 +2,7 @@
 
 echo "loading profile"
 # TODOs:
+# Write python version of flagantennae from mwa-reduce
 # Test calling scripts of (after optparse to argparse or urllib2 to requests)
 #       - calc_pointing,py
 #      - crop_catalogue.py
@@ -14,7 +15,6 @@ echo "loading profile"
 #     - iono_update.py
 # Need to update track_task.py
 #     - needs to contain the connection information
-# Set up alias terms for the singularity containers called throughout the pipeline?
 # Remove the mwapy.pb from:
 #     - beam_value_at_radec.py
 #          - made pb_lookup a python module to replace this. Waiting for QA from JM. 

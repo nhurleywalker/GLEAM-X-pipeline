@@ -81,16 +81,14 @@ then
     fi
 fi
 
-script="${GXBASE}/queue/autoflag_${obsnum}.sh"
+script="${GXSCRIPT}/autoflag_${obsnum}.sh"
 
 cat "${GXBASE}/bin/autoflag.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
                                      -e "s:HOST:${GXCOMPUTER}:g" \
-                                     -e "s:TASKLINE:${GXTASKLINE}:g" \
-                                     -e "s:STANDARDQ:${GXSTANDARDQ}:g" \
-                                     -e "s:ACCOUNT:${account}:g" \
-                                     -e "s:PIPEUSER:${pipeuser}:g" \
-                                     -e "s:ARRAYLINE:${arrayline}:g"> "${script}"
+                                     -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
+
+chmod 755 "${script}"
 
 output="${GXLOG}/autoflag_${obsnum}.o%A"
 error="${GXLOG}/autoflag_${obsnum}.e%A"
@@ -100,7 +98,21 @@ then
     error="${error}_%a"
 fi
 
-sub="sbatch -M ${GXCOMPUTER} --output=${output} --error=${error} --begin=now+120 ${depend} ${queue} ${script}"
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo 'which singularity' >> ${script}.sbatch
+echo 'whoami' >> ${script}.sbatch
+echo 'echo ${HOME}' >> ${script}.sbatch
+echo "singularity run -B '${GXSCRATCH}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+if [ ! -z ${GXNCPULINE} ]
+then
+    # autoflag only needs a single CPU core
+    GXNCPULINE="--ntasks-per-node=1"
+fi
+
+sub="sbatch  --export=ALL --account=${account} --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+sub="${sub}  ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
 then
@@ -129,9 +141,12 @@ do
         obs=$obsnum
     fi
 
-    # record submission
-    track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='flag' --submission_time="$(date +%s)"\
-                        --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='flag' --submission_time="$(date +%s)"\
+                            --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
     echo "$obsoutput"
     echo "$obserror"
