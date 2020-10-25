@@ -1,11 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p STANDARDQ
-#SBATCH --account=ACCOUNT
-#SBATCH --time=01:00:00
-#SBATCH --nodes=1
-ARRAYLINE
+
+set -x
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -70,17 +65,15 @@ echo "Calibration file is ${calfile}"
 # If in debugging mode, apply to the CORRECTED_DATA column
 if [[ ! -z $debug ]]
 then
-    singularity exec -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-            "applysolutions \
-                        ${obsnum}.ms \
-                        ${calfile}"
+    applysolutions \
+                ${obsnum}.ms \
+                "${calfile}"
 # If in production mode, apply to the DATA column
 else
-    singularity exec -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-            "applysolutions \
-                    -nocopy 
-                    ${obsnum}.ms \
-                    ${calfile}"
+    applysolutions \
+                -nocopy \
+                ${obsnum}.ms \
+                "${calfile}"
 fi
 
 test_fail $?

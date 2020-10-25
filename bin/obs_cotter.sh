@@ -71,7 +71,7 @@ if [[ -f ${obsnum} ]]
 then
     # echo "${obsnum} is a file that exists, proceeding with job-array set up"
     numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
-    jobarray="#SBATCH --array=1-${numfiles}"
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
     jobarray=''

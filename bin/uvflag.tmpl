@@ -1,12 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p workq
-#SBATCH --account=ACCOUNT
-#SBATCH --time=01:00:00
-#SBATCH --nodes=1
-TASKLINE
-ARRAYLINE
+
+set -x
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -28,7 +22,6 @@ fi
 echo "jobid: ${jobid}"
 echo "taskid: ${taskid}"
 
-
 datadir=DATADIR
 debug=DEBUG
 
@@ -49,7 +42,7 @@ then
     if [[ -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        singularity exec "${GXSINGULARITY}/casa.img" -B "${PWD}" --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
+        casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi
@@ -58,7 +51,7 @@ else
     if [[ ! -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        singularity exec "${GXSINGULARITY}/casa.img" -B "${PWD}" --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
+        casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi

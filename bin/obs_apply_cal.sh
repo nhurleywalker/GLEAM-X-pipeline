@@ -20,31 +20,9 @@ echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-z] [-t] o
 exit 1;
 }
 
-pipeuser=$(whoami)
-
-# Supercomputer options
-if [[ "${HOST:0:4}" == "zeus" ]]
-then
-    computer="zeus"
-    standardq="workq"
-#    absmem=60
-#    standardq="gpuq"
-#    absmem=30
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    computer="magnus"
-    standardq="workq"
-#    absmem=60
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    standardq="gpuq"
-#    absmem=30 # Check this
-fi
+pipeuser="${GXUSER}"
 
 #initial variables
-scratch=/astro
-group=/group
 dep=
 calid=
 tst=
@@ -83,9 +61,7 @@ done
 shift  "$(($OPTIND -1))"
 obsnum=$1
 
-set -uo pipefail
 # if obsid or calid is empty then just print help
-
 if [[ -z ${obsnum} ]] || [[ -z ${calid} ]]
 then
     usage
@@ -110,17 +86,15 @@ fi
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l ${obsnum} | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
 # Set directories
-queue="-p $standardq"
-dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
-base="$scratch/mwasci/$pipeuser/$project/"
-code="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
+queue="-p ${GXSTANDARDQ}"
+base="${GXSCRATCH}/${project}"
 
 if [[ $? != 0 ]]
 then
@@ -130,20 +104,18 @@ then
 fi
 
 
-script="${dbdir}queue/apply_cal_${obsnum}.sh"
+script="${GXSCRIPT}/apply_cal_${obsnum}.sh"
 
-cat ${code}/bin/apply_cal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
-                                     -e "s:BASEDIR:${base}:g" \
-                                     -e "s:HOST:${computer}:g" \
-                                     -e "s:STANDARDQ:${standardq}:g" \
-                                     -e "s:ACCOUNT:${account}:g" \
-                                     -e "s:DEBUG:${debug}:g" \
-                                     -e "s:CALID:${calid}:g" \
-                                     -e "s:PIPEUSER:${pipeuser}:g" \
-                                     -e "s:ARRAYLINE:${arrayline}:g" > ${script}
+cat "${GXBASE}/bin/apply_cal.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+                                       -e "s:BASEDIR:${base}:g" \
+                                       -e "s:DEBUG:${debug}:g" \
+                                       -e "s:CALID:${calid}:g" \
+                                       -e "s:PIPEUSER:${pipeuser}:g"  > ${script}
 
-output="${dbdir}queue/logs/apply_cal_${obsnum}.o%A"
-error="${dbdir}queue/logs/apply_cal_${obsnum}.e%A"
+chmod 755 "${script}"
+
+output="${GXLOG}/apply_cal_${obsnum}.o%A"
+error="${GXLOG}/apply_cal_${obsnum}.e%A"
 
 if [[ -f ${obsnum} ]]
 then
@@ -151,7 +123,22 @@ then
     error="${error}_%a"
 fi
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo 'which singularity' >> ${script}.sbatch
+echo 'whoami' >> ${script}.sbatch
+echo 'echo ${HOME}' >> ${script}.sbatch
+echo "singularity run -B '${GXSCRATCH}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+if [ ! -z ${GXNCPULINE} ]
+then
+    # autoflag only needs a single CPU core
+    GXNCPULINE="--ntasks-per-node=1"
+fi
+
+sub="sbatch  --export=ALL --account=${account} --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+sub="${sub}  ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -179,9 +166,12 @@ for taskid in $(seq ${numfiles})
         obs=$obsnum
     fi
 
-    # record submission
-    track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
-                        --obs_id=${obs} --stderr=${obserror} --stdout=${obsoutput}
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='apply_cal' --submission_time=`date +%s` --batch_file=${script} \
+                            --obs_id=${obs} --stderr=${obserror} --stdout=${obsoutput}
+    fi
 
     echo $obsoutput
     echo $obserror

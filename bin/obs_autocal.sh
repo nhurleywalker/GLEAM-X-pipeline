@@ -65,10 +65,10 @@ fi
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
 queue="-p ${GXSTANDARDQ}"
