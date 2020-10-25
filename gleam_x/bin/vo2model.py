@@ -11,7 +11,7 @@ import astropy.io.fits as fits
 from astropy.io.votable import parse_single_table
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-
+from astropy.table import Table
 from argparse import ArgumentParser
 
 usage="Usage: %prog [args] <file>\n"
@@ -67,8 +67,9 @@ if args.catalogue is None:
 else:
     filename, file_extension = os.path.splitext(args.catalogue)
     if file_extension == ".fits":
-        temp = fits.open(args.catalogue)
-        data = temp[1].data
+        data = Table.read(args.catalogue).to_pandas()
+        data['Name'] = data['Name'].str.decode('utf-8')
+
     elif file_extension == ".vot":
         temp = parse_single_table(args.catalogue)
         data = temp.array
@@ -99,39 +100,33 @@ else:
 gformatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type {shape:s}\n    position {RA:s} {Dec:s}\n    shape {a:2.1f} {b:2.1f} {pa:4.1f}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:4.7f} 0 0 0\n      spectral-index {{ {alpha:2.2f} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
 pformatter="source {{\n  name \"{Name:s}\"\n  component {{\n    type {shape:s}\n    position {RA:s} {Dec:s}\n    sed {{\n      frequency {freq:3.0f} MHz\n      fluxdensity Jy {flux:4.7f} 0 0 0\n      spectral-index {{ {alpha:2.2f} {beta:2.2f} }}\n    }}\n  }}\n}}\n"
 
-shape = np.empty(shape=data[args.fluxcol].shape,dtype="S8")
-shape.fill("gaussian")
+shape = np.array(['gaussian'] * data.shape[0] )
 
 if args.point:
-   try:
-       srcsize = data[args.intflux]/data[args.peakflux]
-       indices = np.where(srcsize<args.resolution)
-   except KeyError:
-       indices = np.where(np.isnan(data[args.acol]))
-   shape[indices] = "point"
+    try:
+        srcsize = data[args.intflux]/data[args.peakflux]
+        indices = np.where(srcsize<args.resolution)
+    except KeyError:
+        indices = np.where(np.isnan(data[args.acol]))
+    shape[indices] = "point"
 
 bigzip=zip(names,data[args.racol],data[args.decol],data[args.acol],data[args.bcol],data[args.pacol],data[args.fluxcol],alpha,beta,shape)
 
-f = open(args.output,"w")
-f.write("skymodel fileformat 1.1\n")
-f.close()
-
-with open(args.output,"a") as f:
+with open(args.output,"w") as f:
+    f.write("skymodel fileformat 1.1\n")
     for Name,RA,Dec,a,b,pa,flux,alpha,beta,shape in bigzip:
+
         if rastr is True:
             coords = SkyCoord(RA, Dec, frame="fk5", unit=(u.hour, u.deg))
         else:
             coords = SkyCoord(RA, Dec, frame="fk5", unit=(u.deg, u.deg))
-#            RA = replace(RA,":","h",1)
-#            RA = replace(RA,":","m",1)
-#            RA = RA+"s"
-#            Dec = replace(Dec,":","d",1)
-#            Dec = replace(Dec,":","m",1)
-#            Dec = Dec+"s"
+
         RA = coords.ra.to_string(u.hour)
         Dec = coords.dec.to_string(u.deg)
+        
         if shape=="gaussian":
             f.write(gformatter.format(Name=Name,RA=RA,Dec=Dec,a=a,b=b,pa=pa,flux=flux,alpha=alpha,beta=beta,freq=args.freq,shape=shape))
+        
         elif shape=="point":
             f.write(pformatter.format(Name=Name,RA=RA,Dec=Dec,flux=flux,alpha=alpha,beta=beta,freq=args.freq,shape=shape))
 
