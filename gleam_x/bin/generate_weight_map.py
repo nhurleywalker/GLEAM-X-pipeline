@@ -21,7 +21,7 @@ except IndexError:
 stokes_I = (hdu_xx[0].data + hdu_yy[0].data)/2.0
 imsize = hdu_rms[0].data.shape[0]
 # Use a central region of the RMS map to calculate the weight via inverse variance
-weight = 1./(bscale*np.nanmean(hdu_rms[0].data[imsize/2 - 200:imsize/2 + 200, imsize/2 - 200:imsize/2 + 200]))**2
+weight = 1./(bscale*np.nanmean(hdu_rms[0].data[imsize//2 - 200:imsize//2 + 200, imsize//2 - 200:imsize//2 + 200]))**2
 hdu_xx[0].data = weight * stokes_I
 hdu_xx.writeto(out_weight)
 
