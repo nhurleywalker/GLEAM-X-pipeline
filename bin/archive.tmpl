@@ -1,12 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p STANDARDQ
-#SBATCH --account=ACCOUNT
-#SBATCH --time=2:00:00
-#SBATCH --ntasks=NCPUS
-#SBATCH --nodes=1
-ARRAYLINE
+
+set -x
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -90,8 +84,10 @@ do
     fi
 done
 
-
-rsync -avh --progress --stats ./*csv \
+# Singularity does not mount the home directory on pawsey correctly, so 
+# best to avoid trying to hit the home directory and load ssh keys elsewhere
+rsync -avh --progress --stats -e "ssh -v -o StrictHostKeyChecking=no -i ${GXSSH}" \
+                              ./*csv \
                               ./*clip.zip \
                               ./*png \
                               ./*log \

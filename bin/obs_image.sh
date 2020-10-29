@@ -17,9 +17,6 @@ exit 1;
 
 pipeuser="${GXUSER}"
 
-# scratch="/astro"
-# group="/group"
-
 #initial variables
 dep=
 tst=
@@ -82,24 +79,19 @@ fi
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
 # start the real program
 
-script="${GXBASE}/queue/image_${obsnum}.sh"
+script="${GXSCRIPT}/image_${obsnum}.sh"
 cat "${GXBASE}/bin/image.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
-                                 -e "s:NCPUS:${GXNCPUS}:g" \
-                                 -e "s:HOST:${GXCOMPUTER}:g" \
-                                 -e "s:STANDARDQ:${GXSTANDARDQ}:g" \
                                  -e "s:DEBUG:${debug}:g" \
-                                 -e "s:ACCOUNT:${account}:g" \
-                                 -e "s:PIPEUSER:${pipeuser}:g" \
-                                     -e "s:ARRAYLINE:${arrayline}:g" > "${script}"
+                                 -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
 output="${GXLOG}/image_${obsnum}.o%A"
 error="${GXLOG}/image_${obsnum}.e%A"
@@ -110,7 +102,16 @@ then
    error="${error}_%a"
 fi
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo 'which singularity' >> ${script}.sbatch
+echo 'whoami' >> ${script}.sbatch
+echo "singularity run -B '${GXSCRATCH}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+sub="sbatch --export=ALL --account=${account} --time=12:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -138,9 +139,12 @@ for taskid in $(seq ${numfiles})
         obs=$obsnum
     fi
 
-    # record submission
-    track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='image' --submission_time="$(date +%s)" \
-                        --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='image' --submission_time="$(date +%s)" \
+                            --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
     echo "$obsoutput"
     echo "$obserror"

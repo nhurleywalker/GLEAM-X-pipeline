@@ -87,7 +87,6 @@ cat "${GXBASE}/bin/autoflag.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:HOST:${GXCOMPUTER}:g" \
                                      -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
-chmod 755 "${script}"
 
 output="${GXLOG}/autoflag_${obsnum}.o%A"
 error="${GXLOG}/autoflag_${obsnum}.e%A"
@@ -96,6 +95,8 @@ then
     output="${output}_%a"
     error="${error}_%a"
 fi
+
+chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
