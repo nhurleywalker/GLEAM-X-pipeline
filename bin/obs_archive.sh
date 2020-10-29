@@ -23,6 +23,15 @@ Archives the processed data products onto the data central archive system. By de
 exit 1;
 }
 
+if [[ -z ${GXSSH} ]] | [[ ! -r "${GXSSH}" ]]
+then
+    echo "The GXSSH variable has not been configured, or the corresponding key can not be accessed. "
+    echo 'Ensure the ssh key exists and is correctly described in the GLEAM-X profile script.'
+    echo 'If necessary a key pair can be created with `ssh-keygen -t rsa -f "${GXBASE}/ssh_keys/gx_${GXUSER}"'
+    echo "obs_archive.sh will not attempt to archive. "
+    exit 1
+fi
+
 pipeuser="${GXUSER}"
 
 #initial variables
