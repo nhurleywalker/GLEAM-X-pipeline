@@ -4,22 +4,29 @@ From: ubuntu:20.04
 %help
 A container for the key pieces of software that make up the GLEAM-X processing pipeline, including:
 
-CASA
+CASA 5.7
 casacore
 aoflagger
 cotter
-wsclean
+wsclean 2.7
 chgcentre
 swarp
-python3
+python3 (notable modules included)
 wcstools
 stilts
-pb_lookup
+mwa_pb_lookup
+mwa-reduce (private repository found at: https://github.com/ICRAR/mwa-reduce)
+
+%files
+mwa-reduce
 
 %post
 echo "Updating apt repositories"
 apt update && apt upgrade -y 
 apt install -y \
+            bc \
+            rsync \
+            zip \
             git \
             wget \
             pigz \
@@ -66,9 +73,26 @@ apt install -y \
             libboost-program-options-dev \
             libboost-python-dev \
             libboost-test-dev \
+            libgsl-dev
             
 apt autoremove -y
 apt clean -y
+cd / \
+    && ln -s /usr/include
+
+# ------------------------------------------------
+# mwa-reduce
+# private repository found at: https://github.com/ICRAR/mwa-reduce
+# ------------------------------------------------
+cd / \
+    && cd mwa-reduce \
+    && mkdir build \
+    && cd build \
+    && cmake ../ \
+    && make -j8 \
+    && cd / \
+    && mv mwa-reduce opt
+# ------------------------------------------------
 
 # ------------------------------------------------
 # CASA
@@ -125,9 +149,6 @@ pip3 install --no-cache-dir \
 # WSClean
 # ------------------------------------------------
 cd / \
-    && ln -s /usr/include
-
-cd / \
     && wget https://www2.graphviz.org/Packages/stable/portable_source/graphviz-2.44.1.tar.gz \
     && tar -xvzf graphviz-2.44.1.tar.gz \
     && cd graphviz-2.44.1 \
@@ -151,6 +172,17 @@ cd / \
 cd / \
     && git clone https://gitlab.com/aroffringa/wsclean.git \
     && cd wsclean \
+    && git fetch \
+    && git fetch --tags \
+    && git checkout wsclean2.7 \
+    && cd wsclean \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && make install \
+    && cd ../.. \
+    && cd chgcentre \
     && mkdir build \
     && cd build \
     && cmake .. \
@@ -213,6 +245,14 @@ cd / \
     && rm pb_lookup.tar.gz
 # ------------------------------------------------
 
+# ------------------------------------------------
+# Clean up
+# ------------------------------------------------
+cd / \
+    && rm *gz
+# ------------------------------------------------
+
+
 %environment
 # ------------------------------------------------
 # CASA
@@ -228,6 +268,12 @@ export LC_ALL=C # Suppress perl locale errors
 # WCSTools 
 # ------------------------------------------------
 export PATH="/wcstools-3.9.6/bin:$PATH"
+# ------------------------------------------------
+
+# ------------------------------------------------
+# mwa-reduce
+# ------------------------------------------------
+export PATH="/opt/mwa-reduce/build:$PATH"
 # ------------------------------------------------
 
 # ------------------------------------------------
