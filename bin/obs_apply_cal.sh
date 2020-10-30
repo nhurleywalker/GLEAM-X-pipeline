@@ -125,10 +125,7 @@ fi
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo 'which singularity' >> ${script}.sbatch
-echo 'whoami' >> ${script}.sbatch
-echo 'echo ${HOME}' >> ${script}.sbatch
-echo "singularity run -B '${GXSCRATCH}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 if [ ! -z ${GXNCPULINE} ]
 then

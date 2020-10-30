@@ -155,7 +155,6 @@ do
     if [[ ! -e "${obsnum}_000${n}-${pol}-beam.fits" ]]
     then
         lookup_jones.py ${obsnum} _template.fits ${obsnum}_000${n}- -c $cstart-$cend --wsclean_names
-        # ${GXPBLOOKUP} "${obsnum}" "_template.fits ${obsnum}_000${n}-" -c "$cstart-$cend" --wsclean_names --beam_path "${GXPBLOOKUPBEAM}"
     fi
     for pol in $pols
     do
@@ -165,9 +164,10 @@ done
 
 
 # Deep clean (for pipeline)
+        # -mem 60 \
+
 wsclean \
         $multiscale \
-        -mem 60 \
         -nmiter 5 \
         -niter 10000000 \
         -reuse-primary-beam \

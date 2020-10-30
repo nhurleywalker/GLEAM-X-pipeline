@@ -9,6 +9,9 @@ GXUSER=$(whoami)
 export GXUSER
 export GXBASE=                  # Path to base of GLEAM-X Pipeline
 export GXSCRATCH=               # Path to scratch space used for processing
+export GXHOME=                  # HOME space for some tasks. In some system configurations singularity can not mount
+                                # the typical $HOME correctly. Mostly here for software that likes to check for cache
+                                # folders created/stashed in home directory, typically. Should be something read/writeable.  
 export GXCONTAINER=             # Absolute path to the GLEAM-X singularity container
 export GXCOMPUTER=${cluster}    # Maintained for compatability
 export GXCLUSTER=${cluster}     # Maintained for compatability

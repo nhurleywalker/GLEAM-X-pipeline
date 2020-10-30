@@ -107,7 +107,6 @@ cat "${GXBASE}/bin/cotter.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                   -e "s:DATADIR:${datadir}:g" \
                                   -e "s:TRES:${timeres}:g" \
                                   -e "s:FRES:${freqres}:g" \
-                                  -e "s:HOST:${GXCOMPUTER}:g" \
                                   -e "s:PIPEUSER:${pipeuser}:g" > ${script}
 
 output="${GXLOG}/cotter_${obsnum}.o%A"
@@ -122,9 +121,7 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo 'which singularity' >> ${script}.sbatch
-echo 'whoami' >> ${script}.sbatch
-echo "singularity run -B '${GXSCRATCH}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 sub="sbatch --export=ALL --account=${account} --time=04:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
 sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
