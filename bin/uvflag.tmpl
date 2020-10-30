@@ -10,8 +10,10 @@ TASKLINE
 pipeuser=PIPEUSER
 
 source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+export PYTHONPATH=
 
-module load python-casacore
+#module load python-casacore
+module load singularity
 
 datadir=DATADIR
 obsnum=OBSNUM
@@ -27,25 +29,30 @@ fi
 
 cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 
-CASA_LOCATION=/group/mwasci/software/casa-release-5.1.2-4.el7/bin/casa
+#CASA_LOCATION=/group/mwasci/software/casa-release-5.1.2-4.el7/bin/casa
 
 cd $datadir/${obsnum}
 if [[ -z $debug ]]
 then
-    python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
+ #   python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
+    /astro/mwasci/tgalvin/gleamx.img /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
     if [[ -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
+
+#        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
+        /astro/mwasci/tgalvin/gleamx.img casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi
 else
-    python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
-    if [[ ! -s baselines_to_flag.txt ]]
+#    python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
+    /astro/mwasci/tgalvin/gleamx.img /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
+    if [[ -s baselines_to_flag.txt ]]
     then
         baselines=$(cat baselines_to_flag.txt)
-        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
+        /astro/mwasci/tgalvin/gleamx.img casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected_data', antenna='${baselines}')" 
+#        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
     else
         echo "No baselines to flag."
     fi
