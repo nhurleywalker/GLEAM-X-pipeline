@@ -112,7 +112,7 @@ else
     echo "Optimally shifting co-ordinates of measurement set to $coords, with zenith shiftback."
     chgcentre \
             "${obsnum}.ms" \
-            "${coords}"
+            ${coords}
 
     # Now shift the pointing centre to point straight up, which approximates minw without making the phase centre rattle around
     chgcentre \
