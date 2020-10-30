@@ -121,6 +121,7 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
+echo 'module load singularity' >> ${script}.sbatch
 echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 sub="sbatch --export=ALL --account=${account} --time=04:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
