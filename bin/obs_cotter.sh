@@ -5,7 +5,6 @@ usage()
 echo "obs_cotter.sh [-p project] [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -d dep      : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -s timeres  : time resolution in sec. default = 2 s
   -k freqres  : freq resolution in KHz. default = 40 kHz
   -t          : test. Don't submit job, just make the batch file
@@ -32,8 +31,6 @@ do
         project=${OPTARG} ;;
     d)
         dep=${OPTARG} ;;
-    a)
-        account=${OPTARG} ;;
     s)
         timeres=${OPTARG} ;;
     k)
@@ -61,9 +58,9 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -124,9 +121,8 @@ echo '#!/bin/bash' > ${script}.sbatch
 echo 'module load singularity' >> ${script}.sbatch
 echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
-sub="sbatch --export=ALL --account=${account} --time=04:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
-sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
-
+sub="sbatch --export=ALL --time=04:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"

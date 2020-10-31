@@ -125,6 +125,7 @@ fi
 if [[ ! -e "${obsnum}_template.fits" ]]
 then
     wsclean \
+            -abs-mem ${GXMEMORY} \
             -mgain 1.0 \
             -nmiter 1 \
             -niter 0 \
@@ -167,6 +168,7 @@ done
         # -mem 60 \
 
 wsclean \
+        -abs-mem ${GXMEMORY} \
         $multiscale \
         -nmiter 5 \
         -niter 10000000 \

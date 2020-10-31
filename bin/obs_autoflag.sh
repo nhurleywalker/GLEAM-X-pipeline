@@ -1,12 +1,9 @@
 #! /bin/bash
 
-#set -x
-
 usage()
 {
 echo "obs_autoflag.sh [-p project] [-a account] [-d dep] [-t] obsnum
   -p project : project, no default
-  -a account : computing account, default pawsey0272
   -d dep     : job number for dependency (afterok)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
@@ -26,9 +23,6 @@ do
     case "$OPTION" in
 	d)
 	    dep=${OPTARG}
-	    ;;
-	a)
-	    account=${OPTARG}
 	    ;;
 	p)
 	    project=${OPTARG}
@@ -51,9 +45,9 @@ then
     usage
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -109,8 +103,8 @@ then
     GXNCPULINE="--ntasks-per-node=1"
 fi
 
-sub="sbatch  --export=ALL --account=${account} --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
-sub="${sub}  ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch  --export=ALL --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+sub="${sub}  ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
 then

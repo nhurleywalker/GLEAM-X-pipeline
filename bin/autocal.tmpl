@@ -1,6 +1,5 @@
 #! /bin/bash -l
 set -x
-echo $PATH
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -143,6 +142,7 @@ then
     calibrate \
             -t ${ts} \
             -j ${cores} \
+            -absmem ${GXMEMORY} \
             -m ${modeldir}/${calmodel} \
             -minuv ${minuvm} \
             -maxuv ${maxuvm} \
@@ -164,6 +164,7 @@ solutions="${solutions/${obsnum}_${obsnum}_/${obsnum}_}"
 # calibrate
 calibrate \
         -j ${cores} \
+        -absmem ${GXMEMORY} \
         -m "${modeldir}/${calmodel}" \
         -minuv $minuvm \
         -maxuv $maxuvm \

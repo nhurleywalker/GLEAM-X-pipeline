@@ -5,7 +5,6 @@ usage()
 echo "obs_uvflag.sh [-p project] [-d dep] [-a account] [-z] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -z         : Debugging mode: flag the CORRECTED_DATA column
                 instead of flagging the DATA column
   -t         : test. Don't submit job, just make the batch file
@@ -56,11 +55,10 @@ then
     usage
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
-
 
 # Establish job array options
 if [[ -f "${obsnum}" ]]
@@ -106,7 +104,6 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo 'module load singularity' >> ${script}.sbatch
 echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 if [ ! -z ${GXNCPULINE} ]
@@ -115,8 +112,8 @@ then
     GXNCPULINE="--ntasks-per-node=1"
 fi
 
-sub="sbatch --export=ALL --account=${account} --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error}"
-sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch --export=ALL  --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"

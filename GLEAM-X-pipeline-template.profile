@@ -7,6 +7,8 @@ cluster=                        # System-wide name of cluster
 
 GXUSER=$(whoami)
 export GXUSER
+export GXACCOUNT=                # The SLURM account jobs will be run under. i.e. 'pawsey0272'. Empty will not pass through a 
+                                 # corresponding --account=${GXACCOUNT} to the slurm submission. 
 export GXBASE=                  # Path to base of GLEAM-X Pipeline
 export GXSCRATCH=               # Path to scratch space used for processing
 export GXHOME=                  # HOME space for some tasks. In some system configurations singularity can not mount

@@ -4,7 +4,6 @@ usage()
 {
 echo "obs_image.sh [-d dep] [-p project] [-a account] [-z] [-t] obsnum
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -p project : project, (must be specified, no default)
   -z         : Debugging mode: image the CORRECTED_DATA column
                 instead of imaging the DATA column
@@ -70,9 +69,9 @@ then
     fi
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -106,11 +105,10 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo 'module load singularity' >> ${script}.sbatch
 echo "singularity run -B '${GXHOME}:${HOME}' -B '${GXMWALOOKUP}:/pb_lookup' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
-sub="sbatch --export=ALL --account=${account} --time=12:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
-sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch --export=ALL  --time=12:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"

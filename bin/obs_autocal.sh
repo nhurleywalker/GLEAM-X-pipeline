@@ -1,12 +1,11 @@
 #! /bin/bash
 
-#set -x
+# set -x
 
 usage()
 {
 echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
-  -a account : computing account, default pawsey0272
   -d dep     : job number for dependency (afterok)
   -i         : run the ionospheric metric tests (default = False)
   -t         : test. Don't submit job, just make the batch file
@@ -56,9 +55,9 @@ then
     usage
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -106,11 +105,10 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo 'module load singularity' >> ${script}.sbatch
 echo "singularity run -B '${GXFMODELS}' -B '${GXMWAPB}' -B '${GXMWALOOKUP}:/pb_lookup' -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
-sub="sbatch --export=ALL --account=${account} --time=02:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
-sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch --export=ALL  --time=02:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
