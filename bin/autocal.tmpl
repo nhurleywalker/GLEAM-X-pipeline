@@ -1,6 +1,5 @@
 #! /bin/bash -l
 set -x
-echo $PATH
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -40,8 +39,6 @@ catfile="${GXBASE}/models/skymodel_only_alpha.fits"
 
 # MWA beam information
 MWAPATH="${GXMWAPB}"
-
-ls -l ${MWAPATH}
 
 # Minimum baseline of 75 lambda (=250m at 88 MHz) for calibration
 minuv=75
@@ -145,6 +142,7 @@ then
     calibrate \
             -t ${ts} \
             -j ${cores} \
+            -absmem ${GXMEMORY} \
             -m ${modeldir}/${calmodel} \
             -minuv ${minuvm} \
             -maxuv ${maxuvm} \
@@ -166,6 +164,7 @@ solutions="${solutions/${obsnum}_${obsnum}_/${obsnum}_}"
 # calibrate
 calibrate \
         -j ${cores} \
+        -absmem ${GXMEMORY} \
         -m "${modeldir}/${calmodel}" \
         -minuv $minuvm \
         -maxuv $maxuvm \

@@ -1,12 +1,4 @@
 #!/bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p debugq
-#SBATCH --account=ACCOUNT
-#SBATCH --time=01:00:00
-#SBATCH --ntasks=NCPUS
-#SBATCH --nodes=1
-ARRAYLINE
 
 # Perform binocular imaging and source-finding
 
@@ -31,7 +23,7 @@ echo "jobid: ${jobid}"
 echo "taskid: ${taskid}"
 
 basedir=BASEDIR
-ncpus=NCPUS
+ncpus=${GXNCPUS}
 debug=DEBUG
 pipeuser=PIPEUSER
 

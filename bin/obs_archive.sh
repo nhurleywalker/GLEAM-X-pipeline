@@ -23,6 +23,15 @@ Archives the processed data products onto the data central archive system. By de
 exit 1;
 }
 
+if [[ -z ${GXSSH} ]] | [[ ! -r "${GXSSH}" ]]
+then
+    echo "The GXSSH variable has not been configured, or the corresponding key can not be accessed. "
+    echo 'Ensure the ssh key exists and is correctly described in the GLEAM-X profile script.'
+    echo 'If necessary a key pair can be created with `ssh-keygen -t rsa -f "${GXBASE}/ssh_keys/gx_${GXUSER}"'
+    echo "obs_archive.sh will not attempt to archive. "
+    exit 1
+fi
+
 pipeuser="${GXUSER}"
 
 #initial variables
@@ -92,25 +101,20 @@ fi
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}%1"
+    jobarray="--array=1-${numfiles}%1"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
 # start the real program
-script="${GXBASE}/queue/archive_${obsnum}.sh"
+script="${GXSCRIPT}/archive_${obsnum}.sh"
 cat "${GXBASE}/bin/archive.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
-                                 -e "s:NCPUS:${GXNCPUS}:g" \
-                                 -e "s:HOST:${GXCOMPUTER}:g" \
-                                 -e "s:STANDARDQ:${GXSTANDARDQ}:g" \
-                                 -e "s:ACCOUNT:${account}:g" \
                                  -e "s:ENDUSER:${user}:g" \
                                  -e "s:ENDPOINT:${endpoint}:g" \
                                  -e "s:REMOTE:${remote}:g" \
-                                 -e "s:PIPEUSER:${pipeuser}:g" \
-                                 -e "s:ARRAYLINE:${arrayline}:g" > "${script}"
+                                 -e "s:PIPEUSER:${pipeuser}:g"  > "${script}"
 
 output="${GXLOG}/archive_${obsnum}.o%A"
 error="${GXLOG}/archive_${obsnum}.e%A"
@@ -121,7 +125,22 @@ then
    error="${error}_%a"
 fi
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo "singularity run -B '${HOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+if [ ! -z ${GXNCPULINE} ]
+then
+    # archive only needs a single CPU core
+    GXNCPULINE="--ntasks-per-node=1"
+fi
+
+sub="sbatch  --export=ALL --account=${account} --time=02:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+sub="${sub}  ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -149,9 +168,12 @@ for taskid in $(seq ${numfiles})
         obs="${obsnum}"
     fi
 
+    if [ "${GXTRACK}" = "track" ]
+    then
     # record submission
     track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='archive' --submission_time="$(date +%s)" --batch_file="${script}" \
                         --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
     echo "${obsoutput}"
     echo "${obserror}"

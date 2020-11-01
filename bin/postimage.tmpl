@@ -1,12 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p workq
-#SBATCH --account=ACCOUNT
-#SBATCH --time=03:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks=NCPUS
-ARRAYLINE
+
+set -x
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -39,7 +33,7 @@ fi
 track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
 # Makes fits_warp parallelisation work on Zeus
-export KMP_INIT_AT_FORK=false
+# export KMP_INIT_AT_FORK=false
 
 # Sub-channels
 subchans="0000 0001 0002 0003 MFS"
@@ -71,9 +65,9 @@ do
 
     if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_comp.fits"  ]]
     then
-        BANE --compress --noclobber "${obsnum}_deep-${subchan}-image-pb.fits"
+        BANE --cores 24 --compress --noclobber "${obsnum}_deep-${subchan}-image-pb.fits"
         # TODO: Replace the redirection
-        aegean --autoload --table="./${obsnum}_deep-${subchan}-image-pb.fits" "./${obsnum}_deep-${subchan}-image-pb.fits" > >(tee -a "${obsnum}_deep-${subchan}_aegean.log") 2> >(tee -a "${obsnum}_deep-${subchan}_aegean.log" >&2)
+        aegean --cores 24 --autoload --table="./${obsnum}_deep-${subchan}-image-pb.fits" "./${obsnum}_deep-${subchan}-image-pb.fits" > >(tee -a "${obsnum}_deep-${subchan}_aegean.log") 2> >(tee -a "${obsnum}_deep-${subchan}_aegean.log" >&2)
     fi
     nsrc=$(grep "INFO found" "${obsnum}_deep-${subchan}_aegean.log" | head -1 | awk '{print $3}')
     if [[ $nsrc -lt 500 ]]
@@ -103,7 +97,7 @@ do
              --outname "./${obsnum}_${subchan}_xm.fits" \
              --threshold 0.5 \
              --nmax 1000 \
-             --coords "${coords}" \
+             --coords ${coords} \
              --radius "${radius}" \
              --ra2 "RAJ2000" \
              --dec2 "DEJ2000" \
@@ -122,7 +116,7 @@ do
                          --ra1 old_ra --dec1 old_dec \
                          --ra2 RAJ2000 --dec2 DEJ2000 \
                          --plot \
-                         --cores NCPUS
+                         --cores ${GXNCPUS}
                         # --signal peak_flux --noise local_rms --SNR 10
         fi
         if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp_${method}_cf_output.txt" ]]
@@ -165,7 +159,7 @@ do
         # rerun the source-finding -- don't save to the log this time as the numbers should not have changed
         if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp_comp.fits" ]]
         then
-            aegean --autoload --table="./${obsnum}_deep-${subchan}-image-pb_warp.fits" "./${obsnum}_deep-${subchan}-image-pb_warp.fits"
+            aegean --cores 24 --autoload --table="./${obsnum}_deep-${subchan}-image-pb_warp.fits" "./${obsnum}_deep-${subchan}-image-pb_warp.fits"
         fi
         if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp_weight.fits" ]]
         then
@@ -182,13 +176,13 @@ do
             fi
             cstart=${chans[$i]}
             cend=${chans[$j]}
-            lookup_beam.py "${obsnum} _deep-${subchan}-image-pb_warp.fits" \
+            lookup_beam.py "${obsnum}" \
+                           "_deep-${subchan}-image-pb_warp.fits" \
                            "${obsnum}_deep-${subchan}-image-pb_warp-" \
-                           -c "$cstart-$cend" \
-                            --beam_path "${GXBEAMLOOKUPBEAM}"
-            "${GXBASE}"/bin/generate_weight_map.py "${obsnum}_deep-${subchan}-image-pb_warp-XX-beam.fits" \
-                                                   "${obsnum}_deep-${subchan}-image-pb_warp-YY-beam.fits" \
-                                                   "${obsnum}_deep-${subchan}-image-pb_warp_rms.fits"
+                           -c "$cstart-$cend"
+            generate_weight_map.py "${obsnum}_deep-${subchan}-image-pb_warp-XX-beam.fits" \
+                                   "${obsnum}_deep-${subchan}-image-pb_warp-YY-beam.fits" \
+                                   "${obsnum}_deep-${subchan}-image-pb_warp_rms.fits"
         fi
     fi
 done

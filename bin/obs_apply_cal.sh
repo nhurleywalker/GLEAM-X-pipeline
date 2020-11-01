@@ -5,7 +5,6 @@ usage()
 echo "obs_apply_cal.sh [-p project] [-d dep] [-a account] [-c calid] [-z] [-t] obsnum
   -p project  : project, no default
   -d dep      : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -c calid    : obsid for calibrator.
                 project/calid/calid_*_solutions.bin will be used
                 to calibrate if it exists. A file can be supplied with the 
@@ -39,9 +38,6 @@ do
 	c)
 	    calid=${OPTARG}
 	    ;;
-    a)
-        account=${OPTARG}
-        ;;
     p)
         project=${OPTARG}
         ;;
@@ -77,9 +73,9 @@ then
     fi
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -125,10 +121,7 @@ fi
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo 'which singularity' >> ${script}.sbatch
-echo 'whoami' >> ${script}.sbatch
-echo 'echo ${HOME}' >> ${script}.sbatch
-echo "singularity run -B '${GXSCRATCH}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 if [ ! -z ${GXNCPULINE} ]
 then
@@ -136,8 +129,8 @@ then
     GXNCPULINE="--ntasks-per-node=1"
 fi
 
-sub="sbatch  --export=ALL --account=${account} --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
-sub="${sub}  ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch  --export=ALL ${account} --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+sub="${sub}  ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
 then

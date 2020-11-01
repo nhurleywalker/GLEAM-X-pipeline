@@ -1,12 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p STANDARDQ
-#SBATCH --account=ACCOUNT
-#SBATCH --time=12:00:00
-#SBATCH --ntasks=NCPUS
-#SBATCH --nodes=1
-ARRAYLINE
+
+set -x
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
@@ -107,34 +101,31 @@ minuvm=$(echo "234 * $minuv / $chan" | bc -l)
 multiscale="-multiscale -mgain 0.85 -multiscale-gain 0.15"
 
 # Check whether the phase centre has already changed
-current=$(singularity exec -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-                chgcentre "${obsnum}.ms")
+current=$(chgcentre "${obsnum}.ms")
 
 if [[ $current == *"shift"* ]]
 then
     echo "Detected that this measurement set has already had its phase centre changed. Not shifting."
 else
     # Determine whether to shift the pointing centre to be more optimally-centred on the peak of the primary beam sensitivity
-    coords=$(calc_pointing.py --metafits="${metafits}")
+    coords=$(calc_pointing.py "${metafits}")
     echo "Optimally shifting co-ordinates of measurement set to $coords, with zenith shiftback."
-    singularity exec -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-            "chgcentre \
-                    ${obsnum}.ms \
-                    ${coords}"
+    chgcentre \
+            "${obsnum}.ms" \
+            ${coords}
 
     # Now shift the pointing centre to point straight up, which approximates minw without making the phase centre rattle around
-    singularity exec -B "${PWD}" "${GXSINGULARITY}/mwa-reduce/mwa-reduce.img" bash -c \
-            "chgcentre \
-                    -zenith \
-                    -shiftback \
-                    ${obsnum}.ms"
+    chgcentre \
+            -zenith \
+            -shiftback \
+            "${obsnum}.ms"
 fi
 
 # Create a template image that has all the same properties as our eventual WSClean image
 if [[ ! -e "${obsnum}_template.fits" ]]
 then
-    singularity exec -B "${PWD}" "${GXSINGULARITY}/wsclean/wsclean_2.9.2.img" bash -c \
-        "wsclean \
+    wsclean \
+            -abs-mem ${GXMEMORY} \
             -mgain 1.0 \
             -nmiter 1 \
             -niter 0 \
@@ -146,7 +137,7 @@ then
             -channel-range 4 5 \
             -interval 4 5 \
             -nwlayers ${GXNCPUS} \
-            $obsnum.ms"
+            "${obsnum}.ms"
 
     rm "${obsnum}_template-dirty.fits"
     mv "${obsnum}_template-image.fits" "${obsnum}_template.fits"
@@ -164,7 +155,7 @@ do
     cend=${chans[$j]}
     if [[ ! -e "${obsnum}_000${n}-${pol}-beam.fits" ]]
     then
-        ${GXPBLOOKUP} "${obsnum}" "_template.fits ${obsnum}_000${n}-" -c "$cstart-$cend" --wsclean_names --beam_path "${GXPBLOOKUPBEAM}"
+        lookup_jones.py ${obsnum} _template.fits ${obsnum}_000${n}- -c $cstart-$cend --wsclean_names
     fi
     for pol in $pols
     do
@@ -174,8 +165,10 @@ done
 
 
 # Deep clean (for pipeline)
-singularity exec -B "${PWD}" "${GXSINGULARITY}/wsclean/wsclean_2.9.2.img" bash -c \
-        "wsclean \
+        # -mem 60 \
+
+wsclean \
+        -abs-mem ${GXMEMORY} \
         $multiscale \
         -nmiter 5 \
         -niter 10000000 \
@@ -193,7 +186,7 @@ singularity exec -B "${PWD}" "${GXSINGULARITY}/wsclean/wsclean_2.9.2.img" bash -
         -save-source-list \
         -fit-spectral-pol 2 \
         -data-column ${datacolumn} \
-        ${obsnum}.ms | tee wsclean.log"
+        "${obsnum}.ms" | tee wsclean.log
 
 test_fail $?
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"

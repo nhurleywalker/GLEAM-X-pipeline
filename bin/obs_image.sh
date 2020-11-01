@@ -4,7 +4,6 @@ usage()
 {
 echo "obs_image.sh [-d dep] [-p project] [-a account] [-z] [-t] obsnum
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -p project : project, (must be specified, no default)
   -z         : Debugging mode: image the CORRECTED_DATA column
                 instead of imaging the DATA column
@@ -16,9 +15,6 @@ exit 1;
 }
 
 pipeuser="${GXUSER}"
-
-# scratch="/astro"
-# group="/group"
 
 #initial variables
 dep=
@@ -73,33 +69,28 @@ then
     fi
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
 # start the real program
 
-script="${GXBASE}/queue/image_${obsnum}.sh"
+script="${GXSCRIPT}/image_${obsnum}.sh"
 cat "${GXBASE}/bin/image.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
-                                 -e "s:NCPUS:${GXNCPUS}:g" \
-                                 -e "s:HOST:${GXCOMPUTER}:g" \
-                                 -e "s:STANDARDQ:${GXSTANDARDQ}:g" \
                                  -e "s:DEBUG:${debug}:g" \
-                                 -e "s:ACCOUNT:${account}:g" \
-                                 -e "s:PIPEUSER:${pipeuser}:g" \
-                                     -e "s:ARRAYLINE:${arrayline}:g" > "${script}"
+                                 -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
 output="${GXLOG}/image_${obsnum}.o%A"
 error="${GXLOG}/image_${obsnum}.e%A"
@@ -110,7 +101,14 @@ then
    error="${error}_%a"
 fi
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo "singularity run -B '${GXHOME}:${HOME}' -B '${GXMWALOOKUP}:/pb_lookup' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+sub="sbatch --export=ALL  --time=12:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -138,9 +136,12 @@ for taskid in $(seq ${numfiles})
         obs=$obsnum
     fi
 
-    # record submission
-    track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='image' --submission_time="$(date +%s)" \
-                        --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='image' --submission_time="$(date +%s)" \
+                            --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
     echo "$obsoutput"
     echo "$obserror"

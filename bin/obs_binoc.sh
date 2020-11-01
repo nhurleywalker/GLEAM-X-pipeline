@@ -78,24 +78,19 @@ fi
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    jobarray="#SBATCH --array=1-${numfiles}"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
 # start the real program
 
-script="${GXBASE}/queue/binoc_${obsnum}.sh"
+script="${GXSCRIPT}/binoc_${obsnum}.sh"
 cat "${GXBASE}/bin/binocular.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
-                                 -e "s:NCPUS:${GXNCPUS}:g" \
-                                 -e "s:HOST:${GXCOMPUTE}:g" \
-                                 -e "s:STANDARDQ:${GXSTANDARDQ}:g" \
                                  -e "s:DEBUG:${debug}:g" \
-                                 -e "s:ACCOUNT:${account}:g" \
-                                 -e "s:PIPEUSER:${pipeuser}:g" \
-                                 -e "s:ARRAYLINE:${arrayline}:g"> "${script}"
+                                 -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
 output="${GXLOG}/binoc_${obsnum}.o%A"
 error="${GXLOG}/binoc_${obsnum}.e%A"
@@ -106,7 +101,14 @@ then
     error="${error}_%a"
 fi
 
-sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+sub="sbatch --export=ALL --account=${account} --time=1:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -118,7 +120,6 @@ fi
 # submit job
 jobid=($(${sub}))
 jobid=${jobid[3]}
-
 
 echo "Submitted ${script} as ${jobid} Follow progress here:"
 
@@ -135,9 +136,12 @@ do
         obs="$obsnum"
     fi
 
-    # record submission
-    track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='binocular' --submission_time="$(date +%s)" \
-                        --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='binocular' --submission_time="$(date +%s)" \
+                            --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
     echo "$obsoutput"
     echo "$obserror"
