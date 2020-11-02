@@ -75,7 +75,7 @@ chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
 # Pixel scale
 scale=`echo "$basescale / $chan" | bc -l` # At least 4 pix per synth beam for each channel
 
-MODEL_CATALOGUE="/group/mwasci/$pipeuser/GLEAM-X-pipeline/models/skymodel_only_alpha.fits"
+MODEL_CATALOGUE="/group/mwasci/$pipeuser/GLEAM-X-pipeline/models/GGSM.fits"
 
 # All observations must be phased to the same point, otherwise IDG will give nonsense results
 # We will use the middle observation of the (already-sorted) list to define the phase centre
