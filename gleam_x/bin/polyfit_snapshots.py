@@ -155,7 +155,9 @@ else:
     
         # But the metafits is better for the RA, because of the denormal projection
         path, _ = os.path.split(fitsimage)
-        meta = fits.getheader("{0}/{1}.metafits".format(path, fitsimage[0:10]))
+        metafits = glob.glob("{0}/{1}*metafits*".format(path, fitsimage[0:10]))
+        metafits = metafits[0]
+        meta = fits.getheader(metafits)
         ra_cent = meta["RA"]
         
         # Get the cross-matched catalogue
@@ -311,7 +313,9 @@ if results.do_rescale is True:
             
             # going to need the RA in order to calculate the RA offsets
                     path, fl = os.path.split(infits)
-                    meta = fits.getheader("{0}/{1}.metafits".format(path, fl[0:10]))
+                    metafits = glob.glob("{0}/{1}*metafits*".format(path, fl[0:10]))
+                    metafits = metafits[0]
+                    meta = fits.getheader(metafits)
                     ra_cent = meta["RA"]
                     if naxes == 4:
                         m, n = 2, 3

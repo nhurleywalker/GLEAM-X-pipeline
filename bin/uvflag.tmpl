@@ -9,6 +9,7 @@ then
     taskid=${SLURM_ARRAY_TASK_ID}
     jobid=${SLURM_ARRAY_JOB_ID}
 
+<<<<<<< HEAD
     echo "obsfile ${obsnum}"
     obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
     echo "uvflag obsid ${obsnum}"
@@ -19,6 +20,13 @@ fi
 
 echo "jobid: ${jobid}"
 echo "taskid: ${taskid}"
+=======
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+export PYTHONPATH=
+
+#module load python-casacore
+module load singularity
+>>>>>>> upstream/master
 
 datadir=DATADIR
 debug=DEBUG
