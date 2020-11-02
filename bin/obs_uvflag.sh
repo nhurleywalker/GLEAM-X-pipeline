@@ -1,13 +1,10 @@
 #! /bin/bash
 
-#set -x
-
 usage()
 {
 echo "obs_uvflag.sh [-p project] [-d dep] [-a account] [-z] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -z         : Debugging mode: flag the CORRECTED_DATA column
                 instead of flagging the DATA column
   -t         : test. Don't submit job, just make the batch file
@@ -18,7 +15,7 @@ exit 1;
 }
 
 
-pipeuser=$(whoami)
+pipeuser="${GXUSER}"
 
 dep=
 tst=
@@ -58,51 +55,23 @@ then
     usage
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
-
-# Supercomputer options
-if [[ "${HOST:0:4}" == "zeus" ]]
-then
-    computer="zeus"
-    standardq="workq"
-    ncpus=28
-    taskline="#SBATCH --ntasks=${ncpus}"
-#    absmem=60
-#    standardq="gpuq"
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    computer="magnus"
-    standardq="workq"
-    ncpus=48
-    taskline=""
-#    absmem=60
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    standardq="gpuq"
-    ncpus=40
-    taskline=""
-#    absmem=30 # Check this
-fi
-
 
 # Establish job array options
-if [[ -f ${obsnum} ]]
+if [[ -f "${obsnum}" ]]
 then
-    numfiles=$(wc -l ${obsnum} | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
-dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
-codedir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
-queue="-p $standardq"
-datadir=/astro/mwasci/$pipeuser/$project
+queue="-p ${GXSTANDARDQ}"
+datadir="${GXSCRATCH}/${project}"
 
 # set dependency
 if [[ ! -z ${dep} ]]
@@ -115,30 +84,36 @@ then
     fi
 fi
 
-script="${codedir}queue/uvflag_${obsnum}.sh"
+script="${GXSCRIPT}/uvflag_${obsnum}.sh"
 
-cat ${codedir}bin/uvflag.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/bin/uvflag.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
-                                     -e "s:HOST:${computer}:g" \
-                                     -e "s:TASKLINE:${taskline}:g" \
-                                     -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:DEBUG:${debug}:g" \
-                                     -e "s:ACCOUNT:${account}:g" \
-                                     -e "s:PIPEUSER:${pipeuser}:g" \
-                                     -e "s:ARRAYLINE:${arrayline}:g"> ${script}
+                                     -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
-output="${codedir}queue/logs/uvflag_${obsnum}.o%A"
-error="${codedir}queue/logs/uvflag_${obsnum}.e%A"
+output="${GXLOG}/uvflag_${obsnum}.o%A"
+error="${GXLOG}/uvflag_${obsnum}.e%A"
 
-if [[ -f ${obsnum} ]]
+if [[ -f "${obsnum}" ]]
 then
    output="${output}_%a"
    error="${error}_%a"
 fi
 
-#sub="sbatch -M $computer --output=${output} --error=${error} --begin=now+3hours ${depend} ${queue} ${script}"
-sub="sbatch -M $computer --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
 
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+if [ ! -z ${GXNCPULINE} ]
+then
+    # autoflag only needs a single CPU core
+    GXNCPULINE="--ntasks-per-node=1"
+fi
+
+sub="sbatch --export=ALL  --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -156,20 +131,23 @@ echo "Submitted ${script} as ${jobid} . Follow progress here:"
 for taskid in $(seq ${numfiles})
     do
     # rename the err/output files as we now know the jobid
-    obserror=`echo ${error} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
-    obsoutput=`echo ${output} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
+    obserror=$(echo "${error}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
+    obsoutput=$(echo "${output}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
 
     if [[ -f ${obsnum} ]]
     then
-        obs=$(sed -n -e ${taskid}p ${obsnum})
+        obs=$(sed -n -e "${taskid}"p "${obsnum}")
     else
         obs=$obsnum
     fi
 
-    # record submission
-    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='uvflag' --submission_time=`date +%s` --batch_file=${script} \
-                        --obs_id=${obs} --stderr=${obserror} --stdout=${obsoutput}
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='uvflag' --submission_time="$(date +%s)" \
+                            --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
-    echo $obsoutput
-    echo $obserror
+    echo "${obsoutput}"
+    echo "${obserror}"
 done

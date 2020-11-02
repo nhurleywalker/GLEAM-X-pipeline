@@ -1,14 +1,13 @@
 #! /bin/bash
 
-#set -x
+# set -x
 
 usage()
 {
 echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
-  -a account : computing account, default pawsey0272
   -d dep     : job number for dependency (afterok)
-  -i iono    : run the ionospheric metric tests (default = True)
+  -i         : run the ionospheric metric tests (default = False)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process, or a text file of obsids (newline separated). 
@@ -16,7 +15,7 @@ echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
 exit 1;
 }
 
-pipeuser=$(whoami)
+pipeuser=${GXUSER}
 
 dep=
 tst=
@@ -56,50 +55,23 @@ then
     usage
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
-fi
-
-# Supercomputer options
-if [[ "${HOST:0:4}" == "zeus" ]]
-then
-    computer="zeus"
-    standardq="workq"
-    ncpus=28
-    taskline="#SBATCH --ntasks=${ncpus}"
-#    absmem=60
-#    standardq="gpuq"
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    computer="magnus"
-    standardq="workq"
-    ncpus=48
-    taskline=""
-#    absmem=60
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    standardq="gpuq"
-    ncpus=40
-    taskline=""
-#    absmem=30 # Check this
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
 if [[ -f ${obsnum} ]]
 then
-    numfiles=$(wc -l ${obsnum} | awk '{print $1}')
-    arrayline="#SBATCH --array=1-${numfiles}"
+    numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
-    arrayline=''
+    jobarray=''
 fi
 
-dbdir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
-codedir="/group/mwasci/$pipeuser/GLEAM-X-pipeline/"
-queue="-p $standardq"
-datadir=/astro/mwasci/$pipeuser/$project
+queue="-p ${GXSTANDARDQ}"
+datadir="${GXSCRATCH}/$project"
 
 # set dependency
 if [[ ! -z ${dep} ]]
@@ -112,21 +84,16 @@ then
     fi
 fi
 
-script="${codedir}queue/autocal_${obsnum}.sh"
+script="${GXSCRIPT}/autocal_${obsnum}.sh"
 
-cat ${codedir}bin/autocal.tmpl | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/bin/autocal.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
-                                     -e "s:HOST:${computer}:g" \
-                                     -e "s:TASKLINE:${taskline}:g" \
-                                     -e "s:STANDARDQ:${standardq}:g" \
                                      -e "s:IONOTEST:${ion}:g" \
-                                     -e "s:ACCOUNT:${account}:g" \
-                                     -e "s:PIPEUSER:${pipeuser}:g" \
-                                     -e "s:ARRAYLINE:${arrayline}:g" > ${script}
+                                     -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
 
-output="${codedir}queue/logs/autocal_${obsnum}.o%A"
-error="${codedir}queue/logs/autocal_${obsnum}.e%A"
+output="${GXLOG}/autocal_${obsnum}.o%A"
+error="${GXLOG}/autocal_${obsnum}.e%A"
 
 if [[ -f ${obsnum} ]]
 then
@@ -134,7 +101,14 @@ then
    error="${error}_%a"
 fi
 
-sub="sbatch -M $computer --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > ${script}.sbatch
+echo "singularity run -B '${GXFMODELS}' -B '${GXMWAPB}' -B '${GXMWALOOKUP}:/pb_lookup' -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+
+sub="sbatch --export=ALL  --time=02:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -152,20 +126,23 @@ echo "Submitted ${script} as ${jobid} . Follow progress here:"
 for taskid in $(seq ${numfiles})
     do
     # rename the err/output files as we now know the jobid
-    obserror=`echo ${error} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
-    obsoutput=`echo ${output} | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/"`
+    obserror=$(echo "${error}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
+    obsoutput=$(echo "${output}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
 
     if [[ -f ${obsnum} ]]
     then
-        obs=$(sed -n -e ${taskid}p ${obsnum})
+        obs=$(sed -n -e "${taskid}"p "${obsnum}")
     else
         obs=$obsnum
     fi
 
-    # record submission
-    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${taskid} --task='calibrate' --submission_time=`date +%s` --batch_file=${script} \
-                        --obs_id=${obs} --stderr=${obserror} --stdout=${obsoutput}
+    if [ "${GXTRACK}" = "track" ]
+    then
+        # record submission
+        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='calibrate' --submission_time="$(date +%s)" --batch_file="${script}" \
+                            --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    fi
 
-    echo $obsoutput
-    echo $obserror
+    echo "$obsoutput"
+    echo "$obserror"
 done

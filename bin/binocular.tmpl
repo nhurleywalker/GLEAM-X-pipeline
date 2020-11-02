@@ -1,17 +1,8 @@
 #!/bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p debugq
-#SBATCH --account=ACCOUNT
-#SBATCH --time=01:00:00
-#SBATCH --ntasks=NCPUS
-#SBATCH --nodes=1
-ARRAYLINE
 
 # Perform binocular imaging and source-finding
 
 pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
 
 # If obsnum is a file, then we are in an array job
@@ -21,7 +12,7 @@ then
     jobid=${SLURM_ARRAY_JOB_ID}
 
     echo "obsfile ${obsnum}"
-    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}p" "${obsnum}")
     echo "binoc obsid ${obsnum}"
 else
     taskid=1
@@ -32,17 +23,18 @@ echo "jobid: ${jobid}"
 echo "taskid: ${taskid}"
 
 basedir=BASEDIR
-ncpus=NCPUS
+ncpus=${GXNCPUS}
 debug=DEBUG
 pipeuser=PIPEUSER
 
 # start
-track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-cd $basedir/${obsnum}
+cd "${basedir}/${obsnum}" || exit
 
 # S/N Threshold at which to stop cleaning
 tsigma=3
+
 # Set up telescope-configuration-dependent options
 # These options are different from the normal imaging scripts because the resolution has been halved
 if [[ $obsnum -lt 1151402936 ]] ; then
@@ -57,6 +49,7 @@ elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
     imsize=1200
     robust=-2.0
 elif [[ $obsnum -ge 1191580576 ]] ; then
+
 # To select these antennas I used the following criteria:
 # ants_east: East > 700 (43 antennas)
 # ants_west: East < -120 (44 antennas)
@@ -68,38 +61,41 @@ elif [[ $obsnum -ge 1191580576 ]] ; then
     imsize=4400
     robust=0.0
 fi
-chan=`pyhead.py -p CENTCHAN ${obsnum}.metafits | awk '{print $3}'`
+
+chan=$(pyhead.py -p CENTCHAN "${obsnum}.metafits" | awk '{print $3}')
+
 # Pixel scale
-scale=`echo "$basescale / $chan" | bc -l` # At least 4 pix per synth beam for each channel
+# At least 4 pix per synth beam for each channel
+scale="$(echo "$basescale / $chan" | bc -l)"
 
 dirs="north south east west"
 
 for dir in $dirs
 do
-    cp -rf ${obsnum}.ms ${obsnum}_flag.ms
-    flags=`cat /group/mwasci/${pipeuser}/GLEAM-X-pipeline/configs/flags_${telescope}_${dir}.txt`
-    flagantennae ${obsnum}_flag.ms $flags
+    cp -rf "${obsnum}.ms" "${obsnum}_flag.ms"
+    flags=$(cat "${GXBASE}/configs/flags_${telescope}_${dir}.txt")
+    flagantennae "${obsnum}_flag.ms" "${flags}"
 
     wsclean -nmiter 1 \
             -niter 1000000 \
             -mgain 1 \
-            -name ${obsnum}_${dir} \
-            -size ${imsize} ${imsize} \
-            -auto-threshold $tsigma \
+            -name "${obsnum}_${dir}" \
+            -size "${imsize}" "${imsize}" \
+            -auto-threshold "$tsigma" \
             -pol I \
-            -weight briggs ${robust} \
-            -scale ${scale:0:8} \
-            ${obsnum}_flag.ms
+            -weight briggs "${robust}" \
+            -scale "${scale:0:8}" \
+            "${obsnum}_flag.ms"
 
-    BANE --compress --noclobber ${obsnum}_${dir}-image.fits
-    aegean --autoload --table=${obsnum}_${dir}-image.fits ${obsnum}_${dir}-image.fits
-    rm -rf ${obsnum}_flag.ms
-    rm ${obsnum}_${dir}-image.fits
-    rm ${obsnum}_${dir}-image_bkg.fits
-    rm ${obsnum}_${dir}-image_rms.fits
-    rm ${obsnum}_${dir}-model.fits
-    rm ${obsnum}_${dir}-dirty.fits
-    rm ${obsnum}_${dir}-residual.fits
+    BANE --compress --noclobber "${obsnum}_${dir}-image.fits"
+    aegean --autoload --table="${obsnum}_${dir}-image.fits" "${obsnum}_${dir}-image.fits"
+    rm -rf "${obsnum}_flag.ms"
+    rm "${obsnum}_${dir}-image.fits"
+    rm "${obsnum}_${dir}-image_bkg.fits"
+    rm "${obsnum}_${dir}-image_rms.fits"
+    rm "${obsnum}_${dir}-model.fits"
+    rm "${obsnum}_${dir}-dirty.fits"
+    rm "${obsnum}_${dir}-residual.fits"
 done
 
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"

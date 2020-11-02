@@ -1,29 +1,22 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p workq
-#SBATCH --account=ACCOUNT
-#SBATCH --time=03:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks=NCPUS
-ARRAYLINE
+
+set -x
 
 pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
 
 # If obsnum is a file, then we are in an array job
 if [[ -f ${obsnum} ]]
 then
-    taskid=${SLURM_ARRAY_TASK_ID}
-    jobid=${SLURM_ARRAY_JOB_ID}
+    taskid="${SLURM_ARRAY_TASK_ID}"
+    jobid="${SLURM_ARRAY_JOB_ID}"
 
     echo "obsfile ${obsnum}"
-    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
     echo "postimage obsid ${obsnum}"
 else
     taskid=1
-    jobid=${SLURM_JOB_ID}
+    jobid="${SLURM_JOB_ID}"
 fi
 
 echo "jobid: ${jobid}"
@@ -32,56 +25,62 @@ echo "taskid: ${taskid}"
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-    exit $1
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
 fi
 }
 
-track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
 # Makes fits_warp parallelisation work on Zeus
-KMP_INIT_AT_FORK=false
+# export KMP_INIT_AT_FORK=false
+
 # Sub-channels
 subchans="0000 0001 0002 0003 MFS"
+
 # flux_warp method
 method=scaled
+
 # Sky model
-MODEL_CATALOGUE="/group/mwasci/${pipeuser}/GLEAM-X-pipeline/models/skymodel_only_alpha_sparse_unresolved.fits"
+MODEL_CATALOGUE="${GXBASE}/models/skymodel_only_alpha_sparse_unresolved.fits"
+
 # Set max separation for flux_warp crossmatch as ~ 1' -- unlikely that the ionosphere would be that brutal
 separation=$(echo "60/3600" | bc -l)
+
 # Set exclusion for flux_warp internal exclusive crossmatch as ~ 3'
 exclusion=$(echo "180/3600" | bc -l)
 
 datadir=BASEDIR
 
-cd $datadir/$obsnum
+cd "${datadir}/${obsnum}" || exit
 
-metafits=`ls -t ${obsnum}*metafits* | head -1`
+metafits=$(ls -t ${obsnum}*metafits* | head -1)
 
 for subchan in ${subchans}
 do
-    BMAJ=$( pyhead.py -p BMAJ ${obsnum}_deep-${subchan}-image-pb.fits | awk '{print $3}' )
+    BMAJ=$(pyhead.py -p BMAJ "${obsnum}_deep-${subchan}-image-pb.fits" | awk '{print $3}' )
     if [[ "$BMAJ" == "0"  ]]
     then
         echo "${obsnum}_deep-${subchan}-image-pb.fits has zero-size PSF: something is broken!"
         exit 1
     fi
 
-    if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_comp.fits  ]]
+    if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_comp.fits"  ]]
     then
-        BANE --compress --noclobber ${obsnum}_deep-${subchan}-image-pb.fits
-        aegean --autoload --table=./${obsnum}_deep-${subchan}-image-pb.fits ./${obsnum}_deep-${subchan}-image-pb.fits > >(tee ${obsnum}_deep-${subchan}_aegean.log) 2> >(tee ${obsnum}_deep-${subchan}_aegean.log >&2)
+        BANE --cores 24 --compress --noclobber "${obsnum}_deep-${subchan}-image-pb.fits"
+        # TODO: Replace the redirection
+        aegean --cores 24 --autoload --table="./${obsnum}_deep-${subchan}-image-pb.fits" "./${obsnum}_deep-${subchan}-image-pb.fits" > >(tee -a "${obsnum}_deep-${subchan}_aegean.log") 2> >(tee -a "${obsnum}_deep-${subchan}_aegean.log" >&2)
     fi
-    nsrc=`grep "INFO found" ${obsnum}_deep-${subchan}_aegean.log | head -1 | awk '{print $3}'`
+    nsrc=$(grep "INFO found" "${obsnum}_deep-${subchan}_aegean.log" | head -1 | awk '{print $3}')
     if [[ $nsrc -lt 500 ]]
     then
         echo "Can't warp ${obsnum} -- only $nsrc sources -- probably a horrible image"
     else
-        RA=$( pyhead.py -p RA ${metafits} | awk '{print $3}' )
-        Dec=$( pyhead.py -p DEC ${metafits} | awk '{print $3}' )
-        chan=$( pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}' )
-        mid=$( pyhead.py -p CRVAL3 ${obsnum}_deep-${subchan}-image-pb.fits | awk '{print $3}' )
-        freqq=`echo $mid | awk '{printf "%03.0f",($1)/1e6}'`
+        RA=$( pyhead.py -p RA "${obsnum}.metafits" | awk '{print $3}' )
+        Dec=$( pyhead.py -p DEC "${obsnum}.metafits" | awk '{print $3}' )
+        chan=$( pyhead.py -p CENTCHAN "${obsnum}.metafits" | awk '{print $3}' )
+        mid=$( pyhead.py -p CRVAL3 "${obsnum}_deep-${subchan}-image-pb.fits" | awk '{print $3}' )
+        freqq=$(echo "$mid" | awk '{printf "%03.0f",($1)/1e6}')
 
         # Roughly the centre and radius of the image:
         coords="$RA $Dec"
@@ -90,17 +89,18 @@ do
 
         if [[ ! -e ${obsnum}_${subchan}_xm.fits ]]
         then
+            # flux_wrap dependency here
             # Match the image catalogue to the model table:
             match_catalogues \
-             ${obsnum}_deep-${subchan}-image-pb_comp.fits \
-             ${MODEL_CATALOGUE} \
-             --separation ${separation} \
-             --exclusion_zone ${exclusion} \
-             --outname ./${obsnum}_${subchan}_xm.fits \
+             "${obsnum}_deep-${subchan}-image-pb_comp.fits" \
+             "${MODEL_CATALOGUE}" \
+             --separation "${separation}" \
+             --exclusion_zone "${exclusion}" \
+             --outname "./${obsnum}_${subchan}_xm.fits" \
              --threshold 0.5 \
              --nmax 1000 \
              --coords ${coords} \
-             --radius ${radius} \
+             --radius "${radius}" \
              --ra2 "RAJ2000" \
              --dec2 "DEJ2000" \
              --ra1 "ra" \
@@ -110,24 +110,24 @@ do
              --localrms "local_rms"
         fi
 
-        if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp.fits ]]
+        if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp.fits" ]]
         then
-            fits_warp.py --xm ./${obsnum}_${subchan}_xm.fits \
+            fits_warp.py --xm "./${obsnum}_${subchan}_xm.fits" \
                          --suffix warp \
-                         --infits ./${obsnum}_deep-${subchan}-image-pb.fits \
+                         --infits "./${obsnum}_deep-${subchan}-image-pb.fits" \
                          --ra1 old_ra --dec1 old_dec \
                          --ra2 RAJ2000 --dec2 DEJ2000 \
                          --plot \
-                         --cores NCPUS
-# --signal peak_flux --noise local_rms --SNR 10
+                         --cores ${GXNCPUS}
+                        # --signal peak_flux --noise local_rms --SNR 10
         fi
-        if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp_${method}_cf_output.txt ]]
+        if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp_${method}_cf_output.txt" ]]
         then
             flux_warp \
-                 ${obsnum}_${subchan}_xm.fits \
-                 ${obsnum}_deep-${subchan}-image-pb_warp.fits \
+                 "${obsnum}_${subchan}_xm.fits" \
+                 "${obsnum}_deep-${subchan}-image-pb_warp.fits" \
                  --mode mean \
-                 --freq ${freqq} \
+                 --freq "${freqq}" \
                  --threshold 0.5 \
                  --nmax 400 \
                  --flux_key "flux" \
@@ -149,21 +149,24 @@ do
              --ext png \
              --nolatex
         fi
-        factor=`pyhead.py -p BSCALE ${obsnum}_deep-${subchan}-image-pb_warp.fits | awk '{print $3}'`
-# The RMS and BKG maps will not have changed much from the ionospheric warping, so I can just rename them and update BSCALE
-        mv ${obsnum}_deep-${subchan}-image-pb_rms.fits ${obsnum}_deep-${subchan}-image-pb_warp_rms.fits
-        mv ${obsnum}_deep-${subchan}-image-pb_bkg.fits ${obsnum}_deep-${subchan}-image-pb_warp_bkg.fits
-        pyhead.py -u BSCALE $factor ${obsnum}_deep-${subchan}-image-pb_warp_bkg.fits
-        pyhead.py -u BSCALE $factor ${obsnum}_deep-${subchan}-image-pb_warp_rms.fits
-# rerun the source-finding -- don't save to the log this time as the numbers should not have changed
-        if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp_comp.fits ]]
+        factor=$(pyhead.py -p BSCALE "${obsnum}_deep-${subchan}-image-pb_warp.fits" | awk '{print $3}')
+        
+        # The RMS and BKG maps will not have changed much from the ionospheric warping, so I can just 
+        # rename them and update BSCALE
+        mv "${obsnum}_deep-${subchan}-image-pb_rms.fits" "${obsnum}_deep-${subchan}-image-pb_warp_rms.fits"
+        mv "${obsnum}_deep-${subchan}-image-pb_bkg.fits" "${obsnum}_deep-${subchan}-image-pb_warp_bkg.fits"
+        pyhead.py -u BSCALE "$factor" "${obsnum}_deep-${subchan}-image-pb_warp_bkg.fits"
+        pyhead.py -u BSCALE "$factor" "${obsnum}_deep-${subchan}-image-pb_warp_rms.fits"
+
+        # rerun the source-finding -- don't save to the log this time as the numbers should not have changed
+        if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp_comp.fits" ]]
         then
-            aegean --autoload --table=./${obsnum}_deep-${subchan}-image-pb_warp.fits ./${obsnum}_deep-${subchan}-image-pb_warp.fits
+            aegean --cores 24 --autoload --table="./${obsnum}_deep-${subchan}-image-pb_warp.fits" "./${obsnum}_deep-${subchan}-image-pb_warp.fits"
         fi
-        if [[ ! -e ${obsnum}_deep-${subchan}-image-pb_warp_weight.fits ]]
+        if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp_weight.fits" ]]
         then
-# Generate a weight map for mosaicking
-            chans=($( pyhead.py -p CHANNELS ${metafits} | awk '{print $3}' | sed "s/,/ /g" ))
+            # Generate a weight map for mosaicking
+            chans=($( pyhead.py -p CHANNELS "${obsnum}.metafits" | awk '{print $3}' | sed "s/,/ /g" ))
             if [[ ${subchan} == "MFS" ]]
             then
                 i=0
@@ -175,57 +178,15 @@ do
             fi
             cstart=${chans[$i]}
             cend=${chans[$j]}
-            python /group/mwasci/nhurleywalker/mwa_pb_lookup/lookup_beam.py ${obsnum} _deep-${subchan}-image-pb_warp.fits ${obsnum}_deep-${subchan}-image-pb_warp- -c $cstart-$cend --beam_path /group/mwasci/pb_lookup/gleam_xx_yy.hdf5
-            python /group/mwasci/${pipeuser}/GLEAM-X-pipeline/bin/generate_weight_map.py ${obsnum}_deep-${subchan}-image-pb_warp-XX-beam.fits ${obsnum}_deep-${subchan}-image-pb_warp-YY-beam.fits ${obsnum}_deep-${subchan}-image-pb_warp_rms.fits
+            lookup_beam.py "${obsnum}" \
+                           "_deep-${subchan}-image-pb_warp.fits" \
+                           "${obsnum}_deep-${subchan}-image-pb_warp-" \
+                           -c "$cstart-$cend"
+            generate_weight_map.py "${obsnum}_deep-${subchan}-image-pb_warp-XX-beam.fits" \
+                                   "${obsnum}_deep-${subchan}-image-pb_warp-YY-beam.fits" \
+                                   "${obsnum}_deep-${subchan}-image-pb_warp_rms.fits"
         fi
     fi
 done
 
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-
-
-# # Post procressing tasks unrelated to fitswarp
-# for subchan in ${subchans}
-# do
-#     # Compress the near empty model files
-#     zip ${obsnum}_deep-${subchan}-models.zip ${obsid}_deep-${subchan}-model*.fits
-
-#     # Create an extract of the psf
-#     psf=${obsnum}_deep-${subchan}-psf.fits
-#     crop=${psf%.fits}_crop.fits
-#     if [[ ! -e ${crop} ]]
-#     then
-#         # Get size of the total image
-#         x=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f1)
-#         y=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f8 | cut -d 'x' -f2)
-        
-#         # Pixels in central region to extract
-#         SIZE=200 
-
-#         # Bounds of region
-#         let "x1 = $x/2 - $SIZE/2" 
-#         let "x2 = $x/2 + $SIZE/2"
-#         let "y1 = $y/2 - $SIZE/2"
-#         let "y2 = $y/2 + $SIZE/2"
-
-#         # and extract
-#         getfits -o ${crop} $x1-$x2 $y1-$y2 ${psf}
-#     fi
-
-#     # Compress the primary beam warped weight map
-#     warp=${obsnum}_deep-${subchan}-image-pb_warp_weight.fits
-#     compress=${warp}.sr6
-#     if [[ ! -e ${compress} ]]
-#     then
-#         SR6 -o ${compress} $warp
-#     fi
-
-#     # Zip the model components
-#     model=${obsnum}_deep-${subchan}-model
-#     zip=${model}.zip
-#     if [[ ! -e ${zip} ]]
-#     then
-#         zip -r ${zip} ${model}*.fits
-#     fi
-# done
-
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"

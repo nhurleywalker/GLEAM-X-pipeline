@@ -1,15 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p workq
-#SBATCH --account=ACCOUNT
-#SBATCH --time=01:00:00
-#SBATCH --nodes=1
-TASKLINE
-ARRAYLINE
 
 pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
 
 # If obsnum is a file, then we are in an array job

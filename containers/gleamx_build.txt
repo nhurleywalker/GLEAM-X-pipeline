@@ -1,0 +1,291 @@
+Bootstrap: docker
+From: ubuntu:20.04
+
+%help
+A container for the key pieces of software that make up the GLEAM-X processing pipeline, including:
+
+CASA 5.9
+casacore
+aoflagger
+cotter
+wsclean 2.9
+chgcentre
+swarp
+python3 (notable modules included)
+wcstools
+stilts
+mwa_pb_lookup
+mwa-reduce (private repository found at: https://github.com/ICRAR/mwa-reduce)
+
+The mwa_pb_lookup scripts use the MWA_PB_BEAM and MWA_PB_JONES variables, to locate their HDF5 files. In this container they set to `/pb_lookup` directory. The appropriate scripts are configured to bind to GXPBLOOKUP so that these environment variables resolve correctly. 
+
+%files
+mwa-reduce
+
+%post
+echo "Updating apt repositories"
+apt update && apt upgrade -y 
+apt install -y \
+            bc \
+            rsync \
+            zip \
+            git \
+            wget \
+            pigz \
+            swarp \
+            stilts \
+            graphviz-dev \
+            xorg \
+            xvfb \
+            xz-utils \
+            build-essential \
+            groff \
+            python3 \
+            python3-pip \
+            liberfa-dev \
+            casacore-dev \
+            cmake \
+            gfortran \
+            libopenblas-dev \
+            libcfitsio-dev \
+            libfftw3-dev \
+            libpng-dev \
+            libxml++2.6-dev \
+            python3-dev \
+            python3-pip \
+            libgtkmm-3.0-dev \
+            xorg \
+            libhdf5-dev \
+            libcairo2-dev \
+            doxygen \
+            libboost-dev \
+            libgsl-dev \
+            libboost-dev \
+            liblua5.3-dev \
+            mpich \
+            python3-distutils \
+            libblas-dev \
+            liblapack-dev \
+            libeigen3-dev \
+            pybind11-dev \
+            libboost-filesystem-dev \
+            libboost-date-time-dev \
+            libboost-system-dev \
+            libboost-thread-dev \
+            libboost-program-options-dev \
+            libboost-python-dev \
+            libboost-test-dev \
+            libgsl-dev
+            
+apt autoremove -y
+apt clean -y
+cd / \
+    && ln -s /usr/include
+
+# ------------------------------------------------
+# mwa-reduce
+# private repository found at: https://github.com/ICRAR/mwa-reduce
+# ------------------------------------------------
+cd / \
+    && cd mwa-reduce \
+    && mkdir build \
+    && cd build \
+    && cmake ../ \
+    && make -j8 \
+    && cd / \
+    && mv mwa-reduce opt
+# ------------------------------------------------
+
+# ------------------------------------------------
+# CASA
+# ------------------------------------------------
+# Note second version defined in %environment needs to match
+version="release-5.7.0-134.el6"
+echo "Pulling CASA version ${version}"
+
+cd / \
+    && cd opt \
+    && wget https://casa.nrao.edu/download/distro/casa/release/el6/casa-"${version}".tar.gz \
+    && tar -xf casa-"${version}".tar.gz \
+    && rm -rf casa-"${version}".tar.gz
+# ------------------------------------------------
+
+# ------------------------------------------------
+# WCSTools
+# ------------------------------------------------
+cd / \
+    && cd opt \
+    && wget http://tdc-www.harvard.edu/software/wcstools/wcstools-3.9.6.tar.gz \
+    && tar xvfz wcstools-3.9.6.tar.gz \
+    && cd ./wcstools-3.9.6 \
+    && make -j8 
+# ------------------------------------------------
+
+# ------------------------------------------------
+# Python 3 and associated modules
+# ------------------------------------------------
+# Make sure that python3 is the default
+update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+
+pip3 install --no-cache-dir \
+            ipython \
+            cython \
+            numpy \
+            scipy \
+            matplotlib \
+            pandas \
+            astropy \
+            mysql-connector-python \
+            pytest \
+            h5py \
+            scikit-image \
+            scikit-learn \
+            requests \
+            pillow \
+            seaborn \
+            git+https://github.com/PaulHancock/Aegean.git \
+            git+https://gitlab.com/Sunmish/flux_warp.git \
+            git+https://github.com/tjgalvin/fits_warp.git \
+            git+https://github.com/MWATelescope/mwa-calplots.git \
+            git+https://github.com/ICRAR/manta-ray-client.git \
+            git+https://github.com/tjgalvin/mwa_pb_lookup.git \
+            git+https://github.com/tjgalvin/GLEAM-X-pipeline.git@generalise
+# ------------------------------------------------
+#            git+https://github.com/nhurleywalker/fits_warp.git \
+
+# ------------------------------------------------
+# WSClean
+# ------------------------------------------------
+cd / \
+    && wget https://www2.graphviz.org/Packages/stable/portable_source/graphviz-2.44.1.tar.gz \
+    && tar -xvzf graphviz-2.44.1.tar.gz \
+    && cd graphviz-2.44.1 \
+    && ./configure \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -r graphviz-2.44.1 graphviz-2.44.1.tar.gz
+
+cd / \
+    && git clone https://git.astron.nl/RD/EveryBeam.git \
+    && cd EveryBeam \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf EveryBeam
+
+cd / \
+    && git clone https://gitlab.com/aroffringa/wsclean.git \
+    && cd wsclean \
+    && git fetch \
+    && git fetch --tags \
+    && git checkout wsclean2.9 \
+    && cd wsclean \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && make install \
+    && cd ../.. \
+    && cd chgcentre \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf wsclean
+# ------------------------------------------------
+
+# ------------------------------------------------
+# AOFlagger
+# ------------------------------------------------
+cd / \
+    && git clone https://gitlab.com/aroffringa/aoflagger.git \
+    && cd aoflagger \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+     -DCFITSIO_ROOT_DIR="/usr/local" \
+   && make -j8 \
+   && make install \
+   && cd / \
+   && rm -rf aoflagger
+# ------------------------------------------------
+
+# ------------------------------------------------
+# Cotter
+# ------------------------------------------------
+cd / \
+    && wget "https://github.com/Starlink/pal/releases/download/v0.9.7/pal-0.9.7.tar.gz" \
+    && tar -xf pal-0.9.7.tar.gz \
+    && cd pal-0.9.7 \
+    && ./configure --prefix=/usr/local --without-starlink --with-erfa=/usr \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf pal-0.9.7 \
+    && ln -s /usr/local/include/star/* /usr/local/include
+
+cd / \
+    && git clone "https://github.com/MWATelescope/cotter.git" \
+    && cd cotter \
+    && mkdir build \
+    && cd build \
+    && cmake ../ \
+        -DLIBPAL_INCLUDE_DIR=/usr/local/include  \
+    && make -j8 \
+    && make install \
+    && cd / \
+    && rm -rf cotter
+# ------------------------------------------------
+
+# ------------------------------------------------
+# Clean up
+# ------------------------------------------------
+cd / \
+    && rm *gz
+# ------------------------------------------------
+
+
+%environment
+# ------------------------------------------------
+# CASA
+# ------------------------------------------------
+# CASA version needs to be specified here as well
+version="release-5.7.0-134.el6"
+export PATH="${PATH}:/opt/casa-${version}/bin"
+
+export LC_ALL=C # Suppress perl locale errors
+# ------------------------------------------------
+
+# ------------------------------------------------
+# WCSTools 
+# ------------------------------------------------
+export PATH="/opt/wcstools-3.9.6/bin:$PATH"
+# ------------------------------------------------
+
+# ------------------------------------------------
+# mwa-reduce
+# ------------------------------------------------
+export PATH="/opt/mwa-reduce/build:$PATH"
+# ------------------------------------------------
+
+# ------------------------------------------------
+# PB Lookup
+# ------------------------------------------------
+export MWA_PB_BEAM='/pb_lookup/gleam_xx_yy.hdf5'
+export MWA_PB_JONES='/pb_lookup/gleam_jones.hdf5'
+# ------------------------------------------------
+
+# ------------------------------------------------
+# Alias 
+# ------------------------------------------------
+alias swarp=SWarp
+# ------------------------------------------------
+
+%runscript
+exec "$@"

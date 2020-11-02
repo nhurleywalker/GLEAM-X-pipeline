@@ -1,15 +1,8 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p STANDARDQ
-#SBATCH --account=ACCOUNT
-#SBATCH --time=6:00:00
-#SBATCH --ntasks=NCPUS
-#SBATCH --nodes=1
-ARRAYLINE
+
+set -x
 
 pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
 
 # If obsnum is a file, then we are in an array job
@@ -19,7 +12,7 @@ then
     jobid=${SLURM_ARRAY_JOB_ID}
 
     echo "obsfile ${obsnum}"
-    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}p" "${obsnum}")
     echo "archive obsid ${obsnum}"
 else
     taskid=1
@@ -33,20 +26,20 @@ echo "taskid: ${taskid}"
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-    exit $1
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
 fi
 }
 
-track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
 base=BASEDIR
 user=ENDUSER
 host=ENDPOINT
 remote=REMOTE
 
-datadir=${base}/${obsnum}
-cd ${datadir}
+datadir="${base}/${obsnum}"
+cd "${datadir}" || exit
 
 subchans="0000 0001 0002 0003 MFS"
 
@@ -54,19 +47,11 @@ subchans="0000 0001 0002 0003 MFS"
 for subchan in ${subchans}
 do
     # Compress the near empty model files
-    clip_clean_components.py ${obsnum}_deep-${subchan}-model.fits
-    clip_clean_components.py ${obsnum}_deep-${subchan}-model-pb.fits
+    clip_clean_components.py "${obsnum}_deep-${subchan}-model.fits"
+    clip_clean_components.py "${obsnum}_deep-${subchan}-model-pb.fits"
     
     # Dont like having to do I/O redirection for gzip to keep original file
-    zip ${obsnum}_deep-${subchan}-models-clip.zip ${obsnum}_deep-${subchan}-model*-clip.fits
-
-    # Zip the model components
-    # model=${obsnum}_deep-${subchan}-model
-    # zip=${model}.zip
-    # if [[ ! -e ${zip} ]]
-    # then
-    #     zip -r ${zip} ${model}*.fits
-    # fi
+    zip "${obsnum}_deep-${subchan}-models-clip.zip" "${obsnum}_deep-${subchan}-"model*-clip.fits
 
     # Create an extract of the psf
     psf=${obsnum}_deep-${subchan}-psf.fits
@@ -74,48 +59,50 @@ do
     if [[ ! -e ${crop} ]]
     then
         # Get size of the total image
-        x=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f7 | cut -d 'x' -f1)
-        y=$(imsize ${psf} | tr -s [:blank:] ' ' | cut -d ' ' -f7 | cut -d 'x' -f2)
+        x=$(imsize "${psf}" | tr -s '[:blank:]' ' ' | cut -d ' ' -f7 | cut -d 'x' -f1)
+        y=$(imsize "${psf}" | tr -s '[:blank:]' ' ' | cut -d ' ' -f7 | cut -d 'x' -f2)
         
         # Pixels in central region to extract
         SIZE=200 
 
         # Bounds of region
-        let "x1 = $x/2 - $SIZE/2" 
-        let "x2 = $x/2 + $SIZE/2"
-        let "y1 = $y/2 - $SIZE/2"
-        let "y2 = $y/2 + $SIZE/2"
+        (( x1 = x/2 - SIZE/2 )) 
+        (( x2 = x/2 + SIZE/2 ))
+        (( y1 = y/2 - SIZE/2 ))
+        (( y2 = y/2 + SIZE/2 ))
 
         # and extract
-        getfits -o ${crop} ${x1}-${x2} ${y1}-${y2} ${psf}
+        getfits -o "${crop}" "${x1}-${x2}" "${y1}-${y2}" "${psf}"
     fi
 
     # Compress the primary beam warped weight map
-    warp=${obsnum}_deep-${subchan}-image-pb_warp_weight.fits
-    compress=${warp}.sr6
-    if [[ ! -e ${compress} ]]
+    warp="${obsnum}_deep-${subchan}-image-pb_warp_weight.fits"
+    compress="${warp}.sr6"
+    if [[ ! -e "${compress}" ]]
     then
-        SR6 -o ${compress} $warp
+        SR6 -o "${compress}" "${warp}"
     fi
 done
 
-
-rsync -avh --progress --stats *csv \
-                              *clip.zip \
-                              *png \
-                              *log \
-                              *fits.sr6 \
-                              ${obsnum}_deep-sources.txt \
-                              ${obsnum}_deep-sources-pb.txt \
-                              ${obsnum}_deep-*-psf_crop.fits \
-                              ${obsnum}_deep-*-image-pb.fits \
-                              ${obsnum}_*_xm.fits \
-                              $user@$host:"$remote/$obsnum"
+# Singularity does not mount the home directory on pawsey correctly, so 
+# best to avoid trying to hit the home directory and load ssh keys elsewhere
+rsync -avh --progress --stats -e "ssh -v -o StrictHostKeyChecking=no -i ${GXSSH}" \
+                              ./*csv \
+                              ./*clip.zip \
+                              ./*png \
+                              ./*log \
+                              ./*fits.sr6 \
+                              "${obsnum}_deep-sources.txt" \
+                              "${obsnum}_deep-sources-pb.txt" \
+                              "${obsnum}_deep-*-psf_crop.fits" \
+                              "${obsnum}_deep-*-image-pb.fits" \
+                              "${obsnum}_*_xm.fits" \
+                              "${user}@${host}:${remote}/${obsnum}"
 
 test_fail $?
 
 echo 'Updating database'
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
 
-track_task.py obs_status --obs_id=${obsnum} --status=archived
-echo "Database updated. Obsid $obsid has been archived. "
+track_task.py obs_status --obs_id="${obsnum}" --status='archived'
+echo "Database updated. Obsid $obsnum has been archived. "

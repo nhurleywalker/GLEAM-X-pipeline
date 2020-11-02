@@ -1,6 +1,6 @@
 # Branch Information
 
-Small changes as I prepare to move over to mysql as the backend for the database.
+Attempts to remove certain Pawsey specific code in preparation to run the pipeline on other systems.
 
 # GLEAM-X-pipeline
 

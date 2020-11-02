@@ -1,15 +1,6 @@
 #! /bin/bash -l
-#SBATCH --export=NONE
-#SBATCH -M HOST
-#SBATCH -p STANDARDQ
-#SBATCH --account=ACCOUNT
-#SBATCH --time=04:00:00
-#SBATCH --nodes=1
-TASKLINE
-ARRAYLINE
 
 pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 obsnum=OBSNUM
 
 # If obsnum is a file, then we are in an array job
@@ -19,7 +10,7 @@ then
     jobid=${SLURM_ARRAY_JOB_ID}
 
     echo "obsfile ${obsnum}"
-    obsnum=$(sed -n -e ${SLURM_ARRAY_TASK_ID}p ${obsnum})
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
     echo "cotter obsid ${obsnum}"
 else
     taskid=1
@@ -29,36 +20,38 @@ fi
 function test_fail {
 if [[ $1 != 0 ]]
 then
-    track_task.py fail --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
-    exit $1
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
 fi
 }
 
 datadir=DATADIR
 tres=TRES
 fres=FRES
-memory=MEMORY
+memory=${GXMEMORY}
 
 # start task
-track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-cd ${datadir}
+cd ${datadir} || exit
 
 if [[ -e ${obsnum}_vis.zip ]]
 then
-    mkdir ${obsnum}
-    cd ${obsnum}
-    mv ../${obsnum}_vis.zip ./
-    unzip ${obsnum}_vis.zip
-    rm ${obsnum}_vis.zip
+    echo "Unzipping raw visibilities into ${obsnum}"
+    mkdir "${obsnum}"
+    cd "${obsnum}" || exit
+    mv "../${obsnum}_vis.zip" ./
+    unzip "${obsnum}_vis.zip"
+    rm "${obsnum}_vis.zip"
 else
-    cd ${obsnum}
+    echo "Moving in ${obsnum} measurement set directory"
+    cd "${obsnum}" || exit
 fi
 
 zipflag="${obsnum}_flags.zip"
 if [[ -e ${zipflag} ]]
 then
-    unzip ${zipflag}
+    unzip "${zipflag}"
     flagfiles="-flagfiles ${obsnum}_%%.mwaf"
 else
     flagfiles=""
@@ -66,22 +59,31 @@ fi
 
 if [[ ! -d ${obsnum}.ms ]]
 then
-    metafits=${obsnum}.metafits
+    metafits="${obsnum}.metafits"
     if [[ ! -e ${metafits} ]] || [[ ! -s ${metafits} ]]
     then
-        wget -O ${metafits} http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
+        wget -O "${metafits}" http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
     fi
-# Use 80% of the memory
-    cotter ${flagfiles} -absmem ${memory} -timeres ${tres} -freqres ${fres} -allowmissing \
-    -edgewidth 80 -m ${metafits} -o ${obsnum}.ms *gpubox*.fits 
+    
+    # Use 80% of the memory
+    cotter \
+            ${flagfiles} \
+            -absmem ${memory} \
+            -timeres ${tres} \
+            -freqres ${fres} \
+            -allowmissing \
+            -edgewidth 80 \
+            -m ${metafits} \
+            -o ${obsnum}.ms \
+            ./*gpubox*.fits
 
     test_fail $?
     if [[ -d ${obsnum}.ms ]]
     then 
-         rm *gpubox*fits *.zip *.mwaf ${metafits}
+         rm ./*gpubox*fits ./*.zip ./*.mwaf "${metafits}"
     fi
 else
     echo "Cotter has already run for ${obsnum}.ms"
 fi
 
-track_task.py finish --jobid=${jobid} --taskid=${taskid} --finish_time=`date +%s`
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
