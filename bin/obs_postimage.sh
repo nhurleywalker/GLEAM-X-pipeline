@@ -4,7 +4,6 @@ usage()
 {
 echo "obs_postimage.sh [-d dep] [-p project] [-a account] [-t] obsnum
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -p project : project, (must be specified, no default)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
@@ -62,9 +61,9 @@ then
     fi
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -99,8 +98,8 @@ chmod 755 "${script}"
 echo '#!/bin/bash' > ${script}.sbatch
 echo "singularity run -B '${GXMWALOOKUP}:/pb_lookup' -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
-sub="sbatch --export=ALL --account=${account} --time=3:00:00 --mem=58G -M ${GXCOMPUTER} --output=${output} --error=${error}"
-sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch --export=ALL --time=3:00:00 --mem=58G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"

@@ -11,7 +11,6 @@ echo "obs_archive.sh [-d dep] [-p project] [-a account] [-u user] [-e endpoint] 
 Archives the processed data products onto the data central archive system. By default traffic is routed through a nimbus instance, requiring a public ssh key to first be added to list of authorized keys. Data Central runs ownCloud, and at the moment easiest way through is a davfs2 mount. Consult Natasha or Tim. 
 
   -d dep      : job number for dependency (afterok)
-  -a account  : computing account, default pawsey0272
   -p project  : project, (must be specified, no default)
   -u user     : user name of system to archive to (default: '$user')
   -e endpoint : hostname to copy the archive data to (default: '$endpoint')
@@ -92,9 +91,9 @@ then
     fi
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -130,7 +129,7 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo "singularity run -B '${HOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 if [ ! -z ${GXNCPULINE} ]
 then
@@ -138,8 +137,8 @@ then
     GXNCPULINE="--ntasks-per-node=1"
 fi
 
-sub="sbatch  --export=ALL --account=${account} --time=02:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
-sub="${sub}  ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch  --export=ALL --time=02:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+sub="${sub}  ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
 then

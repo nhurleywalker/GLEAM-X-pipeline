@@ -4,7 +4,6 @@ usage()
 {
 echo "obs_binoc.sh [-d dep] [-p project] [-a account] [-z] [-t] obsnum
   -d dep     : job number for dependency (afterok)
-  -a account : computing account, default pawsey0272
   -p project : project, (must be specified, no default)
   -z         : Debugging mode: image the CORRECTED_DATA column
                 instead of imaging the DATA column
@@ -28,9 +27,6 @@ do
 	d)
 	    dep=${OPTARG}
 	    ;;
-    a)
-        account=${OPTARG}
-        ;;
     p)
         project=${OPTARG}
         ;;
@@ -69,9 +65,9 @@ then
     fi
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -107,8 +103,8 @@ chmod 755 "${script}"
 echo '#!/bin/bash' > ${script}.sbatch
 echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
-sub="sbatch --export=ALL --account=${account} --time=1:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
-sub="${sub} ${GXNCPULINE} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+sub="sbatch --export=ALL --time=1:00:00 --mem=${GXMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
