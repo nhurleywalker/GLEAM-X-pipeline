@@ -4,11 +4,11 @@ From: ubuntu:20.04
 %help
 A container for the key pieces of software that make up the GLEAM-X processing pipeline, including:
 
-CASA 5.7
+CASA 5.9
 casacore
 aoflagger
 cotter
-wsclean 2.7
+wsclean 2.9
 chgcentre
 swarp
 python3 (notable modules included)
@@ -16,6 +16,8 @@ wcstools
 stilts
 mwa_pb_lookup
 mwa-reduce (private repository found at: https://github.com/ICRAR/mwa-reduce)
+
+The mwa_pb_lookup scripts use the MWA_PB_BEAM and MWA_PB_JONES variables, to locate their HDF5 files. In this container they set to `/pb_lookup` directory. The appropriate scripts are configured to bind to GXPBLOOKUP so that these environment variables resolve correctly. 
 
 %files
 mwa-reduce
@@ -100,18 +102,23 @@ cd / \
 # Note second version defined in %environment needs to match
 version="release-5.7.0-134.el6"
 echo "Pulling CASA version ${version}"
-wget https://casa.nrao.edu/download/distro/casa/release/el6/casa-"${version}".tar.gz \
-        && tar -xf casa-"${version}".tar.gz \
-        && rm -rf casa-"${version}".tar.gz
+
+cd / \
+    && cd opt \
+    && wget https://casa.nrao.edu/download/distro/casa/release/el6/casa-"${version}".tar.gz \
+    && tar -xf casa-"${version}".tar.gz \
+    && rm -rf casa-"${version}".tar.gz
 # ------------------------------------------------
 
 # ------------------------------------------------
 # WCSTools
 # ------------------------------------------------
-wget http://tdc-www.harvard.edu/software/wcstools/wcstools-3.9.6.tar.gz \
-        && tar xvfz wcstools-3.9.6.tar.gz \
-        && cd ./wcstools-3.9.6 \
-        && make -j8
+cd / \
+    && cd opt \
+    && wget http://tdc-www.harvard.edu/software/wcstools/wcstools-3.9.6.tar.gz \
+    && tar xvfz wcstools-3.9.6.tar.gz \
+    && cd ./wcstools-3.9.6 \
+    && make -j8 
 # ------------------------------------------------
 
 # ------------------------------------------------
@@ -136,14 +143,15 @@ pip3 install --no-cache-dir \
             requests \
             pillow \
             seaborn \
-            AegeanTools \
+            git+https://github.com/PaulHancock/Aegean.git \
             git+https://gitlab.com/Sunmish/flux_warp.git \
-            git+https://github.com/nhurleywalker/fits_warp.git \
+            git+https://github.com/tjgalvin/fits_warp.git \
             git+https://github.com/MWATelescope/mwa-calplots.git \
             git+https://github.com/ICRAR/manta-ray-client.git \
             git+https://github.com/tjgalvin/mwa_pb_lookup.git \
             git+https://github.com/tjgalvin/GLEAM-X-pipeline.git@generalise
 # ------------------------------------------------
+#            git+https://github.com/nhurleywalker/fits_warp.git \
 
 # ------------------------------------------------
 # WSClean
@@ -174,7 +182,7 @@ cd / \
     && cd wsclean \
     && git fetch \
     && git fetch --tags \
-    && git checkout wsclean2.7 \
+    && git checkout wsclean2.9 \
     && cd wsclean \
     && mkdir build \
     && cd build \
@@ -236,16 +244,6 @@ cd / \
 # ------------------------------------------------
 
 # ------------------------------------------------
-# PB Lookup
-# ------------------------------------------------
-cd / \
-    && wget -O pb_lookup.tar.gz \
-           https://cloudstor.aarnet.edu.au/plus/s/1kUQFqQPOJODU8Q/download \
-    && tar xvzf pb_lookup.tar.gz \
-    && rm pb_lookup.tar.gz
-# ------------------------------------------------
-
-# ------------------------------------------------
 # Clean up
 # ------------------------------------------------
 cd / \
@@ -259,7 +257,7 @@ cd / \
 # ------------------------------------------------
 # CASA version needs to be specified here as well
 version="release-5.7.0-134.el6"
-export PATH="${PATH}:/casa-${version}/bin"
+export PATH="${PATH}:/opt/casa-${version}/bin"
 
 export LC_ALL=C # Suppress perl locale errors
 # ------------------------------------------------
@@ -267,7 +265,7 @@ export LC_ALL=C # Suppress perl locale errors
 # ------------------------------------------------
 # WCSTools 
 # ------------------------------------------------
-export PATH="/wcstools-3.9.6/bin:$PATH"
+export PATH="/opt/wcstools-3.9.6/bin:$PATH"
 # ------------------------------------------------
 
 # ------------------------------------------------

@@ -46,15 +46,16 @@ def pyhead(file, extn, cmdlist, arglist, verbose=1, printfile=1, printextn=1, up
                         val2=val
             try:                
                 hdr[key]=val2
-                if (verbose):
+                if verbose:
                     s=""
                     if (printfile):
                         s+="%s" % file
                     if (printextn):
                         s+="[%s]" % extn
                         
-                    print("{0}[{1}] = {3} updated".format(s,key,val2))               
-            except:
+                    print("{0}[{1}] = {2} updated".format(s,key,val2))               
+            except Exception as e:
+                print(e)
                 print("Could not update keyword {0}\n".format(key))
         elif (cmd.lower() == "h"):
             val=arg
