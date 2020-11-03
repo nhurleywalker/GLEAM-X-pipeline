@@ -79,7 +79,7 @@ fi
 # start the real program
 
 script="${GXSCRIPT}/postimage_${obsnum}.sh"
-cat "${GXBASE}/bin/postimage.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/templates/postimage.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 

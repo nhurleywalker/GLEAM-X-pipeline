@@ -76,7 +76,7 @@ fi
 
 script="${GXSCRIPT}/autoflag_${obsnum}.sh"
 
-cat "${GXBASE}/bin/autoflag.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/templates/autoflag.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
                                      -e "s:HOST:${GXCOMPUTER}:g" \
                                      -e "s:PIPEUSER:${pipeuser}:g" > "${script}"

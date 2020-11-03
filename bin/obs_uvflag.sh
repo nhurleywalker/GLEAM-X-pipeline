@@ -86,7 +86,7 @@ fi
 
 script="${GXSCRIPT}/uvflag_${obsnum}.sh"
 
-cat "${GXBASE}/bin/uvflag.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/templates/uvflag.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
                                      -e "s:DEBUG:${debug}:g" \
                                      -e "s:PIPEUSER:${pipeuser}:g" > "${script}"

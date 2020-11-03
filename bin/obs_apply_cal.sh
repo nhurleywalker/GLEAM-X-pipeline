@@ -102,7 +102,7 @@ fi
 
 script="${GXSCRIPT}/apply_cal_${obsnum}.sh"
 
-cat "${GXBASE}/bin/apply_cal.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/templates/apply_cal.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                        -e "s:BASEDIR:${base}:g" \
                                        -e "s:DEBUG:${debug}:g" \
                                        -e "s:CALID:${calid}:g" \

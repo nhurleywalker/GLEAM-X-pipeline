@@ -83,7 +83,7 @@ fi
 # start the real program
 
 script="${GXSCRIPT}/binoc_${obsnum}.sh"
-cat "${GXBASE}/bin/binocular.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/templates/binocular.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:DEBUG:${debug}:g" \
                                  -e "s:PIPEUSER:${pipeuser}:g" > "${script}"

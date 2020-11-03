@@ -108,7 +108,7 @@ fi
 
 # start the real program
 script="${GXSCRIPT}/archive_${obsnum}.sh"
-cat "${GXBASE}/bin/archive.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/templates/archive.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:ENDUSER:${user}:g" \
                                  -e "s:ENDPOINT:${endpoint}:g" \

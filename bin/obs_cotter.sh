@@ -100,7 +100,7 @@ elif [[ $testobs -ge 1191580576 ]] ; then
 fi
 
 script="${GXSCRIPT}/cotter_${obsnum}.sh"
-cat "${GXBASE}/bin/cotter.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
+cat "${GXBASE}/templates/cotter.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                   -e "s:DATADIR:${datadir}:g" \
                                   -e "s:TRES:${timeres}:g" \
                                   -e "s:FRES:${freqres}:g" \
