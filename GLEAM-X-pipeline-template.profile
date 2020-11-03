@@ -26,7 +26,6 @@ export GXNPCPUS=48              # Number of physical CPUs of each machine
 export GXTASKLINE=              # Reserved space for additional slurm sbatch options, if needed
 export GXLOG=                   # Path to output task logs, i.e. ${GXBASE}/queue/logs
 export GXSCRIPT=                # Path to place generated template scripts. i.e. "${GXBASE}/queue"
-export GXFMODELS=               # Directory path containing bright source models for peeling. NOTE: Not yet implemented 
 export GXTRACK='no-track'       # Directive to inform task tracking for meta-database. 'track' will track task progression. Anything else will disable tracking. 
 export GXSSH=                   # Path to SSH keys to be used for archiving. Keys names should follow a 'gx_${GXUSER}' convention, i.e. "${GXBASE}/ssh_keys/gx_${GXUSER}"
                                 # Ensure restricted folder/file permissions, i.e. cmod -R 700 "${GXBASE}/ssh_keys"
