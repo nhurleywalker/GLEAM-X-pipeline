@@ -17,26 +17,18 @@ exit 1;
 
 # Supercomputer options
 # Hardcode for downloading
-computer="zeus"
-account="mwasci"
-standardq="copyq"
+account="${GXCOPYA}"
+standardq="${GXCOPYQ}"
 
 pipeuser=$(whoami)
 
 #initial variables
-
-scratch="/astro"
-group="/group"
-base="$scratch/mwasci/$pipeuser/"
-dbdir="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 dep=
 queue="-p $standardq"
 tst=
 gpubox=
 timeres=
 freqres=
-
-source "$dbdir/GLEAM-X-pipeline.profile"
 
 # parse args and set options
 while getopts ':tgd:p:s:k:o:' OPTION
@@ -46,8 +38,6 @@ do
         dep=${OPTARG} ;;
     p)
         project=${OPTARG} ;;
-	q)
-	    queue="-p ${OPTARG}" ;;
 	s)
 	    timeres=${OPTARG} ;;
 	k)
@@ -58,7 +48,7 @@ do
         tst=1 ;;
     g)
         gpubox=1 ;;
-        ? | : | h)
+    ? | : | h)
             usage ;;
   esac
 done
@@ -68,8 +58,6 @@ done
 if [[ -z ${obslist} ]] || [[ ! -s ${obslist} ]] || [[ ! -e ${obslist} ]] || [[ -z $project ]]
 then
     usage
-else
-    numfiles=`wc -l ${obslist} | awk '{print $1}'`
 fi
 
 if [[ ! -z ${dep} ]]
@@ -78,14 +66,15 @@ then
 fi
 
 # Add the metadata to the observations table in the database
-python ${dbdir}db/import_observations_from_db.py --obsid $obslist
+import_observations_from_db.py --obsid "${obslist}"
 
-base=$base/$project
-cd $base
+base="${base}/${project}"
+cd "${base}" || exit 1
 
 dllist=""
-list=`cat $obslist`
-if [[ -e ${obslist}_manta.tmp ]] ; then rm ${obslist}_manta.tmp ; fi
+list=$(cat "${obslist}")
+if [[ -e "${obslist}_manta.tmp" ]] ; then rm "${obslist}_manta.tmp" ; fi
+
 # Set up telescope-configuration-dependent options
 # Might use these later to get different metafits files etc
 for obsnum in $list
@@ -106,39 +95,48 @@ do
         if [[ -z $freqres ]] ; then freqres=40 ; fi
         if [[ -z $timeres ]] ; then timeres=4 ; fi
     fi
-    if [[ -d ${obsnum}/${obsnum}.ms ]]
+
+    if [[ -d "${obsnum}/${obsnum}.ms" ]]
     then
         echo "${obsnum}/${obsnum}.ms already exists. I will not download it again."
     else
         if [[ -z ${gpubox} ]]
         then
-            echo "obs_id=${obsnum}, job_type=c, timeres=${timeres}, freqres=${freqres}, edgewidth=80, conversion=ms, allowmissing=true, flagdcchannels=true" >>  ${obslist}_manta.tmp
+            echo "obs_id=${obsnum}, job_type=c, timeres=${timeres}, freqres=${freqres}, edgewidth=80, conversion=ms, allowmissing=true, flagdcchannels=true" >>  "${obslist}_manta.tmp"
             stem="ms"
         else
-            echo "obs_id=${obsnum}, job_type=d, download_type=vis" >>  ${obslist}_manta.tmp
+            echo "obs_id=${obsnum}, job_type=d, download_type=vis" >>  "${obslist}_manta.tmp"
             stem="vis"
         fi
         dllist=$dllist"$obsnum "
     fi
 done
 
-listbase=`basename ${obslist}`
+listbase=$(basename ${obslist})
 listbase=${listbase%%.*}
-script="${dbdir}queue/manta_${listbase}.sh"
+script="${GXSCRIPT}/manta_${listbase}.sh"
 
 echo "obslist is $obslist"
 
-cat ${dbdir}/bin/manta.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
+cat "${GXBASE}/templates/manta.tmpl" | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:STEM:${stem}:g"  \
                                  -e "s:BASEDIR:${base}:g" \
-                                 -e "s:PIPEUSER:${pipeuser}:g" > ${script}
-#                                 -e "s:ACCOUNT:${account}:g"
+                                 -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
-output="${dbdir}queue/logs/manta_${listbase}.o%A"
-error="${dbdir}queue/logs/manta_${listbase}.e%A"
+output="${GXLOG}/manta_${listbase}.o%A"
+error="${GXLOG}/manta_${listbase}.e%A"
 
-#sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
-sub="sbatch --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > "${script}.sbatch"
+echo "singularity run -B '${GXHOME}:${HOME}' -B '${GXMWALOOKUP}:/pb_lookup' ${GXCONTAINER} ${script}" >> "${script}.sbatch"
+
+sub="sbatch --output=${output} --error=${error} ${depend} ${queue} ${script}.sbatch"
+
+sub="sbatch --export=ALL  --time=12:00:00 -M ${GXCOPYM} --output=${output} --error=${error}"
+sub="${sub} ${account} ${queue} ${script}.sbatch"
+
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -152,18 +150,21 @@ jobid=($(${sub}))
 jobid=${jobid[3]}
 
 # rename the err/output files as we now know the jobid
-error=`echo ${error} | sed "s/%A/${jobid}/"`
-output=`echo ${output} | sed "s/%A/${jobid}/"`
+error="${error//%A/${jobid[0]}/}"
+output="${output//%A/${jobid[0]}/}"
 
 # record submission
 n=1
 for obsnum in $dllist
 do
-    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='download' --submission_time=`date +%s` --batch_file=${script} \
-                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
+    if [ "${GXTRACK}" = "track" ]
+    then
+        track_task.py queue --jobid="${jobid[0]}" --taskid="${n}" --task='download' --submission_time="$(date +%s)" \
+                        --batch_file="${script}" --obs_id="${obsnum}" --stderr="${error}" --stdout="${output}"
+    fi
     ((n+=1))
 done
 
 echo "Submitted ${script} as ${jobid}. Follow progress here:"
-echo $output
-echo $error
+echo "${output}"
+echo "${error}"
