@@ -67,7 +67,7 @@ fi
 
 if [[ ! -z ${GXACCOUNT} ]]
 then
-    account="--acount=${GXACCOUNT}"
+    account="--account=${GXACCOUNT}"
 fi
 
 # Establish job array options

@@ -63,7 +63,7 @@ fi
 
 if [[ ! -z ${GXACCOUNT} ]]
 then
-    account="--acount=${GXACCOUNT}"
+    account="--account=${GXACCOUNT}"
 fi
 
 # Establish job array options
@@ -98,7 +98,7 @@ chmod 755 "${script}"
 echo '#!/bin/bash' > ${script}.sbatch
 echo "singularity run -B '${GXMWALOOKUP}:/pb_lookup' -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
-sub="sbatch --export=ALL --time=3:00:00 --mem=58G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="sbatch --export=ALL --time=3:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
 sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then

@@ -17,7 +17,7 @@ exit 1;
 
 # Supercomputer options
 # Hardcode for downloading
-account="${GXCOPYA}"
+account="--account ${GXCOPYA}"
 standardq="${GXCOPYQ}"
 
 pipeuser=$(whoami)

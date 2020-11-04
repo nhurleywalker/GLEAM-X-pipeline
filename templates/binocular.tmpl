@@ -88,8 +88,8 @@ do
             -scale "${scale:0:8}" \
             "${obsnum}_flag.ms"
 
-    BANE --compress --noclobber "${obsnum}_${dir}-image.fits"
-    aegean --autoload --table="${obsnum}_${dir}-image.fits" "${obsnum}_${dir}-image.fits"
+    BANE --cores ${GXNCPUS} --compress --noclobber "${obsnum}_${dir}-image.fits"
+    aegean --cores ${GXNCPUS} --autoload --table="${obsnum}_${dir}-image.fits" "${obsnum}_${dir}-image.fits"
     rm -rf "${obsnum}_flag.ms"
     rm "${obsnum}_${dir}-image.fits"
     rm "${obsnum}_${dir}-image_bkg.fits"
