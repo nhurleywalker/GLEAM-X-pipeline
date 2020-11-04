@@ -52,40 +52,18 @@ then
     test_fail $?
 fi
 
-calibrator=$( pyhead.py -p CALIBSRC $metafits | awk '{print $3}' )
+echo "Running infield calibration for $obsnum"
+RA=$( pyhead.py -p RA $metafits | awk '{print $3}' )
+Dec=$( pyhead.py -p DEC $metafits | awk '{print $3}' )
+chan=$( pyhead.py -p CENTCHAN $metafits | awk '{print $3}' )
 
-if [[ $calibrator == "None" ]] || [[ $calibrator == "open" ]] || [[ $calibrator == 3C444 ]] || [[ $calibrator == HydA ]] || [[ $calibrator == VirA ]] || [[ $calibrator == PKS2356-61 ]] || [[ $calibrator == PKS0442-28 ]] || [[ $calibrator == 3C409 ]] || [[ $calibrator == PKS0349-27 ]]
+if [[ ! -e "${obsnum}_local_gleam_model.txt" ]]
 then
-    echo "Running infield calibration for $obsnum"
-    RA=$( pyhead.py -p RA $metafits | awk '{print $3}' )
-    Dec=$( pyhead.py -p DEC $metafits | awk '{print $3}' )
-    chan=$( pyhead.py -p CENTCHAN $metafits | awk '{print $3}' )
-
-    if [[ ! -e "${obsnum}_local_gleam_model.txt" ]]
-    then
-        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot ${obsnum}_local_gleam_model.png --output ${obsnum}_cropped_catalogue.fits
-        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/vo2model.py --catalogue=${obsnum}_cropped_catalogue.fits --point --output=${obsnum}_local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
-    fi
-    modeldir=.
-    calmodel=${obsnum}_local_gleam_model.txt
-else
-    echo "Calibrating on $calibrator for $obsnum"
-    calmodel=`ls -t $modeldir/model-$calibrator*comp_withalpha.txt | head -1`
-    if [[ -z $calmodel ]]
-    then
-        echo "No calibrator model available for $calibrator in $modeldir."
-        cd $modeldir
-        callist=`ls *-point-source.txt | sed "s/model-//g" | sed "s/-point-source.txt//g"`
-        echo "Available calibrators are: $callist in $modeldir"
-        echo "Use the name as it is specified in the observing database, e.g. HydA for Hydra A."
-        test_fail 1
-        exit 1
-    else
-        $calmodel=`basename $calmodel`
-    fi
+    /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/crop_catalogue.py --ra=$RA --dec=$Dec --radius=30 --minflux=1.0 --metafits=${metafits} --catalogue=${catfile} --fluxcol=S_200 --plot ${obsnum}_local_gleam_model.png --output ${obsnum}_cropped_catalogue.fits
+    /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/vo2model.py --catalogue=${obsnum}_cropped_catalogue.fits --point --output=${obsnum}_local_gleam_model.txt --racol=RAJ2000 --decol=DEJ2000 --acol=a --bcol=b --pacol=pa --fluxcol=S_200 --alphacol=alpha
 fi
-
-cd ${datadir}/${obsnum}
+modeldir=.
+calmodel=${obsnum}_local_gleam_model.txt
 
 # Check whether the phase centre has already changed
 # Calibration will fail if it has, so measurement set must be shifted back to its original position
