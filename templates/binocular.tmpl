@@ -24,12 +24,10 @@ echo "taskid: ${taskid}"
 
 basedir=BASEDIR
 
-# start
-track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
-
 cd "${basedir}/${obsnum}" || exit
 
-track_task.py start --jobid="${SLURM_JOBID}" --taskid=1 --start_time="$(date +%s)"
+# start
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
 # S/N Threshold at which to stop cleaning
 tsigma=3
