@@ -4,7 +4,6 @@ usage()
 {
 echo "obs_manta.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] -o list_of_observations.txt
   -d dep      : job number for dependency (afterok)
-  -q queue    : job queue, default=copyq
   -p project  : project, (must be specified, no default)
   -s timeres  : time resolution in sec. default = 2 s
   -k freqres  : freq resolution in KHz. default = 40 kHz
@@ -69,9 +68,9 @@ then
 fi
 
 # Add the metadata to the observations table in the database
-import_observations_from_db.py --obsid "${obslist}"
+# import_observations_from_db.py --obsid "${obslist}"
 
-base="${base}/${project}"
+base="${GXSCRATCH}/${project}"
 cd "${base}" || exit 1
 
 dllist=""
@@ -133,11 +132,13 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > "${script}.sbatch"
+echo 'module load singularity' >> "${script}.sbatch"
 echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> "${script}.sbatch"
 
-sub="sbatch --output=${output} --error=${error} ${depend} ${queue} ${script}.sbatch"
-
-sub="sbatch --export=ALL  --time=12:00:00 -M ${GXCOPYM} --output=${output} --error=${error}"
+# This is the only task that should reasonably be expected to run on another cluster. 
+# Export all GLEAM-X pipeline configurable variables and the MWA_ASVO_API_KEY to ensure 
+# obs_mantra completes as expected
+sub="sbatch --export=ALL,$(echo ${!GX*} | tr ' ' ','),MWA_ASVO_API_KEY  --time=12:00:00 -M ${GXCOPYM} --output=${output} --error=${error}"
 sub="${sub} ${account} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
@@ -153,8 +154,8 @@ jobid=($(${sub}))
 jobid=${jobid[3]}
 
 # rename the err/output files as we now know the jobid
-error="${error//%A/${jobid[0]}/}"
-output="${output//%A/${jobid[0]}/}"
+error="${error//%A/${jobid[0]}}"
+output="${output//%A/${jobid[0]}}"
 
 # record submission
 n=1
