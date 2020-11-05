@@ -16,6 +16,8 @@ The python codes are stored under the `gleam_x` sub-directory in a structure tha
 
 Throughout all tasks there is the expectation of certain GLEAM-X environment varibles being present. These describe the 'set-up' of the HPC, and include configurables like the path to scratch space, compute node specifications, data dependency locations, among other things. These GLEAM-X environment variables are described in the template profile. 
 
+Generated scripts are executed entirely within the singularity container context. This includes calls to `gleam_x` python scripts, which are bundled within the container. The `obs_*.sh` are executed on the host system (i.e. outside the container), and will submit the generated script to the SLURM schedular for execution. When SLURM allocates a resource, it first load the singularity container and then pas it the generated script for execution. 
+
 ## Structure of pipeline
 Code directory:
 - bin: contains the bash scripts that generate files for execution

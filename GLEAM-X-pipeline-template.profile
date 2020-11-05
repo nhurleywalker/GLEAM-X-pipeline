@@ -1,12 +1,15 @@
 #! /bin/bash -l
 
-echo "loading profile"
+echo "loading gleam-x profile"
+
+# Any system module file should be loaded here. Aside from singularity and slurm there are
+# no additional modules that are expected to be needed
 module load singularity
 
-# Throughout all tasks that items are referenced. Before running obs_*.sh scripts ensure the completed
-# configuration file has been sourced. 
-# When specifying paths below, please ensure that they do not end with a trailing '/'. As a convention
-# throughout
+# Before running obs_*.sh scripts ensure the completed configuration file has been sourced. 
+# As a convention when specifying paths below, please ensure that they do not end with a trailing '/', as
+# this assists in readability when combining paths. 
+
 
 cluster=                        # System-wide name of cluster
 
