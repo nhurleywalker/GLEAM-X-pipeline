@@ -3,6 +3,11 @@
 echo "loading profile"
 module load singularity
 
+# Throughout all tasks that items are referenced. Before running obs_*.sh scripts ensure the completed
+# configuration file has been sourced. 
+# When specifying paths below, please ensure that they do not end with a trailing '/'. As a convention
+# throughout
+
 cluster=                        # System-wide name of cluster
 
 GXUSER=$(whoami)
@@ -21,9 +26,9 @@ export GXSTANDARDQ=             # Slurm queue to submit tasks to
 export GXABSMEM=60              # Absolute memory a machine should be considered to have 
 export GXMEMORY=50              # Typical memory a job should request
 export GXNCPUS=48               # Number of CPUs of each machine, to be phased out
-export GXNLCPUS=48              # Number of logical CPUs of each machine (i.e. hyper-threaded)
-export GXNPCPUS=48              # Number of physical CPUs of each machine
-export GXTASKLINE=              # Reserved space for additional slurm sbatch options, if needed
+export GXNLCPUS=24              # Number of logical CPUs of each machine (i.e. hyper-threaded)
+export GXNPCPUS=24              # Number of physical CPUs of each machine
+export GXTASKLINE=              # Reserved space for additional slurm sbatch options, if needed. This is passed to all SLURM sbatch calls. 
 export GXLOG=                   # Path to output task logs, i.e. ${GXBASE}/queue/logs
 export GXSCRIPT=                # Path to place generated template scripts. i.e. "${GXBASE}/queue"
 export GXTRACK='no-track'       # Directive to inform task tracking for meta-database. 'track' will track task progression. Anything else will disable tracking. 
@@ -32,7 +37,7 @@ export GXSSH=                   # Path to SSH keys to be used for archiving. Key
                                 # Keys can be generated with: ssh-keygen -t rsa -f "${GXBASE}/ssh_keys/gx_${GXUSER}"
                                 # This is used only in the archiving script, as on Magnus it appears singularity can not bind to $HOME correctly
 export GXNCPULINE=""            # Informs the SLURM request how many CPUs should be allocated. If unset the SLURM 
-                                # default will be used. This may be configured with: "--ntasks-per-node=${GXNCPUS}"
+                                # default will be used. This may be configured with: "--ntasks-per-node=${GXNPCPUS}"
                                 # For tasks that are not parallelisable (apply_cal, uvflag), this option will be 
                                 # overwritten to ensure a single core is used. 
 export GXMWAPB="${GXBASE}/data/mwa_pb"  # The calibrate program requires the FEE model of the MWA primary beam.
@@ -40,6 +45,12 @@ export GXMWAPB="${GXBASE}/data/mwa_pb"  # The calibrate program requires the FEE
                                         # and can be downloaded from http://cerberus.mwa128t.org/mwa_full_embedded_element_pattern.h5
 export GXMWALOOKUP="${GXBASE}/data/pb"  # The MWA PB lookup HDF5's used by lookup_beam.py and lookup_jones.py. 
                                         # This is currently not used, as the container currently maintains a copy. 
+
+# Details for obs_mantra
+export GXCOPYA=             # Account to submit obs_mantra.sh job under, if time accounting is being performed by SLURM.
+                            # Leave this empty if the job is to be submitted as the user and there is no time accounting.
+export GXCOPYQ=             # A required parameter directing the job to a particular queue on $GXCOPYM. Set as just the queue name, i.e. 'copyq'
+export GXCOPYM=             # A required parameter directing the job to be submitted to a particular machine. Set as just the machine name, i.e. 'zeus'
 
 export GXVERSION='3.1.0'        # Version number of the pipeline
 export HOST_CLUSTER=$GXCLUSTER  # Maintained for compatability. Will be removed soon. 

@@ -17,7 +17,10 @@ exit 1;
 
 # Supercomputer options
 # Hardcode for downloading
-account="--account ${GXCOPYA}"
+if [ -z $GXCOPYA ] 
+then
+    account="--account ${GXCOPYA}"
+fi
 standardq="${GXCOPYQ}"
 
 pipeuser=$(whoami)
@@ -130,7 +133,7 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > "${script}.sbatch"
-echo "singularity run -B '${GXHOME}:${HOME}' -B '${GXMWALOOKUP}:/pb_lookup' ${GXCONTAINER} ${script}" >> "${script}.sbatch"
+echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> "${script}.sbatch"
 
 sub="sbatch --output=${output} --error=${error} ${depend} ${queue} ${script}.sbatch"
 
