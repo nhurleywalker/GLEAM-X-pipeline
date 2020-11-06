@@ -39,9 +39,9 @@ Used throughout the pipeline to track the submission/start/finish/fail of each o
 
 We provide `GLEAM-X-pipeline-template.profile` as an example configuration file that needs to be updated for the exact HPC system the GLEAM-X pipeline is being deployed on. Each environment variable also carries with it a brief description of its purporse and expected form.
 
-When running the completed template file for the first time, a set of folder are created, and data dependencies are automatically downloaded following the specification set. This should be a 'one-and-done' operation, but if locations are updated at a later time (or are accidently deleted) they would be reissued. 
+When running the completed template file for the first time, a set of folders are created, and data dependencies are automatically downloaded following the specification set. This should be a 'one-and-done' operation, but if locations are updated at a later time (or are accidently deleted) they would be reissued. 
 
-It will be necessary to source the completed template file before running any of the `obs` scripts. This will export all GLEAM-X configurables into the environment of spawned processes. 
+It will be necessary to `source` the completed template file before running any of the `obs` scripts. This will export all GLEAM-X configurables into the environment of spawned processes. 
 
 The template example configuration profile also references a secrets file. It is intended that this file (which is not included in this repository) would contain user authentication details required for aspects of the pipeline, including the downloading of MWA data from ASVO and authentication against the mysql database. This file is intentionally not included in this repository in an effort to ensure secrets are not accidently commited and made available. 
 
@@ -59,10 +59,12 @@ The following steps should install the pipeline for use on a HPC system with a S
 - `git clone` this repository
 - Copy the `GLEAM-X-pipeline-template.profile` file (e.g. `cp GLEAM-X-pipeline-template.profile GLEAM-X-pipeline-hpc.profile`), and edit based on the desired system configuration
 - Build the singularity container (if you have access to the `mwa-reduce` repository), or contact a member of the group for the current container
-- Run the configuration file to createdirectories and download data dependencies, `source GLEAM-X-pipeline-hpc.pipeline`
+- Run the configuration file to create directories and download data dependencies, e.e `source GLEAM-X-pipeline-hpc.pipeline`
 - If archiving using the GLEAM-X store (see the next subsection) reach out to a GLEAM-X member for further details
 
 All compiled software is already prebuilt in the singularity container. There is no need to install any python modules on the host system, as all python code is executed within the context of the singularity container. 
+
+The pipeline expects that a completed configuration profile and has been completed and loaded (using `source`) before running any of the associated `obs_*.sh` scripts. It is recommended that you `source` the completed configuration file in your `bash_profile`, so that it is loaded on login. *A word of warning*. If you adopt this approach and your home directory (where `bash_profile` usually resides) is shared among multiple clusters, special care should be taken to ensure you `source` the correct profile. 
 
 ## SSH keys and archiving
 
@@ -88,19 +90,21 @@ This section briefly outlines the current areas of development and are included 
 - GXSECRETS
   - This is still being tested, with tweaks being made to the container to be support the desired behaviour
 
-- `obs_mantra.sh`
+- `obs_manta.sh`
   - This is currently being tested after being ported to use the GLEAM-X configuration profile approach that generalises it away from a `zeus/pawsey` specific setup
 
 - Intermittent `obs_archive.sh` issues
-  - There appears to be some linger stability issues when running `obs_archive.sh`. Rsync reports some source files do not exist, when in fact they do, and are accessible manually. This may be related to the use of webDAV as an interface, and some form of time out on the remote system (test observation has alredy been archived, so rsync attempts to scan/update)
+  - There appears to be some stability issues when running `obs_archive.sh`. Rsync reports some source files do not exist, when in fact they do, and are accessible manually. This may be related to the use of webDAV as an interface, and some form of time out on the remote system (test observation has alredy been archived, so rsync attempts to scan/update)
 
 ` HOME not binding correctly under some conditions
-  - It appears that under some conditions (likely a network mount point not being followed correctly) that singularity is hacing difficulty binding to a users $HOME directory. This happens consistently within the pawsey environment. A ticket has been raised and the issue is being investigated. 
+  - It appears that under some conditions (likely a network mount point not being followed correctly or singularity version mismatch) that singularity is having difficulty binding to a users $HOME directory. This happens consistently within the pawsey environment. A ticket has been raised and the issue is being investigated. 
 
 ## Features to implement
 We plan to:
 
 - To support the polarisation component of GLEAM-X, a stage (likely to be included as part of `obs_archive.sh`) will copy data to a staging area, where it will be copied into the CSIRO network at a later time. 
+
+- To automatically download the GLEAM-X singularity container, if not already present
 
 ## Detailed script descriptions
 
