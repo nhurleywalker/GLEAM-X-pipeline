@@ -41,6 +41,13 @@ remote=REMOTE
 datadir="${base}/${obsnum}"
 cd "${datadir}" || exit
 
+MS="${obsnum}.ms"
+if [[ -z ${GXSTAGE} ]]
+then
+    zip -r "${GXSTAGE}/${MS}.zip.tmp" "${MS}" && \
+    mv "${GXSTAGE}/${MS}.zip.tmp" "${GXSTAGE}/${MS}.zip"
+fi
+
 subchans="0000 0001 0002 0003 MFS"
 
 # Post procressing tasks unrelated to fitswarp
