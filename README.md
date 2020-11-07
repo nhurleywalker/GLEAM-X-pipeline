@@ -57,14 +57,14 @@ We are happy to distribute the container to anyone upon request. In a future rel
 
 The following steps should install the pipeline for use on a HPC system with a SLURM schedular:
 - `git clone` this repository
-- Copy the `GLEAM-X-pipeline-template.profile` file (e.g. `cp GLEAM-X-pipeline-template.profile GLEAM-X-pipeline-hpc.profile`), and edit based on the desired system configuration
-- Build the singularity container (if you have access to the `mwa-reduce` repository), or contact a member of the group for the current container
-- Run the configuration file to create directories and download data dependencies, e.e `source GLEAM-X-pipeline-hpc.pipeline`
-- If archiving using the GLEAM-X store (see the next subsection) reach out to a GLEAM-X member for further details
+- Copy the `GLEAM-X-pipeline-template.profile` file (e.g. `cp GLEAM-X-pipeline-template.profile GLEAM-X-pipeline-hpc.profile`), and edit based on the desired system configuration using the text editor of your choice
+- Build the singularity container (if you have access to the `mwa-reduce` repository), or contact a member of the group for the current container, and place it in the path set but the ``GXCONTAINER`` environment variable
+- Run the configuration file to create directories and download data dependencies, e.g. `source GLEAM-X-pipeline-hpc.pipeline`
+- If archiving using the GLEAM-X data-store (see the next subsection) reach out to a GLEAM-X member for further details
 
 All compiled software is already prebuilt in the singularity container. There is no need to install any python modules on the host system, as all python code is executed within the context of the singularity container. 
 
-The pipeline expects that a completed configuration profile and has been completed and loaded (using `source`) before running any of the associated `obs_*.sh` scripts. It is recommended that you `source` the completed configuration file in your `bash_profile`, so that it is loaded on login. *A word of warning*. If you adopt this approach and your home directory (where `bash_profile` usually resides) is shared among multiple clusters, special care should be taken to ensure you `source` the correct profile. 
+The pipeline expects that a completed configuration profile and has been completed and loaded (using `source`) before running any of the associated `obs_*.sh` scripts. It is recommended that you `source` the completed configuration file in your `bash_profile`, so that it is loaded on login. *A word of warning*. If you adopt this approach and your home directory (where `bash_profile` usually resides) is shared among multiple clusters, special care should be taken to ensure you `source` the correct profile. Depending on the SLURM configuration and the compute node specifications, it is entirely possible that configuration profiles are not interchangeable between HPC environments, particuarly if SLURM jobs are requesting resources that the compute node are not capable of supporting. 
 
 ## SSH keys and archiving
 

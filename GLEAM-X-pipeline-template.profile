@@ -22,11 +22,9 @@ export GXACCOUNT=               # The SLURM account jobs will be run under. e.g.
                                 # corresponding --account=${GXACCOUNT} to the slurm submission. Only relevant if SLURM is tracking time usage 
 export GXBASE="/not/actual/path"# Path to base of GLEAM-X Pipeline where the repository was `git clone` into, e.g. "/astro/mwasci/tgalvin" 
 export GXSCRATCH="/scratch"     # Path to scratch space used for processing on the HPC environment, e.g. /scratch
-export GXHOME="${GXSCRATCH}"    # HOME space for some tasks. In some system configurations singularity can not mount, but applications (e.g. CASA, python) would like 
+export GXHOME="${GXSCRATCH}"    # HOME space for some tasks. In some system configurations singularity can not mount $HOMR, but applications (e.g. CASA, python) would like 
                                 # one to be available to cache folders. This does not have to be an actual $HOME directory, just a folder with read and write access. 
                                 # Suggestion is the same path as the scratch space, e.g. $GXSCRATCH. 
-                                # the typical $HOME correctly. Mostly here for software that likes to check for cache
-                                # folders created/stashed in home directory, typically. Should be something read/writeable.  
 export GXCONTAINER="${GXSCRATCH}/gleamx.img"  # Absolute path to the GLEAM-X singularity container, including the file name, e.g. "${GXSCRATCH}/gleamx.img"
                                               # This container is still being evaluated and available when requested from Tim Galvin. In a future update
                                               # the container will be automatically downloaded alongside other data dependencies. 
