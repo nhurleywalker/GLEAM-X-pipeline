@@ -51,8 +51,10 @@ export GXNPCPUS=24              # Number of physical CPUs on each machine, e.g. 
 export GXNCPULINE="--ntasks-per-node=${GXNPCPUS}"  # Informs the SLURM request how many CPUs should be allocated, e.g. "--ntasks-per-node=${GXNPCPUS}" 
                                 # If unset the SLURM default will be used. For tasks that are not parallelisable (apply_cal, uvflag), 
                                 # this option will be overwritten (if it is set) to ensure a single core is used.
-                                # There may be some interaction between this line and $GXNCPUS when deployed. For instance, on magnus only 
-                                # 24 cores may be requested in a slurm request, but there are 48 available in the job (logical hyper-threaded cores ignored in resource request) 
+                                # There may be some interaction between this line and $GXNCPUS when deployed. For instance, on magnus only a max of 24 cores  
+                                # can be requested, but there are 48 available in the job (logical hyper-threaded cores ignored in resource request).
+                                # For SLURM environments that do not share a node among users (entire node is booked for a request), it is suggested that 
+                                # this option is left empty.  
 
 # SLURM job submission details 
 export GXTASKLINE=                              # Reserved space for additional slurm sbatch options, if needed. This is passed to all SLURM sbatch calls. 
