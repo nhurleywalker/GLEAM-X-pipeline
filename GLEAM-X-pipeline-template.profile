@@ -12,8 +12,9 @@ module load singularity
 
 
 # Basic configuration
-cluster="garrawarla"            # System-wide name of cluster, e.g. "garrawarla". This does not have to have a one-to-one correspondance to the
-                                # actual system name.
+cluster="garrawarla"            # System-wide name of cluster, e.g. "garrawarla". This should match the name of the cluster, which can be checked 
+                                # with 'scontrol show config' under ClusterName, or under the environment variable HOST_CLUSTER
+                                # This is used when submitting jobs 'sbatch -M ${GXCLUSTER}'. See GXCLUSTER below. 
 export GXUSER=$(whoami)         # User name of the operator running the pipeline. This is here to generate user-specific filenames and paths. 
                                 # It is recommend to use the login account name, although in principal this is not critical and other approaches
                                 # could be adopted
@@ -30,8 +31,9 @@ export GXCONTAINER="${GXSCRATCH}/gleamx.img"  # Absolute path to the GLEAM-X sin
                                               # the container will be automatically downloaded alongside other data dependencies. 
 
 # SLURM compute schedular information
-export GXCOMPUTER=${cluster}    # Maintained for compatability. Describes the name of the cluster, e.g. "magnus".
-export GXCLUSTER=${cluster}     # Maintained for compatability. Describes the name of the cluster, e.g. "magnus".
+export GXCOMPUTER=${cluster}    # Maintained for compatability. Describes the name of the cluster, e.g. "magnus". 
+export GXCLUSTER=${cluster}     # Describes the name of the cluster, e.g. "magnus". This is used when submitting tasks 'sbatch -M ${GXCLUSTER}', and in track_task.py as a 
+                                # component of the composite key. In the future the '-M' machine option will likely be removed from all but obs_manta.sh.  
 export GXSTANDARDQ="workq"      # Slurm queue to submit tasks to, e.g. "workq". Available queues can be inspected using 'sinfo' on a system where the slurm schedular is available
 
 # Compute node memory specification
