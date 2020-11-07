@@ -74,7 +74,7 @@ export GXMWALOOKUP="${GXBASE}/data/pb"  # The MWA PB lookup HDF5's used by looku
                                         # This is currently not used, as the container currently maintains a copy. 
 
 # Details for obs_manta
-export GXCOPYA=             # Account to submit obs_mantra.sh job under, if time accounting is being performed by SLURM.
+export GXCOPYA=             # Account to submit obs_manta.sh job under, if time accounting is being performed by SLURM.
                             # Leave this empty if the job is to be submitted as the user and there is no time accounting.
 export GXCOPYQ='copyq'      # A required parameter directing the job to a particular queue on $GXCOPYM. Set as just the queue name, e.g. 'copyq'
 export GXCOPYM='zeus'       # A required parameter directing the job to be submitted to a particular machine. Set as just the machine name, e.g. 'zeus'
@@ -106,7 +106,7 @@ then
 fi
 
 # Check that required variables have a value. This perfoms a simple 'is empty' check
-for var in GXCOMPUTER GXCLUSTER GXSTANDARDQ GXABSMEMORY GXMEMORY GXNCPUS GXNLCPUS GXNPCPUS GXUSER
+for var in GXCOMPUTER GXCLUSTER GXSTANDARDQ GXABSMEMORY GXMEMORY GXNCPUS GXNLCPUS GXNPCPUS GXUSER GXCOPYQ GXCOPYM GXLOG GXSCRIPT
 do
     if [[ -z ${!var} ]]
     then
@@ -117,7 +117,6 @@ done
 
 # Check that the following values that point to a path actually exist. These are ones that (reasonably) should not
 # automatically be created
-# Check that required variables have a value. This perfoms a simple 'is empty' check
 for var in GXBASE GXSCRATCH GXHOME
 do
     if [[ ! -d ${!var} ]]
@@ -127,46 +126,27 @@ do
     fi
 done
 
-# Creates directories as needed below
-if [[ -z "${GXLOG}" ]]
+# Creates directories as needed below for the mandatory paths if they do not exist
+if [[ ! -d "${GXLOG}" ]]
 then
-    echo "GXLOG is not set. Please ensure it is correctly set."
-    exit 1
-else
-    if [[ ! -d "${GXLOG}" ]]
-    then
-        mkdir -p "${GXLOG}"
-    fi
+    mkdir -p "${GXLOG}"
 fi
 
-if [[ -z "${GXSCRIPT}" ]]
+if [[ ! -d "${GXSCRIPT}" ]]
 then
-    echo "GXSCRIPT is not set. Please ensure it is correctly set."
-    exit 1
-else
-    if [[ ! -d "${GXSCRIPT}" ]]
-    then
-        mkdir -p "${GXSCRIPT}"
-    fi
+    mkdir -p "${GXSCRIPT}"
 fi
 
-if [[ -z "${GXSTAGE}" ]]
+# Create the staging area if it has been configured, otherwise skip
+if [[ ! -z "${GXSTAGE}" ]]
 then
-    echo "GXSTAGE is not set. Please ensure it is correctly set."
-    exit 1
-else
     if [[ ! -d "${GXSTAGE}" ]]
     then
         mkdir -p "${GXSTAGE}"
     fi
 fi
 
-if [[ -z "${GXBASE}" ]]
-then
-    echo "GXBASE is not set. Please set it to the base path of the GLEAM-X pipeline. "
-    exit 1
-fi
-
+# Go fourth and download the data dependencies
 if [[ -d ${GXBASE} ]]
 then
     if [[ ! -d ${GXMWAPB} ]]
