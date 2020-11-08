@@ -42,8 +42,9 @@ datadir="${base}/${obsnum}"
 cd "${datadir}" || exit
 
 MS="${obsnum}.ms"
-if [[ -z ${GXSTAGE} ]]
+if [[ ! -z "${GXSTAGE}" ]] && [[ -d "${GXSTAGE}" ]]
 then
+    echo "Copying and zipping ${MS} to staging area ${GXSTAGE}"
     zip -r "${GXSTAGE}/${MS}.zip.tmp" "${MS}" && \
     mv "${GXSTAGE}/${MS}.zip.tmp" "${GXSTAGE}/${MS}.zip"
 fi
@@ -93,17 +94,22 @@ done
 
 # Singularity does not mount the home directory on pawsey correctly, so 
 # best to avoid trying to hit the home directory and load ssh keys elsewhere
-rsync -avh --progress --stats -e "ssh -v -o StrictHostKeyChecking=no -i ${GXSSH}" \
+rsync -avh --progress --stats -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
                               ./*csv \
                               ./*clip.zip \
                               ./*png \
                               ./*log \
                               ./*fits.sr6 \
-                              "${obsnum}_deep-sources.txt" \
-                              "${obsnum}_deep-sources-pb.txt" \
-                              "${obsnum}_deep-*-psf_crop.fits" \
-                              "${obsnum}_deep-*-image-pb.fits" \
-                              "${obsnum}_*_xm.fits" \
+                              "${obsnum}"_deep-sources.txt \
+                              "${obsnum}"_deep-sources-pb.txt \
+                              "${obsnum}"_deep-*-psf_crop.fits \
+                              "${obsnum}"_deep-*-image-pb.fits \
+                              "${obsnum}"_deep-*-image-pb_warp_weight.fits \
+                              "${obsnum}"_deep-*-image-pb_warp_rms.fits \
+                              "${obsnum}"_deep-*-image-pb_warp_bkg.fits \
+                              "${obsnum}"_deep-*-image-pb_warp_comp.fits \
+                              "${obsnum}"_{north,south,east,west}-image_comp.fits \
+                              "${obsnum}"_*_xm.fits \
                               "${user}@${host}:${remote}/${obsnum}"
 
 test_fail $?

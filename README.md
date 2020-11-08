@@ -90,12 +90,6 @@ This section briefly outlines the current areas of development and are included 
 - GXSECRETS
   - This is still being tested, with tweaks being made to the container to be support the desired behaviour
 
-- `obs_manta.sh`
-  - This is currently being tested after being ported to use the GLEAM-X configuration profile approach that generalises it away from a `zeus/pawsey` specific setup
-
-- Intermittent `obs_archive.sh` issues
-  - There appears to be some stability issues when running `obs_archive.sh`. Rsync reports some source files do not exist, when in fact they do, and are accessible manually. This may be related to the use of webDAV as an interface, and some form of time out on the remote system (test observation has alredy been archived, so rsync attempts to scan/update)
-
 ` HOME not binding correctly under some conditions
   - It appears that under some conditions (likely a network mount point not being followed correctly or singularity version mismatch) that singularity is having difficulty binding to a users $HOME directory. This happens consistently within the pawsey environment. A ticket has been raised and the issue is being investigated. 
 
