@@ -57,7 +57,7 @@ We are happy to distribute the container to anyone upon request. In a future rel
 
 The following steps should install the pipeline for use on a HPC system with a SLURM schedular:
 - `git clone` this repository
-- Copy the `GLEAM-X-pipeline-template.profile` file (e.g. `cp GLEAM-X-pipeline-template.profile GLEAM-X-pipeline-hpc.profile`), and edit based on the desired system configuration using the text editor of your choice
+- Copy the `GLEAM-X-pipeline-template.profile` file (e.g. `cp GLEAM-X-pipeline-template.profile GLEAM-X-pipeline-hpc.profile`), and edit based on the desired system configuration using the text editor of your choice. For reference we include some exampled in the `example_profiles` directory. Care should be taken to ensure that they reflect the HPC configuration of each user
 - Build the singularity container (if you have access to the `mwa-reduce` repository), or contact a member of the group for the current container, and place it in the path set but the ``GXCONTAINER`` environment variable
 - Run the configuration file to create directories and download data dependencies, e.g. `source GLEAM-X-pipeline-hpc.pipeline`
 - If archiving using the GLEAM-X data-store (see the next subsection) reach out to a GLEAM-X member for further details
