@@ -67,14 +67,14 @@ fi
 
 if [[ ! -z ${GXACCOUNT} ]]
 then
-    account="--acount=${GXACCOUNT}"
+    account="--account=${GXACCOUNT}"
 fi
 
 # Establish job array options
 if [[ -f ${obsnum} ]]
 then
     numfiles=$(wc -l "${obsnum}" | awk '{print $1}')
-    jobarray="#SBATCH --array=1-${numfiles}"
+    jobarray="--array=1-${numfiles}"
 else
     numfiles=1
     jobarray=''

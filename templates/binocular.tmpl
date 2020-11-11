@@ -24,12 +24,10 @@ echo "taskid: ${taskid}"
 
 basedir=BASEDIR
 
-# start
-track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
-
 cd "${basedir}/${obsnum}" || exit
 
-track_task.py start --jobid="${SLURM_JOBID}" --taskid=1 --start_time="$(date +%s)"
+# start
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
 # S/N Threshold at which to stop cleaning
 tsigma=3
@@ -88,8 +86,8 @@ do
             -scale "${scale:0:8}" \
             "${obsnum}_flag.ms"
 
-    BANE --compress --noclobber "${obsnum}_${dir}-image.fits"
-    aegean --autoload --table="${obsnum}_${dir}-image.fits" "${obsnum}_${dir}-image.fits"
+    BANE --cores ${GXNCPUS} --compress --noclobber "${obsnum}_${dir}-image.fits"
+    aegean --cores ${GXNCPUS} --autoload --table="${obsnum}_${dir}-image.fits" "${obsnum}_${dir}-image.fits"
     rm -rf "${obsnum}_flag.ms"
     rm "${obsnum}_${dir}-image.fits"
     rm "${obsnum}_${dir}-image_bkg.fits"
