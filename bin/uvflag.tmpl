@@ -57,3 +57,7 @@ else
         echo "No baselines to flag."
     fi
 fi
+
+# Explicit exit statement so that slurm dependencies always work
+# TODO: put all CASA commands inside ms_flag_by_uvdist.py
+exit 0
