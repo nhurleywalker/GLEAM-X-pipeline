@@ -72,7 +72,10 @@ chan=$( pyhead.py -p CENTCHAN "$metafits" | awk '{print $3}' )
 
 if [[ ! -e "${obsnum}_local_gleam_model.txt" ]]
 then
-    crop_catalogue.py --ra="${RA}" --dec="${Dec}" --radius=30 --minflux=1.0 --metafits="${metafits}" \
+    # crop_catalogue.py --ra="${RA}" --dec="${Dec}" --radius=30 --minflux=1.0 --metafits="${metafits}" \
+    #                     --catalogue="${catfile}" --fluxcol=S_200 --plot "${obsnum}_local_gleam_model.png" \
+    #                     --output "${obsnum}_cropped_catalogue.fits"
+    crop_catalogue.py --ra="${RA}" --dec="${Dec}" --radius=30 --top-bright=200 --metafits="${metafits}" \
                         --catalogue="${catfile}" --fluxcol=S_200 --plot "${obsnum}_local_gleam_model.png" \
                         --output "${obsnum}_cropped_catalogue.fits"
     vo2model.py --catalogue="${obsnum}_cropped_catalogue.fits" --point --output="${obsnum}_local_gleam_model.txt" \
