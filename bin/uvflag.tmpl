@@ -35,29 +35,12 @@ cd $datadir/${obsnum}
 if [[ -z $debug ]]
 then
  #   python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
-    /astro/mwasci/tgalvin/gleamx.img /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA > baselines_to_flag.txt
-    if [[ -s baselines_to_flag.txt ]]
-    then
-        baselines=$(cat baselines_to_flag.txt)
-
-#        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
-        /astro/mwasci/tgalvin/gleamx.img casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
-    else
-        echo "No baselines to flag."
-    fi
+    /astro/mwasci/tgalvin/gleamx.img /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms DATA -a
 else
 #    python /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
-    /astro/mwasci/tgalvin/gleamx.img /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA > baselines_to_flag.txt
-    if [[ -s baselines_to_flag.txt ]]
-    then
-        baselines=$(cat baselines_to_flag.txt)
-        /astro/mwasci/tgalvin/gleamx.img casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected_data', antenna='${baselines}')" 
-#        ${CASA_LOCATION} --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
-    else
-        echo "No baselines to flag."
-    fi
+    /astro/mwasci/tgalvin/gleamx.img /group/mwasci/nhurleywalker/code/piip/ms_flag_by_uvdist.py ${obsnum}.ms CORRECTED_DATA -a 
 fi
 
 # Explicit exit statement so that slurm dependencies always work
 # TODO: put all CASA commands inside ms_flag_by_uvdist.py
-exit 0
+# exit 0
