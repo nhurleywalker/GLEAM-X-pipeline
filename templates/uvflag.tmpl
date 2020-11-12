@@ -36,23 +36,9 @@ track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date
 cd "$datadir/${obsnum}" || exit
 if [[ -z $debug ]]
 then
-    ms_flag_by_uvdist.py "${obsnum}.ms" DATA > baselines_to_flag.txt
-    if [[ -s baselines_to_flag.txt ]]
-    then
-        baselines=$(cat baselines_to_flag.txt)
-        casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='data', antenna='${baselines}')" 
-    else
-        echo "No baselines to flag."
-    fi
+    ms_flag_by_uvdist.py "${obsnum}.ms" DATA -a
 else
-    ms_flag_by_uvdist.py "${obsnum}.ms" CORRECTED_DATA > baselines_to_flag.txt
-    if [[ ! -s baselines_to_flag.txt ]]
-    then
-        baselines=$(cat baselines_to_flag.txt)
-        casa --nogui --agg --nologger -c "flagdata(vis='${obsnum}.ms', datacolumn='corrected', antenna='${baselines}')" 
-    else
-        echo "No baselines to flag."
-    fi
+    ms_flag_by_uvdist.py "${obsnum}.ms" CORRECTED_DATA -a 
 fi
 
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
