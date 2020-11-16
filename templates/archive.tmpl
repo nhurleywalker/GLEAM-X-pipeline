@@ -47,6 +47,7 @@ then
     echo "Copying and zipping ${MS} to staging area ${GXSTAGE}"
     zip -r "${GXSTAGE}/${MS}.zip.tmp" "${MS}" && \
     mv "${GXSTAGE}/${MS}.zip.tmp" "${GXSTAGE}/${MS}.zip"
+    chmod 775 "${GXSTAGE}/${MS}.zip" # Ensure rsync can --remove-source-files
 fi
 
 subchans="0000 0001 0002 0003 MFS"
