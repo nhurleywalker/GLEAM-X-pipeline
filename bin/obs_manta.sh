@@ -133,7 +133,7 @@ chmod 755 "${script}"
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > "${script}.sbatch"
 echo 'module load singularity' >> "${script}.sbatch"
-echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> "${script}.sbatch"
+echo "singularity run ${GXCONTAINER} ${script}" >> "${script}.sbatch"
 
 # This is the only task that should reasonably be expected to run on another cluster. 
 # Export all GLEAM-X pipeline configurable variables and the MWA_ASVO_API_KEY to ensure 

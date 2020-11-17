@@ -64,10 +64,12 @@ export GXSCRIPT="${GXBASE}/script_${GXCLUSTER}" # Path to place generated templa
 export GXTRACK='no-track'                       # Directive to inform task tracking for meta-database. 'track' will track task progression. Anything else will disable tracking. 
 
 
-export GXSSH="${GXBASE}/ssh_keys/gx_${GXUSER}"  # Path to SSH keys to be used for archiving. Keys names should follow a 'gx_${GXUSER}' convention, e.g. "${GXBASE}/ssh_keys/gx_${GXUSER}"
-                                                # Ensure restricted folder/file permissions, e.g. cmod -R 700 "${GXBASE}/ssh_keys"
-                                                # Keys can be generated with: ssh-keygen -t rsa -f "${GXBASE}/ssh_keys/gx_${GXUSER}"
-                                                # This is used only in the archiving script, as on Magnus it appears singularity can not bind to $HOME correctly
+export GXSSH="${GXBASE}/ssh_keys/gx_${GXUSER}"                      # Path to SSH keys to be used for archiving. Keys names should follow a 'gx_${GXUSER}' convention, e.g. "${GXBASE}/ssh_keys/gx_${GXUSER}"
+if [ ! -z "${GXSSH}" ] && [ ! -f "${GXSSH}" ]                        # Ensure restricted folder/file permissions, e.g. cmod -R 700 "${GXBASE}/ssh_keys"
+then                                                               # Keys can be generated with: ssh-keygen -t rsa -f "${GXBASE}/ssh_keys/gx_${GXUSER}"
+    echo "GXSSH set to ${GXSSH}, but not found. Setting to empty." # This is used only in the archiving script, as on Magnus it appears singularity can not bind to $HOME correctly
+    export GXSSH=""                             
+fi
 
 # Data dependencies
 # Data dependencies are downloaded into the directories below if the directories do not exist. 
@@ -91,6 +93,13 @@ export GXSTAGE=             # To support the polarisation effort led by Xiang Zh
                             # data then you may ignore this. If you *ARE* involved, please reach out to a GLEAM-X member to ensure this
                             # is correctly configured and known on the CSIRO side. 
 
+
+# Singularity bind paths
+# This describes a set of paths that need to be available within the container for all processing tasks. Depending on the system
+# and pipeline configuration it is best to have these explicitly set across all tasks. For each 'singularity run' command this
+# SINGULARITY_BINDPATHS will be used to mount against. 
+export SINGULARITY_BINDPATH="${HOME},${GXLOG},${GXSCRIPT},${GXBASE},${GXSCRATCH},${GXSSH},${GXMWALOOKUP}:/pb_lookup,${GXMWAPB}"
+export GXBINDPATH=""
 
 export PATH="${PATH}:${GXBASE}/bin" # Adds the obs_* script to the searchable path. 
 export HOST_CLUSTER=${GXCLUSTER}    # Maintained for compatability. Will be removed soon. 
