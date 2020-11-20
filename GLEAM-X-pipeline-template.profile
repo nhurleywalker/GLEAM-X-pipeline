@@ -96,7 +96,7 @@ export GXSTAGE=             # To support the polarisation effort led by Xiang Zh
 # and pipeline configuration it is best to have these explicitly set across all tasks. For each 'singularity run' command this
 # SINGULARITY_BINDPATHS will be used to mount against. These GX variables should be all that is needed on a typical deployed 
 # pipeline, but can be used to further expose/enhance functionality if desired. 
-export SINGULARITY_BINDPATH="${HOME},${GXSCRIPT},${GXBASE},${GXSCRATCH},${GXSSH},${GXMWALOOKUP}:/pb_lookup,${GXMWAPB},${GXSTAGE}"
+export SINGULARITY_BINDPATH="${HOME}:${HOME},${GXSCRIPT},${GXBASE},${GXSCRATCH},${GXSSH},${GXMWALOOKUP}:/pb_lookup,${GXMWAPB},${GXSTAGE}"
 
 export PATH="${PATH}:${GXBASE}/bin" # Adds the obs_* script to the searchable path. 
 export HOST_CLUSTER=${GXCLUSTER}    # Maintained for compatability. Will be removed soon. 
