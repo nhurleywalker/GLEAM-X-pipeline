@@ -133,6 +133,7 @@ chmod 755 "${script}"
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > "${script}.sbatch"
 echo 'module load singularity' >> "${script}.sbatch"
+echo "export SINGULARITY_BINDPATH=${SINGULARITY_BINDPATH}" >> "${script}.sbatch"
 echo "singularity run ${GXCONTAINER} ${script}" >> "${script}.sbatch"
 
 # This is the only task that should reasonably be expected to run on another cluster. 
