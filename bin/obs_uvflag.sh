@@ -114,7 +114,6 @@ fi
 
 sub="sbatch --export=ALL  --time=01:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
 sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
-echo ${sub}
 
 if [[ ! -z ${tst} ]]
 then
