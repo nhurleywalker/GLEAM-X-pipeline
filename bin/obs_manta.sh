@@ -7,6 +7,8 @@ echo "obs_manta.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t
   -p project  : project, (must be specified, no default)
   -s timeres  : time resolution in sec. default = 2 s
   -k freqres  : freq resolution in KHz. default = 40 kHz
+  -f edgeflag : number of edge band channels flagged. default = 80
+  -e expiry   : number of days datafile will be available for download for. default = 7
   -g          : download gpubox fits files instead of measurement sets
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
@@ -31,9 +33,11 @@ tst=
 gpubox=
 timeres=
 freqres=
+edgeflag=80
+expiry=7
 
 # parse args and set options
-while getopts ':tgd:p:s:k:o:' OPTION
+while getopts ':tgd:p:s:k:o:f:e:' OPTION
 do
     case "$OPTION" in
     d)
@@ -50,6 +54,10 @@ do
         tst=1 ;;
     g)
         gpubox=1 ;;
+    f)
+        edgeflag=${OPTARG} ;;
+    e)
+        expiry=${OPTARG} ;;
     ? | : | h)
             usage ;;
   esac
@@ -104,10 +112,10 @@ do
     else
         if [[ -z ${gpubox} ]]
         then
-            echo "obs_id=${obsnum}, job_type=c, timeres=${timeres}, freqres=${freqres}, edgewidth=80, conversion=ms, allowmissing=true, flagdcchannels=true" >>  "${obslist}_manta.tmp"
+            echo "obs_id=${obsnum}, job_type=c, timeres=${timeres}, freqres=${freqres}, edgewidth=${edgeflag}, expiry_days=${expiry}, conversion=ms, allowmissing=true, flagdcchannels=true" >>  "${obslist}_manta.tmp"
             stem="ms"
         else
-            echo "obs_id=${obsnum}, job_type=d, download_type=vis" >>  "${obslist}_manta.tmp"
+            echo "obs_id=${obsnum}, job_type=d, download_type=vis, expiry_days=${expiry}" >>  "${obslist}_manta.tmp"
             stem="vis"
         fi
         dllist=$dllist"$obsnum "
