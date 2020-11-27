@@ -104,7 +104,7 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo "singularity run -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+echo "singularity run ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 if [ ! -z ${GXNCPULINE} ]
 then
@@ -112,8 +112,9 @@ then
     GXNCPULINE="--ntasks-per-node=1"
 fi
 
-sub="sbatch --export=ALL  --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="sbatch --export=ALL  --time=01:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
 sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
+
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"

@@ -105,7 +105,7 @@ chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
 echo '#!/bin/bash' > ${script}.sbatch
-echo "singularity run -B '${GXFMODELS}' -B '${GXMWAPB}' -B '${GXMWALOOKUP}:/pb_lookup' -B '${GXHOME}:${HOME}' ${GXCONTAINER} ${script}" >> ${script}.sbatch
+echo "singularity run ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
 sub="sbatch --export=ALL  --time=02:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
 sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"

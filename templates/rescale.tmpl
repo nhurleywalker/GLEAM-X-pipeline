@@ -1,14 +1,8 @@
 #!/bin/bash -l
-#SBATCH --account=ACCOUNT
-#SBATCH --partition=workq
-#SBATCH --time=05:00:00
-#SBATCH --nodes=1
-#SBATCH --array=0-4
-
-pipeuser=PIPEUSER
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 set -x
+
+pipeuser=PIPEUSER
 
 base=BASEDIR
 obslist=OBSLIST
@@ -22,33 +16,33 @@ fi
 subchans=(0000 0001 0002 0003 MFS)
 subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
 
-cd ${base}
+cd "${base}" || exit
 
-obs=`cat $obslist`
+obs=$(cat $obslist)
 
-sublist=${obslist%.txt}_${subchan}.txt
+sublist="${obslist%.txt}_${subchan}.txt"
 
 if [[ -e $sublist ]]
 then
-    rm $sublist
+    rm "${sublist}"
 fi
 
 for file in ${obs}
 do
-    if [[ -e ${file}/${file}_deep-${subchan}-image-pb_warp.fits ]]
+    if [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp.fits" ]]
     then
-        echo ${file}/${file}_deep-${subchan}-image-pb_warp.fits >> ${sublist}
+        echo "${file}/${file}_deep-${subchan}-image-pb_warp.fits" >> ${sublist}
     fi
 done
 
-python /group/mwasci/${pipeuser}/GLEAM-X-pipeline/bin/polyfit_snapshots.py \
-               --filelist ${sublist} \
-               --skymodel=/group/mwasci/${pipeuser}/GLEAM-X-pipeline/models/GGSM_sparse_unresolved.fits \
+polyfit_snapshots.py \
+               --filelist "${sublist}" \
+               --skymodel="${GXBASE}"/models/GGSM_sparse_unresolved.fits \
                $readfile $write --rescale --correctall --overwrite --plot
 
 # Check that all files created so I can use the right exit code
 exitcode=0
-files=`cat $sublist`
+files=$(cat "${sublist}")
 for file in ${files}
 do
     if [[ ! -e ${file%.fits}_rescaled.fits ]]
