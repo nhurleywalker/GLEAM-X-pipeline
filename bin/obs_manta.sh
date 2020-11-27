@@ -16,7 +16,7 @@ exit 1;
 
 # Supercomputer options
 # Hardcode for downloading
-if [ -z $GXCOPYA ] 
+if [ ! -z $GXCOPYA ] 
 then
     account="--account ${GXCOPYA}"
 fi
