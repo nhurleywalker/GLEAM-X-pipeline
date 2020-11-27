@@ -5,8 +5,6 @@ usage()
 echo "drift_mosaic.sh [-p project] [-d dep] [-q queue] [-a account] [-t] [-r ra] [-e dec] -o list_of_observations.txt
   -p project  : project, (must be specified, no default)
   -d dep     : job number for dependency (afterok)
-  -q queue    : job queue, default=workq
-  -a account : computing account, default pawsey0272
   -t          : test. Don't submit job, just make the batch file
                 and then return the submission command
   -r RA       : Right Ascension (decimal hours; default = guess from observation list)
@@ -17,52 +15,21 @@ exit 1;
 
 pipeuser=$(whoami)
 
-# Supercomputer options
-if [[ "${HOST:0:4}" == "zeus" ]]
-then
-    computer="zeus"
-    standardq="workq"
-    ncpus=28
-#    absmem=60
-#    standardq="gpuq"
-elif [[ "${HOST:0:4}" == "magn" ]]
-then
-    computer="magnus"
-    standardq="workq"
-    ncpus=24
-#    absmem=60
-elif [[ "${HOST:0:4}" == "athe" ]]
-then
-    computer="athena"
-    standardq="gpuq"
-#    absmem=30 # Check this
-fi
-
 #initial variables
-
-scratch="/astro"
-group="/group"
-base="$scratch/mwasci/$pipeuser/"
-dbdir="$group/mwasci/$pipeuser/GLEAM-X-pipeline/"
 dep=
-queue="-p $standardq"
-account=
+queue="-p ${GXSTANDARDQ}"
 tst=
 ra=
 dec=
 
 # parse args and set options
-while getopts ':td:p:q:o:r:e:' OPTION
+while getopts ':td:p:o:r:e:' OPTION
 do
     case "$OPTION" in
     d)
         dep=${OPTARG} ;;
     p)
         project=${OPTARG} ;;
-	q)
-	    queue="-p ${OPTARG}" ;;
-	a)
-	    account=${OPTARG} ;;
 	o)
 	    obslist=${OPTARG} ;;
     r)
@@ -84,7 +51,7 @@ if [[ -z ${obslist} ]] || [[ ! -s ${obslist} ]] || [[ ! -e ${obslist} ]] || [[ -
 then
     usage
 else
-    numfiles=`wc -l ${obslist} | awk '{print $1}'`
+    numfiles=$(wc -l ${obslist} | awk '{print $1}')
 fi
 
 if [[ ! -z ${dep} ]]
@@ -92,31 +59,38 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
-if [[ -z ${account} ]]
+if [[ ! -z ${GXACCOUNT} ]]
 then
-    account=pawsey0272
+    account="--acount=${GXACCOUNT}"
 fi
 
-base=$base/$project
-cd $base
+queue="-p ${GXSTANDARDQ}"
+base="${GXSCRATCH}/${project}"
+cd "${base}" || exit
 
 obss=($(sort $obslist))
-listbase=`basename ${obslist}`
+listbase=$(basename "${obslist}")
 listbase=${listbase%%.*}
-script="${dbdir}queue/mosaic_${listbase}.sh"
+script="${GXSCRIPT}/mosaic_${listbase}.sh"
 
-cat ${dbdir}/bin/mosaic.tmpl | sed -e "s:OBSLIST:${obslist}:g" \
-                                 -e "s:ACCOUNT:${account}:g" \
-                                 -e "s:RAPOINT:${ra}:g" \
-                                 -e "s:DECPOINT:${dec}:g" \
-                                 -e "s:BASEDIR:${base}:g" \
-                                 -e "s:PIPEUSER:${pipeuser}:g" > ${script}
+cat "${GXBASE}/bin/mosaic.tmpl" | sed -e "s:OBSLIST:${obslist}:g" \
+                                      -e "s:RAPOINT:${ra}:g" \
+                                      -e "s:DECPOINT:${dec}:g" \
+                                      -e "s:BASEDIR:${base}:g" \
+                                      -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
-output="${dbdir}queue/logs/mosaic_${listbase}.o%A_%a"
-error="${dbdir}queue/logs/mosaic_${listbase}.e%A_%a"
+output="${GXLOG}/mosaic_${listbase}.o%A_%a"
+error="${GXLOG}/mosaic_${listbase}.e%A_%a"
 
-#sub="sbatch --begin=now+15 --output=${output} --error=${error} ${depend} ${queue} ${script}"
-sub="sbatch --output=${output} --error=${error} ${depend} ${queue} ${script}"
+chmod 755 "${script}"
+
+# sbatch submissions need to start with a shebang
+echo '#!/bin/bash' > "${script}.sbatch"
+echo "singularity run ${GXCONTAINER} ${script}" >> "${script}.sbatch"
+
+# Automatically runs a job array for each sub-band
+sub="sbatch --array=0-4  --export=ALL  --time=12:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
     echo "script is ${script}"
@@ -130,18 +104,21 @@ jobid=($(${sub}))
 jobid=${jobid[3]}
 
 # rename the err/output files as we now know the jobid
-error=`echo ${error} | sed "s/%A/${jobid}/"`
-output=`echo ${output} | sed "s/%A/${jobid}/"`
+error=$(${error//%A/"${jobid}"})
+output=$(${output//%A/"${jobid}"})
 
 # record submission
-#n=1
-#for obsnum in ${obss[@]}
-#do
-#    python ${dbdir}/bin/track_task.py queue --jobid=${jobid} --taskid=${n} --task='mosaic' --submission_time=`date +%s` --batch_file=${script} \
-#                     --obs_id=${obsnum} --stderr=${error} --stdout=${output}
-#    ((n+=1))
-#done
-
-echo "Submitted ${script} as ${jobid}. Follow progress here:"
-echo $output
-echo $error
+# if [ "${GXTRACK}" = "track" ]
+# then
+#     for taskid in $(seq 0 1 4)
+#     do
+#         for obsnum in "${obss[@]}"
+#         do
+#             track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='mosaic' --submission_time="$(date +%s)" --batch_file="${script}" \
+#                                     --obs_id="${obsnum}" --stderr="${error}" --stdout="${output}"
+#         done
+#     done
+# fi
+echo "Submitted ${script} as ${jobid} . Follow progress here:"
+echo "${output}"
+echo "${error}"

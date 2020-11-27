@@ -1,13 +1,6 @@
 #!/bin/bash -l
-#SBATCH --account=ACCOUNT
-#SBATCH --partition=workq
-#SBATCH --time=12:00:00
-#SBATCH --nodes=1
-#SBATCH --array=0-4
 
 pipeuser=PIPEUSER
-export pipeuser
-source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
 
 set -x
 
@@ -16,7 +9,7 @@ obslist=OBSLIST
 ra=RAPOINT
 dec=DECPOINT
 
-cd ${base}
+cd ${base} || exit
 obss=($(sort $obslist))
 
 #n=0
@@ -27,51 +20,47 @@ obss=($(sort $obslist))
 #done
 
 num=${#obss[@]}
-last=${obss[-1]}
 middle=${obss[$((num / 2))]}
 
 # Use the middle observation of the sorted list to define the centre of the mosaic
-# metafits=`ls -1 ${middle}/*metafits* | head -1`
-metafits=${middle}/${middle}.metafits
+metafits="${middle}/${middle}.metafits"
 
 # In case we do not have a complete list and the best middle observation hasn't been downloaded...
-if [ ! -e ${metafits} ]; then
+if [ ! -e "${metafits}" ]; then
     # download a new one:
-    wget http://ws.mwatelescope.org/metadata/fits/?obs_id=${middle} -O ${middle}.metafits
+    wget "http://ws.mwatelescope.org/metadata/fits/?obs_id=${middle}" -O "${middle}.metafits"
 fi
 
 if [ -z $ra ]; then
-    ra=`pyhead.py -p RA ${metafits} | awk '{print $3}'`
+    ra=$(pyhead.py -p RA ${metafits} | awk '{print $3}')
 fi
 if [ -z $dec ]; then
-    dec=`pyhead.py -p DEC ${metafits} | awk '{print $3}'`
+    dec=$(pyhead.py -p DEC ${metafits} | awk '{print $3}')
 fi
 # Assume user has been smart and all observations have the same central channel 
-chan=`pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}'`
+chan=$(pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}')
 
 subchans=(0000 0001 0002 0003 MFS)
 subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
 
 # Define output mosaic name as the first part of the input text file
-outname=`echo ${obslist} | awk 'BEGIN {FS="_"} {print $1}'`
+outname=$(echo ${obslist} | awk 'BEGIN {FS="_"} {print $1}')
 
 for image in "" "_weights"; do 
-    if [ -e ${obslist%.txt}_temp_${subchan}${image}.txt ]; then
-        rm ${obslist%.txt}_temp_${subchan}${image}.txt
+    if [ -e "${obslist%.txt}_temp_${subchan}${image}.txt" ]; then
+        rm "${obslist%.txt}_temp_${subchan}${image}.txt"
     fi
 done
 
 # Create the image list -- use a temporary name for now
-tmp=${obslist%.txt}_temp_${subchan}.txt
-tmp_weights=${obslist%.txt}_temp_${subchan}_weights.txt
+tmp="${obslist%.txt}_temp_${subchan}.txt"
+tmp_weights="${obslist%.txt}_temp_${subchan}_weights.txt"
 
-for tmp_d in $tmp $tmp_bmaj $tmp_bmin $tmp_bpa $tmp_weights; do
-    if [[ -e ${tmp_d} ]]; then
-        rm ${tmp_d}
+for tmp_d in "$tmp" "$tmp_bmaj" "$tmp_bmin" "$tmp_bpa" "$tmp_weights"; do
+    if [[ -e "${tmp_d}" ]]; then
+        rm "${tmp_d}"
     fi
 done
-
-weights=""
 
 used_obs=()
 
@@ -80,7 +69,7 @@ do
     if [[ -e ${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits ]]
     then
 
-        echo "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits" >> $tmp
+        echo "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits" >> "${tmp}"
         example=${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits
 
         # pass weight maps as a text file so the same weight maps can be used - not needed anymore
@@ -95,10 +84,10 @@ done
 # Use an image that exists to get the frequency range
 if [[ ! -z $example ]]
 then
-    del=`pyhead.py -p CDELT3 $example | awk '{print $3/2}'`
-    mid=`pyhead.py -p CRVAL3 $example | awk '{print $3}'`
-    low=`echo $mid $del | awk '{printf "%03.0f",($1-$2)/1e6}'`
-    high=`echo $mid $del | awk '{printf "%03.0fMHz",($1+$2)/1e6 }'`
+    del=$(pyhead.py -p CDELT3 $example | awk '{print $3/2}')
+    mid=$(pyhead.py -p CRVAL3 $example | awk '{print $3}')
+    low=$(echo $mid $del | awk '{printf "%03.0f",($1-$2)/1e6}')
+    high=$(echo $mid $del | awk '{printf "%03.0fMHz",($1+$2)/1e6 }')
 else
     echo "No images found!"
     exit 1
@@ -125,9 +114,9 @@ then
 fi
 
 # Move the temporary image list to the mosaic directory and rename
-mv $tmp mosaics/${imagelist}.list
-mv $tmp_weights mosaics/${imagelist}.weights.list
-cd mosaics/
+mv "$tmp" "mosaics/${imagelist}.list"
+mv "$tmp_weights" "mosaics/${imagelist}.weights.list"
+cd mosaics/ || exit
 
 # Was going to generate the xsize like this but it's too complicated with all the projection effects
 #first=`head -1 $imagelist`
@@ -136,7 +125,7 @@ cd mosaics/
 #raend=`pyhead.py -p CRVAL1 $last`
 
 # Create a swarp template file for resampling
-cat /group/mwasci/${pipeuser}/GLEAM-X-pipeline/mosaics/resamp.swarp.tmpl \
+cat "${GXBASE}"/mosaics/resamp.swarp.tmpl \
     | sed "s;OUTIMAGE;${imageout}.fits;" \
     | sed "s;OUTWEIGHT;${weightout};" \
     | sed "s;WEIGHT_NAMES;${imagelist}.weights.list;" \
@@ -146,14 +135,14 @@ cat /group/mwasci/${pipeuser}/GLEAM-X-pipeline/mosaics/resamp.swarp.tmpl \
 
 if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
 
-    if [ -e ${resampdir} ]; then
-        rm ${resampdir}
+    if [ -e "${resampdir}" ]; then
+        rm "${resampdir}"
     fi
 
-    mkdir ${resampdir}
+    mkdir "${resampdir}"
 
     echo "Generating resampled images for for ${obslist} subband $subchan."
-    swarp -c ${template}.resamp @${imagelist}.list
+    swarp -c "${template}.resamp" @"${imagelist}.list"
     # resampled images should now appear in ./resamp
 
     # remove the old lists for the pre-resampled images
@@ -173,37 +162,37 @@ if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
         
         # create snapshot PSF on resampled image: 
         # psf_projected.py new_image old_image
-        psf_projected.py ${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits ../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits 
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmaj.fits" >> $tmp_bmaj
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmin.fits" >> $tmp_bmin
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bpa.fits" >> $tmp_bpa
+        psf_projected.py "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits" "../${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits" 
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmaj.fits" >> "${tmp_bmaj}"
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bmin.fits" >> "${tmp_bmin}"
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled_bpa.fits" >> "${tmp_bpa}"
 
         # weight maps are automatically renamed to .weight.fits apparently...
-        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.weight.fits" >> $tmp_weights
+        echo "${resampdir}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.weight.fits" >> "${tmp_weights}"
 
     done
 
     for image in "" "_bmaj" "_bmin" "_bpa"; do
         
         # fill in the co-addition template
-        cat /group/mwasci/${SLURM_JOB_USER}/GLEAM-X-pipeline/mosaics/coadd.swarp.tmpl \
+        cat "${GXBASE}/mosaics/coadd.swarp.tmpl" \
             | sed "s;OUTNAME;${imageout}${image};" \
             | sed "s;WEIGHT_NAMES;${imagelist}.weights.list.resamp;" \
             | sed "s;RACENT;${ra};" \
-            | sed "s;DECENT;${dec};" > ${template}${image}.coadd
+            | sed "s;DECENT;${dec};" > "${template}${image}.coadd"
 
         # we will rename the coadd.fits / coadd.weight.fits afterwards
         echo "Generating mosaic ${outname}${image}.fits for ${obslist} subband $subchan."
-        swarp -c ${template}${image}.coadd @${imagelist}.list.resamp${image}
+        swarp -c "${template}${image}.coadd" @"${imagelist}.list.resamp${image}"
 
-        if [[ -e ${imageout}${image}.fits ]]
+        if [[ -e "${imageout}${image}.fits" ]]
         then
             # will this ever trim something in one image but not in another? 
-            fits_trim.py ${imageout}${image}.fits ${outname}${image}.fits
+            fits_trim.py "${imageout}${image}.fits" "${outname}${image}.fits"
             if [[ -e ${outname}${image}.fits ]]
             then
-                pyhead.py -u FREQ $mid ${outname}${image}.fits
-                rm ${imageout}${image}.fits
+                pyhead.py -u FREQ "${mid}" "${outname}${image}.fits"
+                rm "${imageout}${image}.fits"
             else
                 echo "Could not generate mosaic ${outname}${image} for ${obslist} subband ${subchan}"
                 exit 1
@@ -215,13 +204,13 @@ if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
     done
 
     # make PSF map and remove BMAJ, BMIN, BPA maps
-    psf_combine_axes.py ${outname}_bmaj.fits \
-        ${outname}_bmin.fits \
-        ${outname}_bpa.fits \
-        -o ${outname}_psfmap.fits \
+    psf_combine_axes.py "${outname}_bmaj.fits" \
+        "${outname}_bmin.fits" \
+        "${outname}_bpa.fits" \
+        -o "${outname}_psfmap.fits" \
         --remove
 
-    rm -r ${resampdir}
+    rm -r "${resampdir}"
     # keep only one weight image
     rm "${imageout}_*.weight.fits"
 
@@ -230,48 +219,46 @@ else
 fi
 
 # Blur correction and final PSF generation
-module load singularity
-if [[ ! -e ${outname}_ddmod.fits ]] || [[ ! -e ${outname}_psf.fits ]]; then
-    BANE --noclobber ${outname}.fits
+if [[ ! -e "${outname}_ddmod.fits" ]] || [[ ! -e "${outname}_psf.fits" ]]; then
+    BANE --noclobber "${outname}.fits"
 
     # To create the final PSF map that I will use later, run source-finding without any PSF input
-    if [[ ! -e ${outname}_comp.fits ]]
+    if [[ ! -e "${outname}_comp.fits" ]]
     then
-        env PYTHONPATH=  singularity run -B $PWD /pawsey/mwa/singularity/robbie/robbie-next.sif aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}.fits ${outname}.fits
+        aegean --seedclip=10 --maxsummits=5 --autoload --table="${outname}.fits" "${outname}.fits"
     fi
 
     # Generate a measured PSF map
-    if [[ ! -e ${outname}_psf.fits ]]
+    if [[ ! -e "${outname}_psf.fits" ]]
     then
-        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_comp.fits
-        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_comp_psfcat.fits
+        psf_select.py --input="${outname}_comp.fits"
+        psf_create.py --input="${outname}_comp_psfcat.fits"
     fi
 
     # Run source-finding using the mosaicked PSF map as an input
-    if [[ ! -e ${outname}_projpsf_comp.fits ]]
+    if [[ ! -e "${outname}_projpsf_comp.fits" ]]
     then
-        env PYTHONPATH=  singularity run -B $PWD /pawsey/mwa/singularity/robbie/robbie-next.sif aegean --seedclip=10 --maxsummits=5 --autoload --table=${outname}_projpsf.fits --psf=${outname}_psfmap.fits ${outname}.fits
+        aegean --seedclip=10 --maxsummits=5 --autoload --table="${outname}_projpsf.fits" --psf="${outname}_psfmap.fits" "${outname}.fits"
     fi
 
     # Select sources and generate a new PSF map that has the right blur factor
-    if [[ ! -e ${outname}_projpsf_psf.fits ]]
+    if [[ ! -e "${outname}_projpsf_psf.fits" ]]
     then
-        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_select.py --input=${outname}_projpsf_comp.fits
-        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/psf_create.py --input=${outname}_projpsf_comp_psfcat.fits
+        psf_select.py --input="${outname}_projpsf_comp.fits"
+        psf_create.py --input="${outname}_projpsf_comp_psfcat.fits"
     fi
 
     # Multiply by blur factor
-    if [[ ! -e ${outname}_ddmod.fits ]]
+    if [[ ! -e "${outname}_ddmod.fits" ]]
     then
-        # TODO parallelise this code
-        /group/mwasci/$pipeuser/GLEAM-X-pipeline/bin/dd_flux_mod.py --mosaic=${outname}.fits --psf=${outname}_projpsf_psf.fits --output=${outname}_ddmod.fits
+        /dd_flux_mod.py --mosaic="${outname}.fits" --psf="${outname}_projpsf_psf.fits" --output="${outname}_ddmod.fits"
     fi
 
     # Rerun source-finding on blur-corrected map with measured PSF map
-    BANE --noclobber ${outname}_ddmod.fits
-    if [[ ! -e ${outname}_ddmod_comp.fits ]]
+    BANE --noclobber "${outname}_ddmod.fits"
+    if [[ ! -e "${outname}_ddmod_comp.fits" ]]
     then
-        env PYTHONPATH=  singularity run -B $PWD /pawsey/mwa/singularity/robbie/robbie-next.sif aegean --seedclip=4 --maxsummits=5 --autoload --table=${outname}_ddmod.fits --psf=${outname}_psf.fits ${outname}_ddmod.fits
+        aegean --seedclip=4 --maxsummits=5 --autoload --table="${outname}_ddmod.fits" --psf="${outname}_psf.fits" "${outname}_ddmod.fits"
     fi
     # TODO: clean up intermediate files
 else

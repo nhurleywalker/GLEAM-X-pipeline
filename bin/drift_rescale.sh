@@ -101,17 +101,17 @@ error="${error//%A/${jobid}}"
 output="${output//%A/${jobid}}"
 
 # record submission
-if [ "${GXTRACK}" = "track" ]
-then
-    for taskid in $(seq 0 1 4)
-    do
-        for obsnum in "${obss[@]}"
-        do
-            track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
-                                    --obs_id="${obsnum}" --stderr="${error}" --stdout="${output}"
-        done
-    done
-fi
+# if [ "${GXTRACK}" = "track" ]
+# then
+#     for taskid in $(seq 0 1 4)
+#     do
+#         for obsnum in "${obss[@]}"
+#         do
+#             track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
+#                                     --obs_id="${obsnum}" --stderr="${error}" --stdout="${output}"
+#         done
+#     done
+# fi
 
 echo "Submitted ${script} as ${jobid}. Follow progress here:"
 echo "${output}"
