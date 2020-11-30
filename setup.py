@@ -26,7 +26,7 @@ scripts = [
     "gleam_x/bin/dd_flux_mod.py",
     "gleam_x/bin/generate_beam_list.py",
     "gleam_x/bin/generate_weight_map.py",
-    "gleam_x/bin/iono_update.py", 
+    "gleam_x/bin/iono_update.py",
     "gleam_x/bin/ms_flag_by_uvdist.py",
     "gleam_x/bin/multiply.py",
     "gleam_x/bin/new_fk5_template.py",
@@ -38,19 +38,20 @@ scripts = [
     "gleam_x/bin/pyhead.py",
     "gleam_x/bin/track_task.py",
     "gleam_x/bin/vo2model.py",
+    "gleam_x/bin/fits_trim.py",
     "gleam_x/db/check_sources_vs_obsids.py",
     "gleam_x/db/check_src_fov.py",
     "gleam_x/db/import_observations_from_db.py",
 ]
 
 setup(
-    name='gleam_x',
-    version='0.1',
+    name="gleam_x",
+    version="0.1",
     author="Natasha Hurley-Walker, Paul Hancock, Tim Galvin",
     description="Python scripts to support the processing of GLEAM-X data.",
     url="https://github.com/nhurleywalker/GLEAM-X-pipeline",
-    long_description=open('README.md').read(),
-    packages=['gleam_x', 'gleam_x.bin', 'gleam_x.db'],
+    long_description=open("README.md").read(),
+    packages=["gleam_x", "gleam_x.bin", "gleam_x.db"],
     requires=reqs,
     scripts=scripts,
 )
