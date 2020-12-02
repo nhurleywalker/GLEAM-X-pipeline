@@ -149,7 +149,7 @@ pip3 install --no-cache-dir \
             git+https://github.com/MWATelescope/mwa-calplots.git \
             git+https://github.com/ICRAR/manta-ray-client.git \
             git+https://github.com/tjgalvin/mwa_pb_lookup.git \
-            git+https://github.com/tjgalvin/GLEAM-X-pipeline.git@generalise
+            git+https://github.com/tjgalvin/GLEAM-X-pipeline.git
 # ------------------------------------------------
 #            git+https://github.com/nhurleywalker/fits_warp.git \
 
