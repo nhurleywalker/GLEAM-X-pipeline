@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Script to help identify which calibrate solution files are not appropriate to apply, and helps to 
 identify ones close in time that are appropriate. 
 """
