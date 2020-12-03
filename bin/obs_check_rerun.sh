@@ -2,28 +2,32 @@
 
 usage()
 {
-echo "obs_copy_run.sh [-p project] -o list_of_observations.txt
+echo "obs_copy_run.sh [-p project] [-a assigned] [-t] -o list_of_observations.txt
 
 Given a set of obsid folders that have been processed initially, this script will assess whether a valid ao-solutions file exists. If it does not it is assumed that the calibration failed, and solutions should be copied over from one that is close in time.
 
   -p project  : project, (must be specified, no default)
   -t          : just run the check and present the obsids this would apply to, don't submit (default: False)
+  -a assigned : output text file that maps an obsid to a correspond calibration obsid (default: assigned_solutions.txt)
   -o obslist  : the list of obsids to process" 1>&2;
 exit 1;
 }
 
 test=1
+calids="assigned_solutions.txt"
 
 # parse args and set options
-while getopts ':tp:o:' OPTION
+while getopts ':tp:o:a:' OPTION
 do
     case "$OPTION" in
     p)
-        project=${OPTARG} ;;
+        project="${OPTARG}" ;;
 	o)
-	    obslist=${OPTARG} ;;
+	    obslist="${OPTARG}" ;;
     t)
         test=0 ;;
+    a)
+        calids="${OPTARG}" ;;
     ? | : | h)
             usage ;;
   esac
@@ -38,9 +42,7 @@ fi
 work="${GXSCRATCH}/${project}"
 cd "${work}" || exit
 
-calids="assigned_solutions.txt"
 check_assign_solutions.py -t 0.25 assign "${obslist}" -n -c "${calids}"
-
 
 for obsid in $(cat "${obslist}")
 do 
