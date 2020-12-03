@@ -42,7 +42,13 @@ fi
 work="${GXSCRATCH}/${project}"
 cd "${work}" || exit
 
-check_assign_solutions.py -t 0.25 assign "${obslist}" -n -c "${calids}"
+if [[ ! -f ${GXCONTAINER} ]]
+then
+    echo "GXCONTAINER is currently set to ${GXCONTAINER}, and can not be found, but is required. Exiting."
+    exit 1
+fi
+
+${GXCONTAINER} check_assign_solutions.py -t 0.25 assign "${obslist}" -n -c "${calids}"
 
 for obsid in $(cat "${obslist}")
 do 
