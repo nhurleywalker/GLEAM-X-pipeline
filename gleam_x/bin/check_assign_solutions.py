@@ -179,4 +179,7 @@ if __name__ == "__main__":
         if args.calids_out is not None:
             with open(args.calids_out, "w") as outfile:
                 report(obsids, calids, file=outfile)
+    else:
+        print("Invalid directive supplied. ")
+        parser.print_help()
 
