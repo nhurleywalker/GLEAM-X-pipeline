@@ -96,7 +96,7 @@ def find_valid_solutions(
 
     for pos in np.argwhere(~present):
         obsid = obsids[pos]
-        cobsid = obsids[np.argmin(np.abs(obsids[present] - obsid))]
+        cobsid = obsids[present][np.argmin(np.abs(obsids[present] - obsid))]
         calids[pos] = cobsid
 
     return calids
