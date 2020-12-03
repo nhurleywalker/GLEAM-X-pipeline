@@ -59,27 +59,27 @@ do
         echo "${obsid} does not equal ${calid}"
         if [[ $test -eq 1 ]]
         then
-            dep=($(obs_apply_cal.sh -p "${project}" -c ${calid} $obsnum))
+            dep=($(obs_apply_cal.sh -p "${project}" -c ${calid} $obsid))
             depend=${dep[3]}
             echo "apply-cal jobid: $depend"
 
-            dep=($(obs_uvflag.sh -p "${project}" -d $depend $obsnum))
+            dep=($(obs_uvflag.sh -p "${project}" -d $depend $obsid))
             depend=${dep[3]}
             echo "uv-flag jobid: $depend"
 
-            dep=($(obs_image.sh -p "${project}" -d $depend $obsnum))
+            dep=($(obs_image.sh -p "${project}" -d $depend $obsid))
             depend=${dep[3]}
             echo "imaging jobid: $depend"
 
-            dep=($(obs_binoc.sh -p "${project}" -d $depend $obsnum))
+            dep=($(obs_binoc.sh -p "${project}" -d $depend $obsid))
             depend=${dep[3]}
             echo "binoc jobid: $depend"
 
-            dep=($(obs_postimage.sh -p "${project}" -d $depend $obsnum))
+            dep=($(obs_postimage.sh -p "${project}" -d $depend $obsid))
             depend=${dep[3]}
             echo "post-processing jobid: $depend"
 
-            dep=($(obs_archive.sh -p "${project}" -d $depend $obsnum))
+            dep=($(obs_archive.sh -p "${project}" -d $depend $obsid))
             depend=${dep[3]}
             echo "archive jobid: $depend"
         fi
