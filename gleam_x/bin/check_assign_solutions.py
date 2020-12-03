@@ -94,7 +94,7 @@ def find_valid_solutions(
         print("No potenial calibration scans. base_path needs to be set?")
         sys.exit(1)
 
-    for pos in np.squeeze(np.argwhere(~present)):
+    for pos in np.argwhere(~present):
         obsid = obsids[pos]
         cobsid = obsids[np.argmin(np.abs(obsids[present] - obsid))]
         calids[pos] = cobsid
