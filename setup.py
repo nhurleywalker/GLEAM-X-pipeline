@@ -44,6 +44,7 @@ scripts = [
     "gleam_x/db/check_src_fov.py",
     "gleam_x/db/import_observations_from_db.py",
     "gleam_x/utils/download_obsid_list.py",
+    "gleam_x/utils/flag_tiles_bad_dipoles.py",
 ]
 
 setup(
