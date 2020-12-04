@@ -25,7 +25,7 @@ except:
     except:
         dbconfig = None
 
-dfconn = "mysql://{0}:{1}@{2}:{3}/{4}".format(
+dbconn = "mysql://{0}:{1}@{2}:{3}/{4}".format(
     dbconfig["user"], dbconfig["password"], dbconfig["host"], dbconfig["port"], dbname
 )
 
