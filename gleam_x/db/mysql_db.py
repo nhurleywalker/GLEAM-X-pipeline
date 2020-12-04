@@ -25,6 +25,11 @@ except:
     except:
         dbconfig = None
 
+if dbconfig is None:
+    raise ValueError(
+        "Database configuration not correctly set. Either place an appropriate configuration into the gleam_x.db.database_configuration file or export GXDBHOST, GXDBPORT, GXDBUSER and GXDBPASS environment variables. "
+    )
+
 dbconn = "mysql://{0}:{1}@{2}:{3}/{4}".format(
     dbconfig["user"], dbconfig["password"], dbconfig["host"], dbconfig["port"], dbname
 )
