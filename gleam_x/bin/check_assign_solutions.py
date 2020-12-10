@@ -43,7 +43,7 @@ def obtain_cen_chan(obsids):
 
         cursor = con.cursor()
 
-        # Need to wrangle the formatting so mysql can respond in a meaningful way
+        # Need to wrangle the formatting so we can use the WHERE a IN b syntax
         cursor.execute(
             f"SELECT cenchan FROM observation WHERE obs_id IN ({', '.join(['%s' for _ in obsids])}) ",
             (*obsids,),
