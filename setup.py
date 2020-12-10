@@ -39,9 +39,13 @@ scripts = [
     "gleam_x/bin/track_task.py",
     "gleam_x/bin/vo2model.py",
     "gleam_x/bin/fits_trim.py",
+    "gleam_x/bin/check_assign_solutions.py",
     "gleam_x/db/check_sources_vs_obsids.py",
     "gleam_x/db/check_src_fov.py",
     "gleam_x/db/import_observations_from_db.py",
+    "gleam_x/utils/download_obsid_list.py",
+    "gleam_x/utils/flag_tiles_bad_dipoles.py",
+    "gleam_x/utils/obsid_ops.py",
 ]
 
 setup(
@@ -51,7 +55,7 @@ setup(
     description="Python scripts to support the processing of GLEAM-X data.",
     url="https://github.com/nhurleywalker/GLEAM-X-pipeline",
     long_description=open("README.md").read(),
-    packages=["gleam_x", "gleam_x.bin", "gleam_x.db"],
+    packages=["gleam_x", "gleam_x.bin", "gleam_x.db", "gleam_x.utils"],
     requires=reqs,
     scripts=scripts,
 )

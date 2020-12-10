@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Script to help identify which calibrate solution files are not appropriate to apply, and helps to 
 identify ones close in time that are appropriate. 
 """
@@ -8,9 +10,50 @@ import numpy as np
 from calplots.aocal import fromfile
 from argparse import ArgumentParser
 
+try:
+    from gleam_x.db import mysql_db as gxdb
+except:
+    print("Warning: unable to import the database connection")
+    gxdb = None
+
 THRESHOLD = (
     0.25  # acceptable level of flagged solutions before the file is considered ratty
 )
+
+
+def obtain_cen_chan(obsids):
+    """Retrieve the cenchan for a set of specified pointings. This will be done through the 
+    meta-database, but should be expanded in the future to dial home to the mwa meta-data service
+
+    Args:
+        obsids (iterable): collection of obsids to check
+
+    Returns:
+        cenchans (numpy.ndarray): the cenchan of each obsid
+    """
+    cen_chan = np.array([1 for i in obsids])
+
+    if gxdb is None:
+        return cen_chan
+
+    try:
+        con = gxdb.connect()
+
+        obsids = [int(o) for o in obsids]
+
+        cursor = con.cursor()
+
+        # Need to wrangle the formatting so we can use the WHERE a IN b syntax
+        cursor.execute(
+            f"SELECT cenchan FROM observation WHERE obs_id IN ({', '.join(['%s' for _ in obsids])}) ",
+            (*obsids,),
+        )
+
+        return np.squeeze(np.array([o[0] for o in cursor.fetchall()]))
+
+    except:
+        print("WARNING: Database lookup failed. Setting all cenchans to 1")
+        return cen_chan
 
 
 def check_solutions(aofile, threshold=THRESHOLD, *args, **kwargs):
@@ -56,6 +99,7 @@ def find_valid_solutions(
     obsids,
     dry_run=False,
     base_path=".",
+    same_cen_chan=True,
     suffix="_local_gleam_model_solutions_initial_ref.bin",
     *args,
     **kwargs,
@@ -73,6 +117,7 @@ def find_valid_solutions(
     Keyword Args:
         dry_run (bool): Just present actions, do not carry them out (default: False)
         base_path (str): Prefix of path to search for ao-solutions (default: '.')
+        same_cen_chan (bool): Force obsids to have the same central channel when considering candidate solutions (default: True)
         suffix (str): Suffix of the solution file, in GLEAM-X pipeline this is `{obsid}_{solution}` (default: '_local_gleam_model_solutions_initial_ref.bin')
     
     Returns:
@@ -81,20 +126,31 @@ def find_valid_solutions(
     obsids = obsids.astype(np.int)
     calids = obsids.copy()
 
-    present = np.array(
+    sol_present = np.array(
         [
             check_solutions(f"{base_path}/{obsid}/{obsid}{suffix}", **kwargs)
             for obsid in obsids
         ]
     )
 
-    if np.all(present == False):
+    if np.all(sol_present == False):
         print("No potenial calibration scans. base_path needs to be set?")
         sys.exit(1)
 
-    for pos in np.squeeze(np.argwhere(~present)):
+    if same_cen_chan:
+        cen_chan = obtain_cen_chan(obsids)
+    else:
+        cen_chan = np.array([1 for obsid in obsids])
+
+    chan_lookup = {k: k == cen_chan for k in np.unique(cen_chan)}
+
+    for pos in np.argwhere(~sol_present):
         obsid = obsids[pos]
-        cobsid = obsids[np.argmin(np.abs(obsids[present] - obsid))]
+
+        obs_chan = cen_chan[pos][0]
+        present = sol_present & chan_lookup[obs_chan]
+
+        cobsid = obsids[present][np.argmin(np.abs(obsids[present] - obsid))]
         calids[pos] = cobsid
 
     return calids
@@ -154,6 +210,13 @@ if __name__ == "__main__":
         default=".",
         help="Prefix added to path while scanning for ao-solution files",
     )
+    assign.add_argument(
+        "-a",
+        "--any-cen-chan",
+        default=False,
+        action="store_true",
+        help="Consider the central channel of each solution file when considering the candidate of files to transfer",
+    )
 
     args = parser.parse_args()
 
@@ -169,7 +232,10 @@ if __name__ == "__main__":
 
         obsids = np.loadtxt(args.obsids, dtype=np.int)
         calids = find_valid_solutions(
-            obsids, threshold=args.threshold, base_path=args.base_path.rstrip("/")
+            obsids,
+            threshold=args.threshold,
+            same_cen_chan=not args.any_cen_chan,
+            base_path=args.base_path.rstrip("/"),
         )
 
         if not args.no_report:
@@ -177,4 +243,7 @@ if __name__ == "__main__":
         if args.calids_out is not None:
             with open(args.calids_out, "w") as outfile:
                 report(obsids, calids, file=outfile)
+    else:
+        print("Invalid directive supplied. ")
+        parser.print_help()
 

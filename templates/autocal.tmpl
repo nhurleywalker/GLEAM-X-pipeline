@@ -160,4 +160,13 @@ aocal_phaseref.py "${solutions}" "${solutions%.bin}_ref.bin" "${refant}"
 aocal_plot.py --refant="${refant}" --amp_max=2 "${solutions%.bin}_ref.bin"
 test_fail $?
 
+# Test to see if the calibration solution meets minimum quality control. At the moment
+# this is a simple check based on the number of flagged solutions
+result=$(check_assign_solutions.py -t 0.25 check "${solutions%.bin}_ref.bin")
+if echo "${result}" | grep -q fail
+then
+    mv "${solutions%.bin}_ref.bin" "${solutions%.bin}_ref_failed.bin"
+    test_fail 1
+fi
+
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"

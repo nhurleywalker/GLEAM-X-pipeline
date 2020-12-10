@@ -2,7 +2,7 @@
 
 usage()
 {
-echo "obs_manta.sh [-p project] [-d dep] [-q queue] [-s timeave] [-k freqav] [-t] -o list_of_observations.txt
+echo "obs_manta.sh [-p project] [-d dep] [-s timeave] [-k freqav] [-t] -o list_of_observations.txt
   -d dep      : job number for dependency (afterok)
   -p project  : project, (must be specified, no default)
   -s timeres  : time resolution in sec. default = 2 s
