@@ -53,6 +53,7 @@ apt install -y \
             libxml++2.6-dev \
             python3-dev \
             python3-pip \
+            default-libmysqlclient-dev \
             libgtkmm-3.0-dev \
             xorg \
             libhdf5-dev \
@@ -75,7 +76,8 @@ apt install -y \
             libboost-program-options-dev \
             libboost-python-dev \
             libboost-test-dev \
-            libgsl-dev
+            libgsl-dev \
+            parallel 
             
 apt autoremove -y
 apt clean -y
@@ -143,6 +145,8 @@ pip3 install --no-cache-dir \
             requests \
             pillow \
             seaborn \
+            SQLAlchemy \
+            mysqlclient \
             git+https://github.com/PaulHancock/Aegean.git \
             git+https://gitlab.com/Sunmish/flux_warp.git \
             git+https://github.com/tjgalvin/fits_warp.git \

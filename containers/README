@@ -4,13 +4,8 @@ Built with:
 
 sudo singularity build gleamx_tools.img gleamx_build.txt
 
-To Add:
-    - pb_lookup into gleamx_build.txt
-        - Need to find appropriate place to host HDF5 files. 
-        - Recipe itself is built and tested against local copy
+Once built the container has all software packages required to process GLEAM-X data. 
 
-    - Script to pull down
-        - cotter
-        - manta-ray-client
-        - wsclean
+External data dependencies related to the MWA primary beam are not packed within the container. Doing so would increase the container filesize considerably. 
 
+The container include the 'mwa-reduce' software package, which is only available to the MWA collaboration. 
