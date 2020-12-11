@@ -145,7 +145,7 @@ for taskid in $(seq ${numfiles})
     if [ "${GXTRACK}" = "track" ]
     then
         # record submission
-        track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='uvflag' --submission_time="$(date +%s)" \
+        ${GXCONTAINER} track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='uvflag' --submission_time="$(date +%s)" \
                             --batch_file="${script}" --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
     fi
 
