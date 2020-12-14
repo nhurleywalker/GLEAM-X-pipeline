@@ -1,0 +1,18 @@
+#! /bin/bash -l
+#SBATCH --export=NONE
+#SBATCH -M HOST
+#SBATCH -p workq
+#SBATCH --account=ACCOUNT
+#SBATCH --time=01:00:00
+#SBATCH --nodes=1
+TASKLINE
+
+pipeuser=PIPEUSER
+source /group/mwasci/$pipeuser/GLEAM-X-pipeline/GLEAM-X-pipeline.profile
+
+obsnum=OBSNUM
+datadir=DATADIR
+
+cd ${datadir}/${obsnum}
+
+flagantennae ${obsnum}.ms 80 95 88 96 97 98 104 105 113 112 122 123 124 78 79 87 
