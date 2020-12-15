@@ -123,8 +123,9 @@ then
 
 fi
 
-wsclean -mgain 0.8 \
-    -aterm-config ${jobname}_aterm.config \
+wsclean \
+    -multiscale -mgain 0.85 -multiscale-gain 0.15 \
+    -aterm-config aterm.config \
     -aterm-kernel-size 32 \
     -use-idg -idg-mode hybrid \
     -abs-mem ${memory} \
