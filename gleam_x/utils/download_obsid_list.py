@@ -14,7 +14,9 @@ from gleam_x.db import mysql_db as mdb
 MWA = EarthLocation.from_geodetic(
     lat=-26.703319 * u.deg, lon=116.67081 * u.deg, height=377 * u.m
 )
-DEC_POINTINGS = [-71, -55, -41, -39, -26, -12, 3, 20]
+# DEC_POINTINGS = [-71, -55, -41, -39, -26, -12, 3, 20]
+DEC_POINTINGS = [-71, -55, -40, -26, -12, 3, 20]
+GALACTIC_PLANE_LIMITS = [-10, 10, 90, 270]
 
 
 def get_observations(
@@ -25,12 +27,27 @@ def get_observations(
     dec_pointing=None,
     cen_chan=None,
     hour_angle=None,
+    mask_gp=False,
 ):
 
     df = pd.read_sql_table("observation", mdb.dbconn)
 
     if fds_only:
         df = df[df["obsname"].str.contains("FDS")]
+
+    if mask_gp:
+        sky = SkyCoord(df["ra_pointing"], df["dec_pointing"], unit=(u.deg, u.deg))
+
+        l = sky.galactic.l.deg
+        b = sky.galactic.b.deg
+
+        mask = (
+            (b >= GALACTIC_PLANE_LIMITS[0])
+            & (b <= GALACTIC_PLANE_LIMITS[1])
+            & ((l <= GALACTIC_PLANE_LIMITS[2]) | (l >= GALACTIC_PLANE_LIMITS[3]))
+        )
+
+        df = df[~mask]
 
     if start_obsid is not None:
         df = df[df["obs_id"] >= int(start_obsid)]
@@ -136,6 +153,14 @@ if __name__ == "__main__":
         type=int,
         choices=[-1, 0, 1],
         help="Specifies the hour-angle of the obsids to be returned. ",
+    )
+
+    parser.add_argument(
+        "-m",
+        "--mask-gp",
+        default=False,
+        action="store_true",
+        help=f"Mask out obsids whose (l, b) are within [b_min, b_max, l_min, l_max], where limits are {GALACTIC_PLANE_LIMITS}. Masking assumes l=0 degrees is at the centre and increases left through right, wrapping at 180 degrees. ",
     )
 
     args = parser.parse_args()

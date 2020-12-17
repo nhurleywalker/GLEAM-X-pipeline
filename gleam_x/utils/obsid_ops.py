@@ -6,8 +6,10 @@
 import os
 import numpy as np
 import pandas as pd
+import astropy.units as u
 from glob import glob
 from argparse import ArgumentParser
+from astropy.coordinates import SkyCoord
 
 try:
     from gleam_x.db import mysql_db as gxdb
@@ -15,6 +17,7 @@ except:
     gxdb = None
 
 CHECK_MODES = ["gpu", "vis", "folder"]
+GALACTIC_PLANE_LIMITS = [-10, 10, 90, 270]
 
 
 def clean_obsids(obsids):
@@ -141,6 +144,44 @@ def check(path, check_type):
     return missing
 
 
+def append(paths):
+    """Append a list of files with obsids together
+
+    Args:
+        paths (iterable[str]): Iterable of file names to append
+    """
+    obsids = [obsid for f in paths for obsid in read_obsids_file(f)]
+
+    return obsids
+
+
+def mask_gp(path):
+    """Mask out obsids in the region near the galactic plane
+
+    Args:
+        path (str): Path to new-line delimited obsid file
+    """
+    obsids = read_obsids_file(path)
+
+    df = obsids_from_db(obsids)
+    sky = SkyCoord(df["ra_pointing"], df["dec_pointing"], unit=(u.deg, u.deg))
+
+    l = sky.galactic.l.deg
+    b = sky.galactic.b.deg
+
+    mask = (
+        (b >= GALACTIC_PLANE_LIMITS[0])
+        & (b <= GALACTIC_PLANE_LIMITS[1])
+        & ((l <= GALACTIC_PLANE_LIMITS[2]) | (l >= GALACTIC_PLANE_LIMITS[3]))
+    )
+
+    df = df[~mask]
+
+    obsids = clean_obsids(df["obs_id"])
+
+    return obsids
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(description="Basic operations on sets of obsids")
 
@@ -173,10 +214,29 @@ if __name__ == "__main__":
         help="Which type of file to search for (ms.zip or vis.zip)",
     )
 
+    append_parser = subparsers.add_parser(
+        "append", help="Concatenate a set of new-line delimited obsid files together"
+    )
+    append_parser.add_argument(
+        "obsids",
+        nargs="+",
+        help="Path to new-line delimited obsid files to concatenate together",
+    )
+
+    append_parser.add_argument(
+        "-o", "--output", default=None, help="Output file to write obsids to"
+    )
+
+    mask_gp_parser = subparsers.add_parser(
+        "mask_gp",
+        help=f"Mask out obsids whose (l, b) are within [b_min, b_max, l_min, l_max], where limits are {GALACTIC_PLANE_LIMITS}. Masking assumes l=0 degrees is at the centre and increases left through right, wrapping at 180 degrees. ",
+    )
+    mask_gp_parser.add_argument(
+        "-o", "--output", default=None, help="Output file to write obsids to"
+    )
     args = parser.parse_args()
 
     if args.mode == "split":
-        print("Split mode")
         split(args.obsids, clobber=args.clobber)
 
     elif args.mode == "check_files":
@@ -185,5 +245,16 @@ if __name__ == "__main__":
         missing = list(set(missing))
         for obsid in missing:
             print(obsid)
+
+    elif args.mode == "append":
+        obsids = append(args.obsids)
+        if args.output is not None:
+            write_obsids_file(obsids, args.output)
+
+    elif args.mode == "mask_gp":
+        obsids = mask_gp(args.obsids)
+        if args.output is not None:
+            write_obsids_file(obsids, args.output)
+
     else:
         print(f"Directive mode {args.mode} not present. ")
