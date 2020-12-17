@@ -174,6 +174,7 @@ if __name__ == "__main__":
         obs_date=args.date,
         cen_chan=args.cen_chan,
         hour_angle=args.hour_angle,
+        mask_gp=args.mask_gp,
     )
 
     print(df.shape)
