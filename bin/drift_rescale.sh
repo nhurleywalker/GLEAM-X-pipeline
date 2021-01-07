@@ -105,7 +105,7 @@ then
     do
         for obsnum in "${obss[@]}"
         do
-            track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
+            ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
                                     --obs_id="${obsnum}" --stderr="${error}" --stdout="${output}"
         done
     done
