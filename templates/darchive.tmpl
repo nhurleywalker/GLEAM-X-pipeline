@@ -1,0 +1,97 @@
+#! /bin/bash -l
+
+set -x
+
+pipeuser=PIPEUSER
+obsnum=OBSNUM
+
+# If obsnum is a file, then we are in an array job
+if [[ -f ${obsnum} ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}p" "${obsnum}")
+    echo "archive obsid ${obsnum}"
+else 
+    echo "ERROR: obsnum is expected to be a file, but received ${obsnum}"
+    exit 1
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
+fi
+}
+
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
+
+base=BASEDIR
+
+datadir="${base}/${obsnum}"
+cd "${datadir}" || exit 1
+
+MS="${obsnum}.ms"
+if [[ ! -z "${GXSTAGE}" ]] && [[ -d "${GXSTAGE}" ]]
+then
+    echo "Copying and zipping ${MS} to staging area ${GXSTAGE}"
+    zip -r "${GXSTAGE}/${MS}.zip.tmp" "${MS}" && \
+    mv "${GXSTAGE}/${MS}.zip.tmp" "${GXSTAGE}/${MS}.zip"
+    chmod 775 "${GXSTAGE}/${MS}.zip" # Ensure rsync can --remove-source-files
+fi
+
+subchans="0000 0001 0002 0003 MFS"
+
+# Post procressing tasks unrelated to fitswarp
+for subchan in ${subchans}
+do
+    # Compress the near empty model files
+    clip_clean_components.py "${obsnum}_deep-${subchan}-model.fits"
+    clip_clean_components.py "${obsnum}_deep-${subchan}-model-pb.fits"
+    
+    # Dont like having to do I/O redirection for gzip to keep original file
+    zip "${obsnum}_deep-${subchan}-models-clip.zip" "${obsnum}_deep-${subchan}-"model*-clip.fits
+
+    # Create an extract of the psf
+    psf=${obsnum}_deep-${subchan}-psf.fits
+    crop=${psf%.fits}_crop.fits
+    if [[ ! -e ${crop} ]]
+    then
+        # Get size of the total image
+        x=$(imsize "${psf}" | tr -s '[:blank:]' ' ' | cut -d ' ' -f7 | cut -d 'x' -f1)
+        y=$(imsize "${psf}" | tr -s '[:blank:]' ' ' | cut -d ' ' -f7 | cut -d 'x' -f2)
+        
+        # Pixels in central region to extract
+        SIZE=200 
+
+        # Bounds of region
+        (( x1 = x/2 - SIZE/2 )) 
+        (( x2 = x/2 + SIZE/2 ))
+        (( y1 = y/2 - SIZE/2 ))
+        (( y2 = y/2 + SIZE/2 ))
+
+        # and extract
+        getfits -o "${crop}" "${x1}-${x2}" "${y1}-${y2}" "${psf}"
+    fi
+
+    # Compress the primary beam warped weight map
+    warp="${obsnum}_deep-${subchan}-image-pb_warp_weight.fits"
+    compress="${warp}.sr6"
+    if [[ ! -e "${compress}" ]]
+    then
+        SR6 -o "${compress}" "${warp}"
+    fi
+done
+
+echo 'Updating database'
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+
+track_task.py obs_status --obs_id="${obsnum}" --status='archived'
+echo "Database updated. Obsid $obsnum has been archived. "

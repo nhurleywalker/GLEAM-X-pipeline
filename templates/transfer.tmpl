@@ -1,0 +1,87 @@
+#! /bin/bash -l
+
+set -x
+
+pipeuser=PIPEUSER
+obslist=OBSLIST
+
+# If obsnum is a file, then we are in an array job
+if [[ -f ${obsnum} ]]
+then
+    echo "obsfile ${obsnum}"
+    numfiles=$(wc -l "${obslist}" | awk '{print $1}')
+    echo "${numfiles} obsids to transfer"
+
+    jobid=${SLURM_JOB_ID}
+else
+    echo "ERROR: Expected obsnum to be a file, recieved ${obsnum}"    
+    exit 1
+fi
+
+echo "jobid: ${jobid}"
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
+fi
+}
+
+base=BASEDIR
+user=ENDUSER
+host=ENDPOINT
+remote=REMOTE
+
+failed=0
+
+for taskid in $(seq ${numfiles})
+do
+    echo "taskid: ${taskid}"
+
+    track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
+
+    obsnum=$(sed -n -e "${taskid}"p "${obsnum}")
+    datadir="${base}/${obsnum}"
+
+    if [[ -d ${datadir} ]]
+    then
+        cd "${datadir}" || exit
+
+        # Singularity does not mount the home directory on pawsey correctly, so 
+        # best to avoid trying to hit the home directory and load ssh keys elsewhere
+        rsync -avh --progress --stats -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
+                                    ./*csv \
+                                    ./*clip.zip \
+                                    ./*png \
+                                    ./*log \
+                                    ./*fits.sr6 \
+                                    "${obsnum}"_deep-sources.txt \
+                                    "${obsnum}"_deep-sources-pb.txt \
+                                    "${obsnum}"_deep-*-psf_crop.fits \
+                                    "${obsnum}"_deep-*-image-pb.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_weight.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_rms.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_bkg.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_comp.fits \
+                                    "${obsnum}"_{north,south,east,west}-image_comp.fits \
+                                    "${obsnum}"_*_xm.fits \
+                                    "${user}@${host}:${remote}/${obsnum}"
+
+        test_fail $?
+        echo 'Updating database'
+        track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+
+        track_task.py obs_status --obs_id="${obsnum}" --status='archived'
+        echo "Database updated. Obsid $obsnum has been archived. "
+
+    else
+        echo "WARNING: ${obsnum} / ${taskid} / ${datadir} not found. Skipping. "
+        (( failed=failed+1 ))
+    fi
+done
+
+(( success=numfiles-failed ))
+echo "Total obsids: ${numfiles}"
+echo "Succeeded: ${success}"
+echo "Failed: ${failed}"

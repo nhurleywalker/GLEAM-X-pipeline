@@ -251,7 +251,7 @@ if [[ ! -e "${outname}_ddmod.fits" ]] || [[ ! -e "${outname}_psf.fits" ]]; then
     # Multiply by blur factor
     if [[ ! -e "${outname}_ddmod.fits" ]]
     then
-        /dd_flux_mod.py --mosaic="${outname}.fits" --psf="${outname}_projpsf_psf.fits" --output="${outname}_ddmod.fits"
+        dd_flux_mod.py --mosaic="${outname}.fits" --psf="${outname}_projpsf_psf.fits" --output="${outname}_ddmod.fits"
     fi
 
     # Rerun source-finding on blur-corrected map with measured PSF map
