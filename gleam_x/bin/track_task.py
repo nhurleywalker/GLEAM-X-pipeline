@@ -308,8 +308,8 @@ if __name__ == "__main__":
         )
         queue_mosaic(
             args.batch_obs_ids,
-            args.job_id,
-            args.task_id,
+            args.jobid,
+            args.taskid,
             args.host_cluster,
             args.submission_time,
             args.user,
@@ -319,13 +319,13 @@ if __name__ == "__main__":
     elif args.directive.lower() == "start_mosaic":
         require(args, ["jobid", "taskid", "host_cluster", "start_time", "subband"])
         start_mosaic(
-            args.job_id, args.task_id, args.host_cluster, args.subband, args.start_time
+            args.jobid, args.taskid, args.host_cluster, args.subband, args.start_time
         )
 
     elif args.directive.lower() == "finish_mosaic":
         require(args, ["jobid", "taskid", "host_cluster", "finish_time", "subband"])
         finish_mosaic(
-            args.job_id, args.task_id, args.host_cluster, args.subband, args.finish_time
+            args.jobid, args.taskid, args.host_cluster, args.subband, args.finish_time
         )
 
     else:
