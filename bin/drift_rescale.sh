@@ -103,11 +103,15 @@ if [ "${GXTRACK}" = "track" ]
 then
     for taskid in $(seq 0 1 4)
     do
-        for obsnum in "${obss[@]}"
-        do
-            ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
-                                    --obs_id="${obsnum}" --stderr="${error}" --stdout="${output}"
-        done
+        terror="${error//%a/${taskid}}"
+        toutput="${output//%a/${taskid}}"
+
+        echo "Submitting track task for ${taskid}"
+        echo "${output}"
+        echo "${error}"
+
+        ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
+                            --batch_obs_id="${obslist}" --stderr="${terror}" --stdout="${toutput} --subband=${taskid}"
     done
 fi
 
