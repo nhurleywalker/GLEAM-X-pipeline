@@ -404,7 +404,8 @@ else:
             make_plot(x, y, w, zmodel, title, "RA offset (deg)", ra_corrected_plot)
 
 if results.do_rescale is True:
-    for fitsimage in infiles:
+    for item, fitsimage in enumerate(infiles):
+        print("{0} of {1}) {2}".format(item, len(infiles), fitsimage))
         if results.correct_all is True:
             extlist = ["", "_bkg", "_rms", "_weight", "_comp"]
         else:
@@ -442,6 +443,9 @@ if results.do_rescale is True:
                     ]
                     for col in cols:
                         cat[col] *= dec_corr
+
+                    print("Creating {0}".format(outfits))
+
                     hdu_in.writeto(outfits, overwrite=True)
                     hdu_in.close()
                 else:
@@ -495,6 +499,8 @@ if results.do_rescale is True:
                         hdu_in[0].data.shape[m], hdu_in[0].data.shape[n]
                     )
                     hdu_in[0].data = np.array(corr * hdu_in[0].data, dtype=np.float32)
+
+                    print("Creating {0}".format(outfits))
 
                     hdu_in.writeto(outfits, overwrite=True)
                     hdu_in.close()
