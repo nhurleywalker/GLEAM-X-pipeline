@@ -77,7 +77,7 @@ fi
 
 # Establish job array options
 numfiles=$(wc -l "${obslist}" | awk '{print $1}')
-jobarray="--array=1-${numfiles}%1"
+jobarray="--array=1-${numfiles}"
 
 # start the real program
 script="${GXSCRIPT}/darchive_${obsnum}.sh"
