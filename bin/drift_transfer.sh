@@ -101,7 +101,8 @@ cat "${GXBASE}/templates/transfer.tmpl" | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:ENDUSER:${user}:g" \
                                  -e "s:ENDPOINT:${endpoint}:g" \
                                  -e "s:REMOTE:${remote}:g" \
-                                 -e "s:PIPEUSER:${pipeuser}:g"  > "${script}"
+                                 -e "s:PIPEUSER:${pipeuser}:g" \
+                                 -e "s:PROJECT:${project}:g"  > "${script}"
 
 output="${GXLOG}/archive_${obslist}.o%A"
 error="${GXLOG}/archive_${obslist}.e%A"

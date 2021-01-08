@@ -32,8 +32,16 @@ base=BASEDIR
 user=ENDUSER
 host=ENDPOINT
 remote=REMOTE
+project=PROJECT
 
 failed=0
+
+rsync -avh --progress --stats -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
+                            ./*csv \
+                            ./*png \
+                            ./*txt \
+                            ./*fits \
+                            "${user}@${host}:${remote}/${project}"
 
 for taskid in $(seq ${numfiles})
 do
@@ -64,6 +72,11 @@ do
                                     "${obsnum}"_deep-*-image-pb_warp_rms.fits \
                                     "${obsnum}"_deep-*-image-pb_warp_bkg.fits \
                                     "${obsnum}"_deep-*-image-pb_warp_comp.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_rescaled.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_rescaled_weight.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_rescaled_rms.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_rescaled_bkg.fits \
+                                    "${obsnum}"_deep-*-image-pb_warp_rescaled_comp.fits \
                                     "${obsnum}"_{north,south,east,west}-image_comp.fits \
                                     "${obsnum}"_*_xm.fits \
                                     "${user}@${host}:${remote}/${obsnum}"
