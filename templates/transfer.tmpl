@@ -6,15 +6,15 @@ pipeuser=PIPEUSER
 obslist=OBSLIST
 
 # If obsnum is a file, then we are in an array job
-if [[ -f ${obsnum} ]]
+if [[ -f ${obslist} ]]
 then
-    echo "obsfile ${obsnum}"
+    echo "obslist file ${obslist}"
     numfiles=$(wc -l "${obslist}" | awk '{print $1}')
     echo "${numfiles} obsids to transfer"
 
     jobid=${SLURM_JOB_ID}
 else
-    echo "ERROR: Expected obsnum to be a file, recieved ${obsnum}"    
+    echo "ERROR: Expected obsnum to be a file, recieved ${obslist}"    
     exit 1
 fi
 
@@ -35,33 +35,38 @@ remote=REMOTE
 project=PROJECT
 
 failed=0
-
+progress=0
 cd "${base}" || exit 1
 
-rsync -avh --progress --stats -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
+rsync -rvh --size-only --no-whole-file --inplace --progress --stats \
+                    -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
                             ./*csv \
                             ./*png \
                             ./*txt \
                             ./*fits \
                             "${user}@${host}:${remote}/${project}"
 
+
 for taskid in $(seq ${numfiles})
 do
+    (( progress=progress+1 ))
+    echo "progress: ${progress}"
     echo "taskid: ${taskid}"
 
     track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-    obsnum=$(sed -n -e "${taskid}"p "${obsnum}")
+    cd "${base}" || exit 1
+    obsnum=$(sed -n -e "${taskid}"p "${obslist}")
     datadir="${base}/${obsnum}"
 
     if [[ -d ${datadir} ]]
     then
         cd "${datadir}" || exit
-
+        echo "obsid: ${obsnum}"
         # Singularity does not mount the home directory on pawsey correctly, so 
         # best to avoid trying to hit the home directory and load ssh keys elsewhere
-        rsync -avh --progress --stats -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
-                                    ./*csv \
+        rsync  -rvh --size-only --no-whole-file --inplace --progress --stats \
+                            -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
                                     ./*clip.zip \
                                     ./*png \
                                     ./*log \
@@ -82,8 +87,17 @@ do
                                     "${obsnum}"_{north,south,east,west}-image_comp.fits \
                                     "${obsnum}"_*_xm.fits \
                                     "${user}@${host}:${remote}/${obsnum}"
-
         test_fail $?
+
+        # The iondiff is optional in the autocal stage. Unless used this will not be available
+        if [ -f "${obsnum}_ionodiff.csv" ]
+        then
+            rsync  -rvh --size-only --no-whole-file --inplace --progress --stats \
+                            -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
+                            "${obsnum}_ionodiff.csv" \
+                            "${user}@${host}:${remote}/${obsnum}"  
+        fi       
+
         echo 'Updating database'
         track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
 

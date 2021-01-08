@@ -72,7 +72,7 @@ do
   esac
 done
 
-queue="-p ${GXSTANDARDQ}"
+queue="-p ${GXCOPYQ}"
 base="${GXSCRATCH}/${project}"
 
 # if obsid is empty then just print help
@@ -87,7 +87,7 @@ then
     depend="--dependency=afterok:${dep}"
 fi
 
-if [[ ! -z ${GXACCOUNT} ]]
+if [[ ! -z ${GXCOPYA} ]]
 then
     account="--account=${GXACCOUNT}"
 fi
@@ -110,8 +110,10 @@ error="${GXLOG}/archive_${obslist}.e%A"
 chmod 755 "${script}"
 
 # sbatch submissions need to start with a shebang
-echo '#!/bin/bash' > ${script}.sbatch
-echo "singularity run ${GXCONTAINER} ${script}" >> ${script}.sbatch
+echo '#!/bin/bash' > "${script}.sbatch"
+echo 'module load singularity' >> "${script}.sbatch"
+echo "export SINGULARITY_BINDPATH=${SINGULARITY_BINDPATH},/home/tgalvin/.ssh" >> "${script}.sbatch"
+echo "singularity run ${GXCONTAINER} ${script}" >> "${script}.sbatch"
 
 if [ ! -z ${GXNCPULINE} ]
 then
@@ -119,7 +121,9 @@ then
     GXNCPULINE="--ntasks-per-node=1"
 fi
 
-sub="sbatch  --export=ALL --time=02:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+# This is among the few tasks that should reasonably be expected to run on another cluster. 
+# Export all GLEAM-X pipeline configurable variables 
+sub="sbatch  --export=$(echo ${!GX*} | tr ' ' ',') --time=48:00:00 --mem=24G -M ${GXCOPYM} --output=${output} --error=${error} "
 sub="${sub}  ${GXNCPULINE} ${account} ${GXTASKLINE} ${depend} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
@@ -136,21 +140,23 @@ jobid=${jobid[3]}
 
 echo "Submitted ${script} as ${jobid} . Follow progress here:"
 
-for taskid in $(seq ${numfiles})
-    do
-    # rename the err/output files as we now know the jobid
-    obserror=$(echo "${error}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
-    obsoutput=$(echo "${output}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
-
-    obs=$(sed -n -e "${taskid}p" "${obslist}")
-
-    if [ "${GXTRACK}" = "track" ]
-    then
-    # record submission
-    ${GXCONTAINER} track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='transfer' --submission_time="$(date +%s)" --batch_file="${script}" \
-                        --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
-    fi
+# rename the err/output files as we now know the jobid
+obserror=$(echo "${error}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
+obsoutput=$(echo "${output}" | sed -e "s/%A/${jobid}/" -e "s/%a/${taskid}/")
 
     echo "${obsoutput}"
     echo "${obserror}"
+
+for taskid in $(seq ${numfiles})
+    do
+
+    obs=$(sed -n -e "${taskid}p" "${obslist}")
+
+    # if [ "${GXTRACK}" = "track" ]
+    # then
+    # # record submission
+    # ${GXCONTAINER} track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='transfer' --submission_time="$(date +%s)" --batch_file="${script}" \
+    #                     --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
+    # fi
+
 done

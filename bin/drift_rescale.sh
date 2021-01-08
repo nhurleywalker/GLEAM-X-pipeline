@@ -111,8 +111,8 @@ then
         echo "${terror}"
 
         obsnum=$(cat "${obslist}")
-        ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
-                            --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband=${taskid}
+        #${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
+        #                    --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband=${taskid}
     done
 fi
 
