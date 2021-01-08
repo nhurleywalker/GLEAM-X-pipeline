@@ -87,8 +87,8 @@ cat "${GXBASE}/templates/darchive.tmpl" | sed -e "s:OBSNUM:${obslist}:g" \
 
 
 # Will always be a job array
-output="${GXLOG}/darchive_${obsnum}.o%A_%a"
-error="${GXLOG}/darchive_${obsnum}.e%A_%a"
+output="${GXLOG}/darchive_${obslist}.o%A_%a"
+error="${GXLOG}/darchive_${obslist}.e%A_%a"
 
 chmod 755 "${script}"
 

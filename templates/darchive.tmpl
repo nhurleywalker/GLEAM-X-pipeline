@@ -91,7 +91,4 @@ do
 done
 
 echo 'Updating database'
-track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
-
-track_task.py obs_status --obs_id="${obsnum}" --status='archived'
-echo "Database updated. Obsid $obsnum has been archived. "
+track_task.py finish --jobid="${jobid}" --taskid="${taskid
