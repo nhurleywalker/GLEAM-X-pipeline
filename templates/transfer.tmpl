@@ -36,6 +36,8 @@ project=PROJECT
 
 failed=0
 
+cd "${base}" || exit 1
+
 rsync -avh --progress --stats -e "ssh -o StrictHostKeyChecking=no -i ${GXSSH}" \
                             ./*csv \
                             ./*png \
