@@ -55,7 +55,8 @@ do
 
     track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-    cd "${base}" || exit 1
+    pwd
+    cd "${base}" || (echo "cd to ${base} failed " && exit 1)
     obsnum=$(sed -n -e "${taskid}"p "${obslist}")
     datadir="${base}/${obsnum}"
 
@@ -87,7 +88,7 @@ do
                                     "${obsnum}"_{north,south,east,west}-image_comp.fits \
                                     "${obsnum}"_*_xm.fits \
                                     "${user}@${host}:${remote}/${obsnum}"
-        test_fail $?
+        # test_fail $?
 
         # The iondiff is optional in the autocal stage. Unless used this will not be available
         if [ -f "${obsnum}_ionodiff.csv" ]
