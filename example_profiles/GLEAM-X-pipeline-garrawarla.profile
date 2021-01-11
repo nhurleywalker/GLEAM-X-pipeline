@@ -20,12 +20,12 @@ export GXUSER=$(whoami)         # User name of the operator running the pipeline
 export GXVERSION='3.1.0'        # Version number of the pipeline. This should not be changed. Currently it is defined here but not used.  
 export GXACCOUNT=               # The SLURM account jobs will be run under. e.g. 'pawsey0272'. Empty will not pass through a 
                                 # corresponding --account=${GXACCOUNT} to the slurm submission. Only relevant if SLURM is tracking time usage 
-export GXBASE="/astro/mwasci/${GXUSER}/GLEAM_Pipeline/GLEAM-X-pipeline" # Path to base of GLEAM-X Pipeline where the repository was 'git clone' into, including the folder name, e.g. "/astro/mwasci/tgalvin/GLEAM-X-pipeline" 
-export GXSCRATCH="/astro/mwasci/${GXUSER}"     # Path to scratch space used for processing on the HPC environment, e.g. /scratch
+export GXBASE="/astro/mwasci/tgalvin/GLEAM_Pipeline/GLEAM-X-pipeline" # Path to base of GLEAM-X Pipeline where the repository was 'git clone' into, e.g. "/astro/mwasci/tgalvin" 
+export GXSCRATCH="/astro/mwasci/tgalvin"     # Path to scratch space used for processing on the HPC environment, e.g. /scratch
 export GXHOME="${GXSCRATCH}"    # HOME space for some tasks. In some system configurations singularity can not mount $HOMR, but applications (e.g. CASA, python) would like 
                                 # one to be available to cache folders. This does not have to be an actual $HOME directory, just a folder with read and write access. 
                                 # Suggestion is the same path as the scratch space, e.g. $GXSCRATCH. 
-export GXCONTAINER="/astro/mwasci/${GXUSER}/gleamx_testing_small.img"   # Absolute path to the GLEAM-X singularity container, including the file name, e.g. "${GXSCRATCH}/gleamx.img"
+export GXCONTAINER='/astro/mwasci/tgalvin/gleamx_testing_small.img'   # Absolute path to the GLEAM-X singularity container, including the file name, e.g. "${GXSCRATCH}/gleamx.img"
                                               # This container is still being evaluated and available when requested from Tim Galvin. In a future update
                                               # the container will be automatically downloaded alongside other data dependencies. 
 
@@ -56,7 +56,7 @@ export GXNCPULINE="--ntasks-per-node=${GXNCPUS}"            # Informs the SLURM 
 export GXTASKLINE=                              # Reserved space for additional slurm sbatch options, if needed. This is passed to all SLURM sbatch calls. 
 export GXLOG="${GXBASE}/log_${GXCLUSTER}"       # Path to output task logs, e.g. ${GXBASE}/queue/log_${GXCLUSTER}. It is recommended that this is cluster specific. 
 export GXSCRIPT="${GXBASE}/script_${GXCLUSTER}" # Path to place generated template scripts. e.g. "${GXBASE}/script_${GXCLUSTER}". It is recommended that this is cluster specific.
-export GXTRACK='no-track'                       # Directive to inform task tracking for meta-database. 'track' will track task progression. Anything else will disable tracking. 
+export GXTRACK='track'                       # Directive to inform task tracking for meta-database. 'track' will track task progression. Anything else will disable tracking. 
 
 
 export GXSSH="${GXBASE}/ssh_keys/gx_${GXUSER}"  # Path to SSH keys to be used for archiving. Keys names should follow a 'gx_${GXUSER}' convention, e.g. "${GXBASE}/ssh_keys/gx_${GXUSER}"
@@ -65,16 +65,14 @@ export GXSSH="${GXBASE}/ssh_keys/gx_${GXUSER}"  # Path to SSH keys to be used fo
                                                 # This is used only in the archiving script, as on Magnus it appears singularity can not bind to $HOME correctly
 
 # Data dependencies
-# Data dependencies are downloaded into the directories below if the directories do not exist. 
-port GXMWAPB="${GXBASE}/data/mwa_pb"  # The calibrate program requires the FEE model of the MWA primary beam.
+export GXMWAPB="${GXBASE}/data/mwa_pb"  # The calibrate program requires the FEE model of the MWA primary beam.
                                         # This describes the path that containers the file mwa_full_embedded_element_pattern.h5
                                         # and can be downloaded from http://cerberus.mwa128t.org/mwa_full_embedded_element_pattern.h5
-                                        # If this folder does not exist, it is created. 
 export GXMWALOOKUP="${GXBASE}/data/pb"  # The MWA PB lookup HDF5's used by lookup_beam.py and lookup_jones.py. 
-                                        # If this folder does not exist, it is created. 
+                                        # This is currently not used, as the container currently maintains a copy. 
 
 # Details for obs_manta
-export GXCOPYA=             # Account to submit obs_manta.sh job under, if time accounting is being performed by SLURM.
+export GXCOPYA='pawsey0272'             # Account to submit obs_manta.sh job under, if time accounting is being performed by SLURM.
                             # Leave this empty if the job is to be submitted as the user and there is no time accounting.
 export GXCOPYQ='copyq'      # A required parameter directing the job to a particular queue on $GXCOPYM. Set as just the queue name, e.g. 'copyq'
 export GXCOPYM='zeus'       # A required parameter directing the job to be submitted to a particular machine. Set as just the machine name, e.g. 'zeus'
@@ -87,6 +85,11 @@ export GXSTAGE="${GXSCRATCH}/stage"             # To support the polarisation ef
                             # data then you may ignore this. If you *ARE* involved, please reach out to a GLEAM-X member to ensure this
                             # is correctly configured and known on the CSIRO side. 
 
+# Singularity bind paths
+# This describes a set of paths that need to be available within the container for all processing tasks. Depending on the system
+# and pipeline configuration it is best to have these explicitly set across all tasks. For each 'singularity run' command this
+# SINGULARITY_BINDPATHS will be used to mount against. 
+export SINGULARITY_BINDPATH="${HOME},${GXLOG},${GXSCRIPT},${GXBASE},${GXSCRATCH},,${GXMWALOOKUP}:/pb_lookup,${GXMWAPB}"
 
 export PATH="${PATH}:${GXBASE}/bin" # Adds the obs_* script to the searchable path. 
 export HOST_CLUSTER=${GXCLUSTER}    # Maintained for compatability. Will be removed soon. 
@@ -111,7 +114,7 @@ do
     if [[ -z ${!var} ]]
     then
         echo "${var} is currently not configured, please ensure it was a valid value"
-        return 1
+        exit 1
     fi
 done
 
@@ -122,7 +125,7 @@ do
     if [[ ! -d ${!var} ]]
     then
         echo "The ${var} configurable has the path ${!var}, which appears to not exist. Please ensure it is a valid path."
-        return 1
+        exit 1
     fi
 done
 
