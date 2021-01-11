@@ -17,7 +17,7 @@ import gleam_x.db.mysql_db as mdb
 OBS_STATUS = ["unprocessed", "downloaded", "calibrated", "imaged", "archived"]
 
 # Bit of record keeping for potential future use / sanity
-BATCH_OBS_IDS_TASKS = ["queue_mosaic"]
+BATCH_OBS_IDS_TASKS = ["queue_mosaic", "start_mosaic", "finish_mosaic"]
 
 
 def queue_job(
@@ -118,6 +118,28 @@ def observation_status(obs_id, status):
     conn.close()
 
 
+def observation_calibrator_id(obs_id, cal_id):
+    """A general update function that will modify a spectied key value for a specific observation ID
+
+    Args:
+        obs_id (int): observation id to update the status of
+        cali_id (int): observation id of the calibrator to insert  
+        value (str):  
+    """
+    conn = mdb.connect()
+    cur = conn.cursor()
+    cur.execute(
+        """
+                UPDATE observation 
+                SET cal_obs_id=%s 
+                WHERE obs_id=%s
+                """,
+        (cal_id, obs_id,),
+    )
+    conn.commit()
+    conn.close()
+
+
 def queue_mosaic(
     batch_obs_ids, job_id, task_id, host_cluster, submission_time, user, subband
 ):
@@ -135,7 +157,16 @@ def queue_mosaic(
                     VALUES
                     (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
-            (obs_id, job_id, task_id, host_cluster, user, subband, "queued"),
+            (
+                obs_id,
+                job_id,
+                task_id,
+                host_cluster,
+                submission_time,
+                user,
+                subband,
+                "queued",
+            ),
         )
 
     cur.commit()
@@ -220,6 +251,9 @@ if __name__ == "__main__":
     ps.add_argument("--batch_file", type=str, help="batch file name", default=None)
     ps.add_argument("--obs_id", type=int, help="observation id", default=None)
     ps.add_argument(
+        "--cal_id", type=int, help="observation id of calibration data", default=None
+    )
+    ps.add_argument(
         "--batch_obs_ids",
         type=int,
         nargs="+",
@@ -292,6 +326,10 @@ if __name__ == "__main__":
     elif args.directive.lower() == "obs_status":
         require(args, ["obs_id", "status"])
         observation_status(args.obs_id, args.status)
+
+    elif args.directive.lower() == "obs_calibrator":
+        require(args, ["obs_id", "cal_id"])
+        observation_calibrator_id(args.obs_id, args.cal_id)
 
     elif args.directive.lower() == "queue_mosaic":
         require(

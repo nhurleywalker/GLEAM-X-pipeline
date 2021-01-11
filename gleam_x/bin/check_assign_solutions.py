@@ -215,7 +215,7 @@ if __name__ == "__main__":
         "--any-cen-chan",
         default=False,
         action="store_true",
-        help="Consider the central channel of each solution file when considering the candidate of files to transfer",
+        help="The default behvious will be to consider the cen_chan property when assigning calibration IDs. This disables that check and only considers time when determining optimal calibration ID. ",
     )
 
     args = parser.parse_args()
