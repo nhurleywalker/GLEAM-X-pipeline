@@ -107,7 +107,7 @@ chmod 755 "${script}"
 echo '#!/bin/bash' > ${script}.sbatch
 echo "singularity run ${GXCONTAINER} ${script}" >> ${script}.sbatch
 
-sub="sbatch --export=ALL  --time=12:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
+sub="sbatch --begin=now+5minutes --export=ALL  --time=12:00:00 --mem=${GXABSMEMORY}G -M ${GXCOMPUTER} --output=${output} --error=${error}"
 sub="${sub} ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 if [[ ! -z ${tst} ]]
 then
