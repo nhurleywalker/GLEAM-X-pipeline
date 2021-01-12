@@ -155,7 +155,7 @@ def queue_mosaic(
                     INSERT INTO mosaic
                     (obs_id, job_id, task_id, host_cluster, submission_time, user, subband, status)
                     VALUES
-                    (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
             (
                 obs_id,
