@@ -77,3 +77,4 @@ fi
 test_fail $?
 
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+track_task.py obs_calibrator --obs_id "${obsnum}" --cal_id "${calid}"
