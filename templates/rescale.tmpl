@@ -31,7 +31,12 @@ for file in ${obs}
 do
     if [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp.fits" ]]
     then
-        echo "${file}/${file}_deep-${subchan}-image-pb_warp.fits" >> ${sublist}
+        if [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp_comp.fits" ]]
+        then
+            echo "${file}/${file}_deep-${subchan}-image-pb_warp.fits" >> ${sublist}
+        else
+            echo "WARNING: ${file}/${file}_deep-${subchan}-image-pb_warp.fits was found by no corresponding component file found. Post imaging failed?"
+        fi
     fi
 done
 
