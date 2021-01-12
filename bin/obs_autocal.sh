@@ -7,7 +7,7 @@ usage()
 echo "obs_autocal.sh [-d dep] [-a account] [-t] obsnum
   -p project : project, no default
   -d dep     : job number for dependency (afterok)
-  -i         : run the ionospheric metric tests (default = False)
+  -i         : disable the ionospheric metric tests (default = False)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
   obsnum     : the obsid to process, or a text file of obsids (newline separated). 
@@ -19,7 +19,7 @@ pipeuser=${GXUSER}
 
 dep=
 tst=
-ion=
+ion=1
 
 # parse args and set options
 while getopts ':tia:d:p:' OPTION
@@ -35,7 +35,7 @@ do
 	    project=${OPTARG}
 	    ;;
 	i)
-	    ion=1
+	    ion=
 	    ;;
 	t)
 	    tst=1
