@@ -25,7 +25,7 @@ obs=$(cat $obslist)
 
 sublist="${obslist%.txt}_${subchan}.txt"
 
-track_task.py start_mosaic --jobid="${jobid}" --taskid="${taskid}" 
+# track_task.py start_mosaic --jobid="${jobid}" --taskid="${taskid}" 
 
 if [[ -e $sublist ]]
 then
@@ -62,6 +62,6 @@ do
     fi
 done
 
-track_task.py finish_mosaic --jobid="${jobid}" --taskid="${taskid}" 
+# track_task.py finish_mosaic --jobid="${jobid}" --taskid="${taskid}" 
 
 exit $exitcode
