@@ -164,6 +164,8 @@ def make_plot(x, y, w, model, title, ylabel, outname):
     ax.set_xlabel(ylabel)
     ax.set_ylabel("log10 ratio")
     ax.set_ylim([-0.1, 0.1])
+
+    print("Saving {0}".format(outname))
     fitplot.savefig(outname, bbox_inches="tight")
 
 
@@ -206,6 +208,7 @@ else:
             if not os.path.exists(sf):
                 print("Source-finding results for {0} not found".format(fitsimage))
                 sys.exit(1)
+
             os.system(
                 'stilts tmatch2 \
             values1="RAJ2000 DEJ2000" \

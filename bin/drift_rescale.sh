@@ -98,6 +98,8 @@ jobid=${jobid[3]}
 error="${error//%A/${jobid}}"
 output="${output//%A/${jobid}}"
 
+subchans=(0000 0001 0002 0003 MFS)
+
 # record submission
 if [ "${GXTRACK}" = "track" ]
 then
@@ -105,6 +107,7 @@ then
     do
         terror="${error//%a/${taskid}}"
         toutput="${output//%a/${taskid}}"
+        subchan=${subchans[$taskid]}
 
         echo "Submitting track task for ${taskid}"
         echo "${toutput}"
@@ -112,7 +115,7 @@ then
 
         obsnum=$(cat "${obslist}")
         #${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
-        #                    --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband=${taskid}
+        #                    --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband=${subband}
     done
 fi
 

@@ -173,7 +173,7 @@ def queue_mosaic(
     conn.close()
 
 
-def start_mosaic(job_id, task_id, host_cluster, subband, start_time):
+def start_mosaic(job_id, task_id, host_cluster, start_time):
     """Update all rows that form a `mos_id` job that their mosaic operation has started
     """
     conn = mdb.connect()
@@ -183,16 +183,16 @@ def start_mosaic(job_id, task_id, host_cluster, subband, start_time):
         """
                 UPDATE mosaic
                 SET status='started', start_time=%s
-                WHERE job_id=%s AND task_id=%s AND host_cluster=%s AND subband=%s
+                WHERE job_id=%s AND task_id=%s AND host_cluster=%s
                 """,
-        (start_time, job_id, task_id, host_cluster, subband),
+        (start_time, job_id, task_id, host_cluster),
     )
 
     conn.commit()
     conn.close()
 
 
-def finish_mosaic(job_id, task_id, host_cluster, subband, end_time):
+def finish_mosaic(job_id, task_id, host_cluster, end_time):
     """Update all rows that form a `mos_id` job that their mosaic operation has started
     """
     conn = mdb.connect()
@@ -202,9 +202,9 @@ def finish_mosaic(job_id, task_id, host_cluster, subband, end_time):
         """
                 UPDATE mosaic
                 SET status='finished', end_time=%s
-                WHERE job_id=%s AND task_id=%s AND host_cluster=%s AND subband=%s
+                WHERE job_id=%s AND task_id=%s AND host_cluster=%s
                 """,
-        (end_time, job_id, task_id, host_cluster, subband),
+        (end_time, job_id, task_id, host_cluster),
     )
 
     conn.commit()
@@ -355,16 +355,12 @@ if __name__ == "__main__":
         )
 
     elif args.directive.lower() == "start_mosaic":
-        require(args, ["jobid", "taskid", "host_cluster", "start_time", "subband"])
-        start_mosaic(
-            args.jobid, args.taskid, args.host_cluster, args.subband, args.start_time
-        )
+        require(args, ["jobid", "taskid", "host_cluster", "start_time"])
+        start_mosaic(args.jobid, args.taskid, args.host_cluster, args.start_time)
 
     elif args.directive.lower() == "finish_mosaic":
-        require(args, ["jobid", "taskid", "host_cluster", "finish_time", "subband"])
-        finish_mosaic(
-            args.jobid, args.taskid, args.host_cluster, args.subband, args.finish_time
-        )
+        require(args, ["jobid", "taskid", "host_cluster", "finish_time"])
+        finish_mosaic(args.jobid, args.taskid, args.host_cluster, args.finish_time)
 
     else:
         print(
