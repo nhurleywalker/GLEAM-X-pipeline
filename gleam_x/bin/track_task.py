@@ -169,7 +169,7 @@ def queue_mosaic(
             ),
         )
 
-    cur.commit()
+    conn.commit()
     conn.close()
 
 
@@ -188,7 +188,7 @@ def start_mosaic(job_id, task_id, host_cluster, subband, start_time):
         (start_time, job_id, task_id, host_cluster, subband),
     )
 
-    cur.commit()
+    conn.commit()
     conn.close()
 
 
@@ -207,7 +207,7 @@ def finish_mosaic(job_id, task_id, host_cluster, subband, end_time):
         (end_time, job_id, task_id, host_cluster, subband),
     )
 
-    cur.commit()
+    conn.commit()
     conn.close()
 
 
