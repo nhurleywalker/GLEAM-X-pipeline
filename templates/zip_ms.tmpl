@@ -44,18 +44,28 @@ MSZIP="${MS}.zip"
 
 if [ $mode = 'c' ]
 then 
-    echo "Zipping ${MS}" && \
-    zip -r "${MSZIP}" "${MS}" && \
-    echo "Removing original ${MS}" && \
-    rm -r "${MS}"
+    if [[ -d "${MS}" ]]
+    then
+        echo "Zipping ${MS}" && \
+        zip -r "${MSZIP}" "${MS}" && \
+        echo "Removing original ${MS}" && \
+        rm -r "${MS}"
+    else
+        echo "${MS} directory not found. Already compressed?"
+    fi
 fi
 
 if [ $mode = 'd' ]
 then
-    echo "Unzipping ${MSZIP}" && \
-    unzip "${MSZIP}" && \
-    echo "Removing zipped file" && \
-    rm -r "${MSZIP}"
+    if [[ -f "${MSZIP}" ]]
+    then
+        echo "Unzipping ${MSZIP}" && \
+        unzip "${MSZIP}" && \
+        echo "Removing zipped file" && \
+        rm -r "${MSZIP}"
+    else
+        echo "${MSZIP} not found. Has ${MS} been compressed?"
+    fi
 fi
 
 echo 'Updating database'
