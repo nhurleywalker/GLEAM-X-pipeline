@@ -44,10 +44,18 @@ cd "${datadir}" || exit
 MS="${obsnum}.ms"
 if [[ ! -z "${GXSTAGE}" ]] && [[ -d "${GXSTAGE}" ]]
 then
-    echo "Copying and zipping ${MS} to staging area ${GXSTAGE}"
-    zip -r "${GXSTAGE}/${MS}.zip.tmp" "${MS}" && \
-    mv "${GXSTAGE}/${MS}.zip.tmp" "${GXSTAGE}/${MS}.zip"
-    chmod 775 "${GXSTAGE}/${MS}.zip" # Ensure rsync can --remove-source-files
+    if [ -f "${MS}.zip" ]
+    then
+        echo "Copying zipped MS to staging area ${GXSTAGE}"
+        cp "${MS}.zip" "${GXSTAGE}/${MS}.zip.tmp" && \
+        mv "${MS}.zip.tmp" "${MS}.zip"
+        chmod 755 "${GXSTAGE}/${MS}.zip"
+    else
+        echo "Copying and zipping ${MS} to staging area ${GXSTAGE}"
+        zip -r "${GXSTAGE}/${MS}.zip.tmp" "${MS}" && \
+        mv "${GXSTAGE}/${MS}.zip.tmp" "${GXSTAGE}/${MS}.zip"
+        chmod 775 "${GXSTAGE}/${MS}.zip" # Ensure rsync can --remove-source-files
+    fi
 fi
 
 subchans="0000 0001 0002 0003 MFS"
