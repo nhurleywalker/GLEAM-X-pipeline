@@ -33,7 +33,7 @@ fi
 
 track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-cd "$datadir/${obsnum}" || exit
+cd "$datadir/${obsnum}" || exit 1
 if [[ -z $debug ]]
 then
     ms_flag_by_uvdist.py "${obsnum}.ms" DATA -a

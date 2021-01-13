@@ -34,7 +34,8 @@ track_task.py start --jobid=${jobid} --taskid=${taskid} --start_time=`date +%s`
 #cores=`grep -P '^core id\t' /proc/cpuinfo  | wc -l`
 datadir=DATADIR
 
-cd ${datadir}/${obsnum}
+cd "${datadir}/${obsnum}" || exit 1
+
 #metafits="${obsnum}.metafits"
 #if [[ ! -e ${metafits} ]]
 #then

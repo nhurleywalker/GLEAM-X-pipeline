@@ -24,7 +24,7 @@ echo "taskid: ${taskid}"
 
 basedir=BASEDIR
 
-cd "${basedir}/${obsnum}" || exit
+cd "${basedir}/${obsnum}" || exit 1
 
 # start
 track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"

@@ -51,7 +51,7 @@ exclusion=$(echo "180/3600" | bc -l)
 
 datadir=BASEDIR
 
-cd "${datadir}/${obsnum}" || exit
+cd "${datadir}/${obsnum}" || exit 1
 
 metafits=$(ls -t ${obsnum}*metafits* | head -1)
 

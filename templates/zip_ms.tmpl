@@ -37,7 +37,7 @@ track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date
 base=BASEDIR
 
 datadir="${base}/${obsnum}"
-cd "${datadir}" || (echo "Could no change directory to ${datadir}" && exit 1)
+cd "${datadir}" || exit 1
 
 MS="${obsnum}.ms"
 MSZIP="${MS}.zip"

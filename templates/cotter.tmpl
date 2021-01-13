@@ -33,7 +33,7 @@ memory=${GXMEMORY}
 # start task
 track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
-cd ${datadir} || exit
+cd "${datadir}" || exit 1
 
 if [[ -e ${obsnum}_vis.zip ]]
 then

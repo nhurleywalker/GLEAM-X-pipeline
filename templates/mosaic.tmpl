@@ -9,7 +9,7 @@ obslist=OBSLIST
 ra=RAPOINT
 dec=DECPOINT
 
-cd ${base} || exit
+cd "${base}" || exit 1
 obss=($(sort $obslist))
 
 #n=0
