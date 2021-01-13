@@ -32,16 +32,24 @@ then
     rm "${sublist}"
 fi
 
+# extlist = ["", "_bkg", "_rms", "_weight", "_comp"]
+
 for file in ${obs}
 do
     if [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp.fits" ]]
     then
-        if [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp_comp.fits" ]]
+        if [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp_comp.fits" ]] && \
+           [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp_weight.fits" ]] && \
+           [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp_rms.fits" ]] && \
+           [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp_bkg.fits" ]] && \
+           [[ -e "${file}/${file}_deep-${subchan}-image-pb_warp_comp.fits" ]]
         then
             echo "${file}/${file}_deep-${subchan}-image-pb_warp.fits" >> ${sublist}
         else
-            echo "WARNING: ${file}/${file}_deep-${subchan}-image-pb_warp.fits was found by no corresponding component file found. Post imaging failed?"
+            echo "WARNING: A dependency file for ${file}/${file}_deep-${subchan}-image-pb_warp.fits was not found. Post imaging failed?"
         fi
+    else
+        echo "WARNING: ${file}/${file}_deep-${subchan}-image-pb_warp.fits was not found. Post imaging failed?"
     fi
 done
 

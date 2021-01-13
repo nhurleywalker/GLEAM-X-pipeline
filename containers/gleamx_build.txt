@@ -82,7 +82,8 @@ apt install -y \
 apt autoremove -y
 apt clean -y
 cd / \
-    && ln -s /usr/include
+    && ln -s /usr/include \
+    && ln -s /usr/bin/SWarp /usr/bin/swarp
 
 # ------------------------------------------------
 # mwa-reduce
@@ -130,6 +131,7 @@ cd / \
 update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 pip3 install --no-cache-dir \
+            jedi==0.17.2 \
             ipython \
             cython \
             numpy \
@@ -147,6 +149,7 @@ pip3 install --no-cache-dir \
             seaborn \
             SQLAlchemy \
             mysqlclient \
+            reproject \
             git+https://github.com/PaulHancock/Aegean.git \
             git+https://gitlab.com/Sunmish/flux_warp.git \
             git+https://github.com/tjgalvin/fits_warp.git \
@@ -155,7 +158,6 @@ pip3 install --no-cache-dir \
             git+https://github.com/tjgalvin/mwa_pb_lookup.git \
             git+https://github.com/tjgalvin/GLEAM-X-pipeline.git
 # ------------------------------------------------
-#            git+https://github.com/nhurleywalker/fits_warp.git \
 
 # ------------------------------------------------
 # WSClean
