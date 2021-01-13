@@ -123,7 +123,7 @@ fi
 
 # This is among the few tasks that should reasonably be expected to run on another cluster. 
 # Export all GLEAM-X pipeline configurable variables 
-sub="sbatch  --export=$(echo ${!GX*} | tr ' ' ',') --time=48:00:00 --mem=24G -M ${GXCOPYM} --output=${output} --error=${error} "
+sub="sbatch  --begin=now+5minutes --export=$(echo ${!GX*} | tr ' ' ',') --time=48:00:00 --mem=24G -M ${GXCOPYM} --output=${output} --error=${error} "
 sub="${sub}  ${GXNCPULINE} ${account} ${GXTASKLINE} ${depend} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
