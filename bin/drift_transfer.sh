@@ -104,8 +104,8 @@ cat "${GXBASE}/templates/transfer.tmpl" | sed -e "s:OBSLIST:${obslist}:g" \
                                  -e "s:PIPEUSER:${pipeuser}:g" \
                                  -e "s:PROJECT:${project}:g"  > "${script}"
 
-output="${GXLOG}/archive_${obslist}.o%A"
-error="${GXLOG}/archive_${obslist}.e%A"
+output="${GXLOG}/transfer_${obslist}.o%A"
+error="${GXLOG}/transfer_${obslist}.e%A"
 
 chmod 755 "${script}"
 
