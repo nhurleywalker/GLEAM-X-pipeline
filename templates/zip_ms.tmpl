@@ -42,7 +42,7 @@ cd "${datadir}" || (echo "Could no change directory to ${datadir}" && exit 1)
 MS="${obsnum}.ms"
 MSZIP="${MS}.zip"
 
-if [ mode = 'c' ]
+if [ $mode = 'c' ]
 then 
     echo "Zipping ${MS}" && \
     zip -r "${MSZIP}" "${MS}" && \
@@ -50,7 +50,7 @@ then
     rm -r "${MS}"
 fi
 
-if [ mode = 'd' ]
+if [ $mode = 'd' ]
 then
     echo "Unzipping ${MSZIP}" && \
     unzip "${MSZIP}" && \
