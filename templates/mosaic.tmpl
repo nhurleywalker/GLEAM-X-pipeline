@@ -19,6 +19,11 @@ obss=($(sort $obslist))
 #   ((n+=1))
 #done
 
+taskid=${SLURM_ARRAY_TASK_ID}
+jobid=${SLURM_ARRAY_JOB_ID}
+
+track_task.py start_mosaic  --jobid="${jobid}" --taskid="${taskid}"  --start_time="$(date +%s)"
+
 num=${#obss[@]}
 middle=${obss[$((num / 2))]}
 
@@ -281,3 +286,13 @@ fi
 #        ((n+=1))
 #    done
 #fi
+
+if [[ -e ${outname}_ddmod.fits ]]
+then
+    echo "Mosaic successful!"
+    track_task.py finish_mosaic  --jobid="${jobid}" --taskid="${taskid}"  --finish_time="$(date +%s)"
+else
+    echo "Mosaic failed!"
+    track_task.py fail_mosaic  --jobid="${jobid}" --taskid="${taskid}"  --finish_time="$(date +%s)"
+
+fi

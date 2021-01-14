@@ -211,6 +211,25 @@ def finish_mosaic(job_id, task_id, host_cluster, end_time):
     conn.close()
 
 
+def fail_mosaic(job_id, task_id, host_cluster, end_time):
+    """Update all rows that form a `mos_id` job that their mosaic operation has failed
+    """
+    conn = mdb.connect()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+                UPDATE mosaic
+                SET status='failed', end_time=%s
+                WHERE job_id=%s AND task_id=%s AND host_cluster=%s
+                """,
+        (end_time, job_id, task_id, host_cluster),
+    )
+
+    conn.commit()
+    conn.close()
+
+
 def require(args, reqlist):
     """
     Determine if the the given requirements are met
@@ -361,6 +380,10 @@ if __name__ == "__main__":
     elif args.directive.lower() == "finish_mosaic":
         require(args, ["jobid", "taskid", "host_cluster", "finish_time"])
         finish_mosaic(args.jobid, args.taskid, args.host_cluster, args.finish_time)
+
+    elif args.directive.lower() == "fail_mosaic":
+        require(args, ["jobid", "taskid", "host_cluster", "finish_time"])
+        fail_mosaic(args.jobid, args.taskid, args.host_cluster, args.finish_time)
 
     else:
         print(
