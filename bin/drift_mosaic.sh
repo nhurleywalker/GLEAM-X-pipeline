@@ -61,12 +61,12 @@ fi
 
 if [[ ! -z ${GXACCOUNT} ]]
 then
-    account="--acount=${GXACCOUNT}"
+    account="--account=${GXACCOUNT}"
 fi
 
 queue="-p ${GXSTANDARDQ}"
 base="${GXSCRATCH}/${project}"
-cd "${base}" || exit
+cd "${base}" || exit 1
 
 obss=($(sort $obslist))
 listbase=$(basename "${obslist}")

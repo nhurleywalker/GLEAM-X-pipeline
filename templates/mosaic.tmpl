@@ -116,7 +116,7 @@ fi
 # Move the temporary image list to the mosaic directory and rename
 mv "$tmp" "mosaics/${imagelist}.list"
 mv "$tmp_weights" "mosaics/${imagelist}.weights.list"
-cd mosaics/ || exit
+cd mosaics/ || exit 1
 
 # Was going to generate the xsize like this but it's too complicated with all the projection effects
 #first=`head -1 $imagelist`
