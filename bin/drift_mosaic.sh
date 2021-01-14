@@ -73,7 +73,7 @@ listbase=$(basename "${obslist}")
 listbase=${listbase%%.*}
 script="${GXSCRIPT}/mosaic_${listbase}.sh"
 
-cat "${GXBASE}/bin/mosaic.tmpl" | sed -e "s:OBSLIST:${obslist}:g" \
+cat "${GXBASE}/templates/mosaic.tmpl" | sed -e "s:OBSLIST:${obslist}:g" \
                                       -e "s:RAPOINT:${ra}:g" \
                                       -e "s:DECPOINT:${dec}:g" \
                                       -e "s:BASEDIR:${base}:g" \
