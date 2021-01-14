@@ -503,7 +503,5 @@ if results.do_rescale is True:
                     )
                     hdu_in[0].data = np.array(corr * hdu_in[0].data, dtype=np.float32)
 
-                    print("Creating {0}".format(outfits))
-
                     hdu_in.writeto(outfits, overwrite=True)
                     hdu_in.close()
