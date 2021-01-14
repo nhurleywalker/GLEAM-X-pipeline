@@ -104,21 +104,28 @@ jobid=($(${sub}))
 jobid=${jobid[3]}
 
 # rename the err/output files as we now know the jobid
-error=$(${error//%A/"${jobid}"})
-output=$(${output//%A/"${jobid}"})
+error=${error//%A/"${jobid}"}
+output=${output//%A/"${jobid}"}
+
+subchans=(0000 0001 0002 0003 MFS)
+echo "Submitted ${script} as ${jobid} . Follow progress here:"
 
 # record submission
-# if [ "${GXTRACK}" = "track" ]
-# then
-#     for taskid in $(seq 0 1 4)
-#     do
-#         for obsnum in "${obss[@]}"
-#         do
-#             track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='mosaic' --submission_time="$(date +%s)" --batch_file="${script}" \
-#                                     --obs_id="${obsnum}" --stderr="${error}" --stdout="${output}"
-#         done
-#     done
-# fi
-echo "Submitted ${script} as ${jobid} . Follow progress here:"
-echo "${output}"
-echo "${error}"
+if [ "${GXTRACK}" = "track" ]
+then
+    for taskid in $(seq 0 1 4)
+    do
+
+            terror="${error//%a/${taskid}}"
+        toutput="${output//%a/${taskid}}"
+        subchan=${subchans[$taskid]}
+
+        echo "Submitting track task for ${taskid}"
+        echo "${toutput}"
+        echo "${terror}"
+
+        ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='mosaic' --submission_time="$(date +%s)" --batch_file="${script}" \
+                                --batch_obs_id "${obss[@]}" --stderr="${terror}" --stdout="${toutput}" \
+                                --subband="${subchan}"
+    done
+fi
