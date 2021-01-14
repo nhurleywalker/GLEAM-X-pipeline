@@ -45,7 +45,7 @@ then
     then
         echo "Copying zipped MS to staging area ${GXSTAGE}"
         cp "${MS}.zip" "${GXSTAGE}/${MS}.zip.tmp" && \
-        mv "${MS}.zip.tmp" "${MS}.zip"
+        mv "${GXSTAGE}/${MS}.zip.tmp" "${GXSTAGE}/${MS}.zip"
         chmod 755 "${GXSTAGE}/${MS}.zip"
     else
         echo "Copying and zipping ${MS} to staging area ${GXSTAGE}"
