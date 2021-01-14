@@ -80,7 +80,7 @@ numfiles=$(wc -l "${obslist}" | awk '{print $1}')
 jobarray="--array=1-${numfiles}"
 
 # start the real program
-script="${GXSCRIPT}/darchive_${obsnum}.sh"
+script="${GXSCRIPT}/darchive_${obslist}.sh"
 cat "${GXBASE}/templates/darchive.tmpl" | sed -e "s:OBSNUM:${obslist}:g" \
                                  -e "s:BASEDIR:${base}:g" \
                                  -e "s:PIPEUSER:${pipeuser}:g"  > "${script}"
@@ -102,7 +102,7 @@ then
     GXNCPULINE="--ntasks-per-node=1"
 fi
 
-sub="sbatch --begin=now+5minutes --export=ALL --time=02:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
+sub="sbatch --begin=now+5minutes --export=ALL --time=01:00:00 --mem=24G -M ${GXCOMPUTER} --output=${output} --error=${error} "
 sub="${sub}  ${GXNCPULINE} ${account} ${GXTASKLINE} ${jobarray} ${depend} ${queue} ${script}.sbatch"
 
 if [[ ! -z ${tst} ]]
@@ -130,7 +130,7 @@ for taskid in $(seq ${numfiles})
     if [ "${GXTRACK}" = "track" ]
     then
     # record submission
-    ${GXCONTAINER} track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='archive' --submission_time="$(date +%s)" --batch_file="${script}" \
+    ${GXCONTAINER} track_task.py queue --jobid="${jobid}" --taskid="${taskid}" --task='archive_prep' --submission_time="$(date +%s)" --batch_file="${script}" \
                         --obs_id="${obs}" --stderr="${obserror}" --stdout="${obsoutput}"
     fi
 

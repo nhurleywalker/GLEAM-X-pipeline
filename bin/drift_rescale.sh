@@ -99,6 +99,7 @@ error="${error//%A/${jobid}}"
 output="${output//%A/${jobid}}"
 
 subchans=(0000 0001 0002 0003 MFS)
+echo "Submitted ${script} as ${jobid}. Follow progress here:"
 
 # record submission
 if [ "${GXTRACK}" = "track" ]
@@ -114,11 +115,7 @@ then
         echo "${terror}"
 
         obsnum=$(cat "${obslist}")
-        #${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
-        #                    --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband=${subband}
+        ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
+                            --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband="${subchan}"
     done
 fi
-
-echo "Submitted ${script} as ${jobid}. Follow progress here:"
-echo "${output}"
-echo "${error}"
