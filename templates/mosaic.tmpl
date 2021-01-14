@@ -21,6 +21,12 @@ obss=($(sort $obslist))
 
 taskid=${SLURM_ARRAY_TASK_ID}
 jobid=${SLURM_ARRAY_JOB_ID}
+subchans=(0000 0001 0002 0003 MFS)
+subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+echo "subchan: ${subchan}"
 
 track_task.py start_mosaic  --jobid="${jobid}" --taskid="${taskid}"  --start_time="$(date +%s)"
 
@@ -45,8 +51,6 @@ fi
 # Assume user has been smart and all observations have the same central channel 
 chan=$(pyhead.py -p CENTCHAN ${metafits} | awk '{print $3}')
 
-subchans=(0000 0001 0002 0003 MFS)
-subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
 
 # Define output mosaic name as the first part of the input text file
 outname=$(echo ${obslist} | awk 'BEGIN {FS="_"} {print $1}')

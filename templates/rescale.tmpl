@@ -19,6 +19,10 @@ subchan=${subchans[$SLURM_ARRAY_TASK_ID]}
 taskid=${SLURM_ARRAY_TASK_ID}
 jobid=${SLURM_ARRAY_JOB_ID}
 
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+echo "subchan: ${subchan}"
+
 cd "${base}" || exit 1
 
 obs=$(cat $obslist)

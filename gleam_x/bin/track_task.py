@@ -236,7 +236,11 @@ def require(args, reqlist):
     ie that the attributes in the reqlist are not None.
     """
     for r in reqlist:
-        if not getattr(args, r):
+        if r not in args.__dict__.keys():
+            print("Directive {0} requires argument {1}".format(args.directive, r))
+            sys.exit(1)
+
+        if getattr(args, r) is None:
             print("Directive {0} requires argument {1}".format(args.directive, r))
             sys.exit(1)
 
