@@ -64,7 +64,7 @@ def main(fin, fout):
     hdulist[0].header["CRPIX2"] -= jmin
 
     # save
-    hdulist.writeto(fout, clobber=True)
+    hdulist.writeto(fout, overwrite=True)
     print("wrote", fout)
 
 
