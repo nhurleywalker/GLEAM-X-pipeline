@@ -428,6 +428,7 @@ if results.do_rescale is True:
                     cat = hdu_in[1].data
                     dec = cat["dec"]
                     dec_corr = np.zeros(dec.shape)
+                    ra_corr = np.zeros(ra.shape)
                     # We generated log10 ratios so use 10^ to get back to raw correction
                     # e.g. a 4th order polynomial would look like:
                     # corr = 10** ( a*(Dec)^3 + b*(Dec)^2 + c*Dec + d)
@@ -447,6 +448,15 @@ if results.do_rescale is True:
                     ]
                     for col in cols:
                         cat[col] *= dec_corr
+
+                    if results.correct_ra is True:
+                        for i in range(0, results.poly_order + 1):
+                            ra_corr += P_ra[i] * pow(
+                                ra - ra_cent, results.poly_order - i
+                            )
+                        ra_corr = 10 ** ra_corr
+                        for col in cols:
+                            cat[col] *= ra_corr
 
                     print("Creating {0}".format(outfits))
 
