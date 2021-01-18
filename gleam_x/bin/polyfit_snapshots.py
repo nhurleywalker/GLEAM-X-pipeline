@@ -414,6 +414,7 @@ if results.do_rescale is True:
         else:
             extlist = [""]
 
+        corr = None
         for ext in extlist:
             infits = fitsimage.replace(".fits", ext + ".fits")
             outfits = infits.replace(ext + ".fits", "_rescaled" + ext + ".fits")
@@ -467,40 +468,45 @@ if results.do_rescale is True:
                         m, n = 2, 3
                     elif naxes == 2:
                         m, n = 0, 1
-                    # create an array but don't set the values (they are random)
-                    indexes = np.empty(
-                        (hdu_in[0].data.shape[m] * hdu_in[0].data.shape[n], 2),
-                        dtype=int,
-                    )
-                    idx = np.array([(j, 0) for j in range(hdu_in[0].data.shape[n])])
-                    j = hdu_in[0].data.shape[n]
-                    for i in range(hdu_in[0].data.shape[m]):
-                        idx[:, 1] = i
-                        indexes[i * j : (i + 1) * j] = idx
 
-                    # put ALL the pixels into our vectorized functions and minimise our overheads
-                    ra, dec = w.wcs_pix2world(indexes, 1).transpose()
-                    dec_corr = np.zeros(dec.shape)
-                    ra_corr = np.zeros(ra.shape)
+                    # Derive the correction screen once, and use it for all
+                    # image based fits files
+                    if corr is None:
+                        # create an array but don't set the values (they are random)
+                        indexes = np.empty(
+                            (hdu_in[0].data.shape[m] * hdu_in[0].data.shape[n], 2),
+                            dtype=int,
+                        )
+                        idx = np.array([(j, 0) for j in range(hdu_in[0].data.shape[n])])
+                        j = hdu_in[0].data.shape[n]
+                        for i in range(hdu_in[0].data.shape[m]):
+                            idx[:, 1] = i
+                            indexes[i * j : (i + 1) * j] = idx
 
-                    for i in range(0, results.poly_order + 1):
-                        dec_corr += P_dec[i] * pow(dec, results.poly_order - i)
-                    dec_corr = 10 ** dec_corr
+                        # put ALL the pixels into our vectorized functions and minimise our overheads
+                        ra, dec = w.wcs_pix2world(indexes, 1).transpose()
+                        dec_corr = np.zeros(dec.shape)
+                        ra_corr = np.zeros(ra.shape)
 
-                    if results.correct_ra is True:
                         for i in range(0, results.poly_order + 1):
-                            ra_corr += P_ra[i] * pow(
-                                ra - ra_cent, results.poly_order - i
-                            )
-                        ra_corr = 10 ** ra_corr
-                        corr = dec_corr * ra_corr
+                            dec_corr += P_dec[i] * pow(dec, results.poly_order - i)
+                        dec_corr = 10 ** dec_corr
 
-                    else:
-                        corr = dec_corr
+                        if results.correct_ra is True:
+                            for i in range(0, results.poly_order + 1):
+                                ra_corr += P_ra[i] * pow(
+                                    ra - ra_cent, results.poly_order - i
+                                )
+                            ra_corr = 10 ** ra_corr
+                            corr = dec_corr * ra_corr
 
-                    corr = corr.reshape(
-                        hdu_in[0].data.shape[m], hdu_in[0].data.shape[n]
-                    )
+                        else:
+                            corr = dec_corr
+
+                        corr = corr.reshape(
+                            hdu_in[0].data.shape[m], hdu_in[0].data.shape[n]
+                        )
+
                     hdu_in[0].data = np.array(corr * hdu_in[0].data, dtype=np.float32)
 
                     hdu_in.writeto(outfits, overwrite=True)
