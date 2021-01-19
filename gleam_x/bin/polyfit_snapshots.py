@@ -414,7 +414,7 @@ if results.do_rescale is True:
         else:
             extlist = [""]
 
-        corr = None
+        corr = {}
         for ext in extlist:
             infits = fitsimage.replace(".fits", ext + ".fits")
             outfits = infits.replace(ext + ".fits", "_rescaled" + ext + ".fits")
@@ -479,9 +479,11 @@ if results.do_rescale is True:
                     elif naxes == 2:
                         m, n = 0, 1
 
+                    img_shape = hdu_in[0].data.shape
+
                     # Derive the correction screen once, and use it for all
                     # image based fits files
-                    if corr is None:
+                    if img_shape not in corr.keys():
                         # create an array but don't set the values (they are random)
                         indexes = np.empty(
                             (hdu_in[0].data.shape[m] * hdu_in[0].data.shape[n], 2),
@@ -508,16 +510,19 @@ if results.do_rescale is True:
                                     ra - ra_cent, results.poly_order - i
                                 )
                             ra_corr = 10 ** ra_corr
-                            corr = dec_corr * ra_corr
+                            corr_apply = dec_corr * ra_corr
 
                         else:
-                            corr = dec_corr
+                            corr_apply = dec_corr
 
-                        corr = corr.reshape(
+                        corr_apply = corr_apply.reshape(
                             hdu_in[0].data.shape[m], hdu_in[0].data.shape[n]
                         )
+                        corr[img_shape] = corr_apply
 
-                    hdu_in[0].data = np.array(corr * hdu_in[0].data, dtype=np.float32)
+                    hdu_in[0].data = np.array(
+                        corr[img_shape] * hdu_in[0].data, dtype=np.float32
+                    )
 
                     hdu_in.writeto(outfits, overwrite=True)
                     hdu_in.close()
