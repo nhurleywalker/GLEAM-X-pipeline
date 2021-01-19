@@ -412,7 +412,7 @@ if results.do_rescale is True:
     corr = {}
 
     for item, fitsimage in enumerate(infiles):
-        print("{0} of {1}) {2}".format(item, len(infiles), fitsimage))
+        print("{0} of {1}) {2}".format(item + 1, len(infiles), fitsimage))
         if results.correct_all is True:
             extlist = ["", "_bkg", "_rms", "_weight", "_comp"]
         else:
@@ -487,6 +487,8 @@ if results.do_rescale is True:
                     # Derive the correction screen once, and use it for all
                     # image based fits files
                     if img_shape not in corr.keys():
+                        print(f"Calculation correction screen for shape {img_shape}")
+
                         # create an array but don't set the values (they are random)
                         indexes = np.empty(
                             (hdu_in[0].data.shape[m] * hdu_in[0].data.shape[n], 2),
@@ -521,6 +523,7 @@ if results.do_rescale is True:
                         corr_apply = corr_apply.reshape(
                             hdu_in[0].data.shape[m], hdu_in[0].data.shape[n]
                         )
+                        print(f"Caching correction screen for {img_shape}")
                         corr[img_shape] = corr_apply
 
                     hdu_in[0].data = np.array(
