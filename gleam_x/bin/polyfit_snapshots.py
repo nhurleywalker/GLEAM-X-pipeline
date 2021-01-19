@@ -407,6 +407,10 @@ else:
             make_plot(x, y, w, zmodel, title, "RA offset (deg)", ra_corrected_plot)
 
 if results.do_rescale is True:
+
+    # Create a cache for correction screens with the same image size
+    corr = {}
+
     for item, fitsimage in enumerate(infiles):
         print("{0} of {1}) {2}".format(item, len(infiles), fitsimage))
         if results.correct_all is True:
@@ -414,7 +418,6 @@ if results.do_rescale is True:
         else:
             extlist = [""]
 
-        corr = {}
         for ext in extlist:
             infits = fitsimage.replace(".fits", ext + ".fits")
             outfits = infits.replace(ext + ".fits", "_rescaled" + ext + ".fits")
