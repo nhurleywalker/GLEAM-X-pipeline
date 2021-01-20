@@ -25,6 +25,15 @@ cd "${basedir}" || echo "Failed to switch directory to ${basedir}" && exit 1
 
 obslist=$2
 taskid=${SLURM_ARRAY_TASK_ID}
+
+numfiles=$(wc -l "${obslist}" | awk '{print $1}')
+
+if [[ $taskid -gt $numfiles ]]
+then
+    echo "Task id ${taskid} larger than ${numfiles}. Nothing to do. Exiting. "
+    exit 0
+fi
+
 obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obslist}")
 
 function test_fail {
