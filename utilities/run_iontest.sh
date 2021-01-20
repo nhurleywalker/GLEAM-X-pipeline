@@ -10,7 +10,19 @@
 
 set -x
 
-basedir=$1
+if [[ $# -ne 2  ]]
+then
+    echo "run_iontest.sh basedir oblist"
+    echo "project - the project code that contains the collection of obsids to process. This is combined with the GXSCRATCH variable"
+    echo "obslist - the text file containing observation IDs to process, separated by new lines"
+    exit 1 
+fi
+
+project=$1
+basedir="${GXSCRATCH}/${project}"
+
+cd "${basedir}" || echo "Failed to switch directory to ${basedir}" && exit 1
+
 obslist=$2
 taskid=${SLURM_ARRAY_TASK_ID}
 obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obslist}")
@@ -22,6 +34,7 @@ then
 fi
 }
 
+echo "Project code is: ${project}"
 echo "Base directory is: ${basedir}"
 echo "Observation list is: ${obslist}"
 echo "Obsid is: ${obsnum}"
