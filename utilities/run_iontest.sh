@@ -21,7 +21,7 @@ fi
 project=$1
 basedir="${GXSCRATCH}/${project}"
 
-cd "${basedir}" || echo "Failed to switch directory to ${basedir}" && exit 1
+cd "${basedir}" || exit 1
 
 obslist=$2
 taskid=${SLURM_ARRAY_TASK_ID}
@@ -52,7 +52,7 @@ echo "Obsid is: ${obsnum}"
 MWAPATH="${GXMWAPB}"
 
 obsdir="${basedir}/${obsnum}"
-cd "${obsdir}" || echo "Failed to change to ${obsdir}" && exit 1
+cd "${obsdir}" ||  exit 1
 
 metafits="${obsnum}.metafits"
 if [[ ! -e ${metafits} ]] || [[ ! -s ${metafits} ]]
