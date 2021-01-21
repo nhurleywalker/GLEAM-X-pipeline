@@ -25,6 +25,8 @@ def main(fin, fout):
     # turn pixels that are identically zero, into masked pixels
     data[np.where(data == 0.0)] = np.nan
 
+    print(f"Input image shape: {data.shape}")
+
     imin, imax = 0, data.shape[1] - 1
     jmin, jmax = 0, data.shape[0] - 1
     # select [ij]min/max to exclude rows/columns that are all zero
@@ -34,30 +36,32 @@ def main(fin, fout):
         else:
             break
 
-    print(imin)
+    print(f"imin: {imin}")
     for i in range(imax, imin, -1):
         if np.all(np.isnan(data[:, i])):
             imax = i
         else:
             break
 
-    print(imax)
+    print(f"imax: {imax}")
     for j in range(0, jmax):
         if np.all(np.isnan(data[j, :])):
             jmin = j
         else:
             break
 
-    print(jmin)
+    print(f"jmin: {jmin}")
     for j in range(jmax, jmin, -1):
         if np.all(np.isnan(data[j, :])):
             jmax = j
         else:
             break
 
-    print(jmax)
+    print(f"jmax: {jmax}")
 
     hdulist[0].data = data[jmin:jmax, imin:imax]
+
+    print(f"Output data shape: {hdulist[0].data.shape}")
 
     # recenter the image so the coordinates are correct.
     hdulist[0].header["CRPIX1"] -= imin

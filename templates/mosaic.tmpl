@@ -73,6 +73,7 @@ done
 
 used_obs=()
 
+# TODO: Add the weights to the if condition as wel
 for obsnum in ${obss[@]}
 do
     if [[ -e ${obsnum}/${obsnum}_deep-${subchan}-image-pb_warp_rescaled.fits ]]
@@ -145,7 +146,7 @@ cat "${GXBASE}"/mosaics/resamp.swarp.tmpl \
 if [[ ! -e ${outname}.fits ]] || [[ ! -e ${outname}_psfmap.fits ]]; then
 
     if [ -e "${resampdir}" ]; then
-        rm "${resampdir}"
+        rm -r "${resampdir}"
     fi
 
     mkdir "${resampdir}"
