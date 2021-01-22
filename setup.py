@@ -40,6 +40,7 @@ scripts = [
     "gleam_x/bin/vo2model.py",
     "gleam_x/bin/fits_trim.py",
     "gleam_x/bin/check_assign_solutions.py",
+    "gleam_x/bin/generate_ateam_subtract_model.py",
     "gleam_x/db/check_sources_vs_obsids.py",
     "gleam_x/db/check_src_fov.py",
     "gleam_x/db/import_observations_from_db.py",

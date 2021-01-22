@@ -42,6 +42,18 @@ class Source:
         return appflux
 
 
+# TODO : Move these to a more meaningful location in the GLEAM-X package
+casa = Source("CasA", SkyCoord("23h23m24.000s   +58d48m54.00s"), 13000.0, -0.5, 0.0)
+cyga = Source("CygA", SkyCoord("19h59m28.35663s +40d44m02.0970s"), 9000.0, -1.0, 0.0)
+crab = Source("Crab", SkyCoord("05h34m31.94s    +22d00m52.2s"), 1500.0, -0.5, 0.0)
+vira = Source("VirA", SkyCoord("12h30m49.42338s +12d23m28.0439s"), 1200.0, -1.0, 0.0)
+pica = Source("PicA", SkyCoord("05h19m49.7229s  -45d46m43.853s"), 570.0, -1.0, 0.0)
+hera = Source("HerA", SkyCoord("16h51m11.4s     +04d59m20s"), 520.0, -1.1, 0.0)
+hyda = Source("HydA", SkyCoord("09h18m05.651s   -12d05m43.99s"), 350.0, -0.9, 0.0)
+
+BRIGHT_SOURCES = tuple([casa, cyga, crab, vira, pica, hera, hyda])
+
+
 def ggsm_row_model(row):
     """Transfer a row inro the Andre format for model components
 
@@ -105,6 +117,30 @@ def search_ggsm(a_src, ggsm_sky, search_radius):
     return mask
 
 
+def check_coords_mask(w: WCS, coords: SkyCoord, border_size: int) -> bool:
+    """Checks to see whether a source is within an inner region of a image, assuming
+    a rectangular mask region that is `border_size` wide around the outside of the 
+    GLEAM-X images. 
+
+    Args:
+        w (WCS): Assumed GLEAM-X WCS template used for images
+        coords (SkyCoord): Position of source to test
+        border_size (int): Size of the region around the image that is consider to be masked
+
+    Returns:
+        bool: Denotes whether an image is with the center square region of an image
+    """
+
+    x, y = w.all_world2pix(coords.ra.deg, coords.dec.deg, 0)
+
+    if (0 + border_size) < x < (w._naxis1 - border_size) and (0 + border_size) < y < (
+        w._naxis2 - border_size
+    ):
+        return True
+    else:
+        return False
+
+
 def create_wcs(ra, dec, cenchan):
     """Creates a fake WCS header to generate a MWA primary beam response
 
@@ -139,7 +175,8 @@ def ateam_model_creation(
     min_flux=0.0,
     check_fov=False,
     model_output=None,
-    drift_output=None,
+    sources=BRIGHT_SOURCES,
+    pixel_border=0,
 ):
     """Search around known A-Team sources for components in the GGSM, and create
     a corresponding model in Andre's formation for use in mwa_reduce tasks.
@@ -151,21 +188,9 @@ def ateam_model_creation(
         min_flux (float, optional): Minimum flux in Jy to use to filter out faint objects. Defaults to 0.
         check_fov (bool, optional): Consider whether a A-Team source is within the GLEAM-X image before searching for components. Defaults to False.
         model_output (str, optional): Output path to write file to. Defaults to None.
-        drift_output (str, optional): Output path to write a csv-like file describing the A-Team sources that were used for searching. Defaults to None.
+        sources (list[Source], optional): Colleciton of bright sources used that will be modelled and potentially included as components to subtract. Defaults to known bright sources.
+        pixel_border(int, options): A bright source has to be within this many pixels from the edge of an image to be includedin a model. Defaults to 0. 
     """
-    casa = Source("CasA", SkyCoord("23h23m24.000s   +58d48m54.00s"), 13000.0, -0.5, 0.0)
-    cyga = Source(
-        "CygA", SkyCoord("19h59m28.35663s +40d44m02.0970s"), 9000.0, -1.0, 0.0
-    )
-    crab = Source("Crab", SkyCoord("05h34m31.94s    +22d00m52.2s"), 1500.0, -0.5, 0.0)
-    vira = Source(
-        "VirA", SkyCoord("12h30m49.42338s +12d23m28.0439s"), 1200.0, -1.0, 0.0
-    )
-    pica = Source("PicA", SkyCoord("05h19m49.7229s  -45d46m43.853s"), 570.0, -1.0, 0.0)
-    hera = Source("HerA", SkyCoord("16h51m11.4s     +04d59m20s"), 520.0, -1.1, 0.0)
-    hyda = Source("HydA", SkyCoord("09h18m05.651s   -12d05m43.99s"), 350.0, -0.9, 0.0)
-
-    sources = [casa, cyga, crab, vira, pica, hera, hyda]
 
     if model_output == True:
         model_output = f"{metafits_file}.skymodel"
@@ -194,11 +219,13 @@ def ateam_model_creation(
         if app_flux < min_flux or (check_fov and in_fov):
             continue
 
-        if drift_output is not None:
-            with open(drift_output, "a") as drift_file:
-                drift_file.write(
-                    f"{gpstime},{src.name},{app_flux}, {response[0]}, {response[1]}\n"
-                )
+        # Decide if a potential source is within a certain border around the image
+        # Only include it in the model to subtract if it is on the edge, otherwise
+        # ignore and hope for the best
+        if check_fov and check_coords_mask(
+            metafits_wcs, src.pos, border_size=pixel_border
+        ):
+            continue
 
         matches = search_ggsm(src.pos, ggsm_sky, search_radius)
         comps = ggsm[matches]
@@ -243,12 +270,6 @@ if __name__ == "__main__":
         help="Store the peel sky-model as METAFITS.peel",
     )
     parser.add_argument(
-        "--drift-output",
-        nargs=1,
-        default=None,
-        help="Create a file of all sources across all METAFITS with the brightness of A-Team sources that are above --min-flux",
-    )
-    parser.add_argument(
         "--ggsm", default=GGSM, type=str, help="Path to the GLEAM Global Sky Model"
     )
     parser.add_argument(
@@ -257,17 +278,17 @@ if __name__ == "__main__":
         type=float,
         help="The search radius, in arcminutes, used when searching the GGSM for components related to known bright A-team sources",
     )
+    parser.add_argument(
+        "--pixel-border",
+        type=int,
+        default=0,
+        help="A masking border widt. If non-zero, sources will only be considered for subtraction if ther are fewer than this many pixels from the border. If zero this criteria is ignored. ",
+    )
 
     args = parser.parse_args()
 
     args.search_radius *= u.arcminute
     print(args)
-
-    drift_output = None if args.drift_output is None else args.drift_output[0]
-
-    if drift_output is not None:
-        with open(drift_output, "w") as drift_file:
-            drift_file.write("time,name,app_flux,response_xx,response_yy\n")
 
     for metafits in args.metafits:
         print(f"{metafits}...")
@@ -278,6 +299,6 @@ if __name__ == "__main__":
             min_flux=args.min_flux,
             check_fov=args.check_fov,
             model_output=args.store_model,
-            drift_output=drift_output,
+            pixel_border=args.pixel_border,
         )
 
