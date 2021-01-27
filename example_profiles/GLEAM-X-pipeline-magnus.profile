@@ -99,6 +99,12 @@ export SINGULARITY_BINDPATH="${HOME}:${HOME},${GXSCRIPT},${GXBASE},${GXSCRATCH},
 export PATH="${PATH}:${GXBASE}/bin" # Adds the obs_* script to the searchable path. 
 export HOST_CLUSTER=${GXCLUSTER}    # Maintained for compatability. Will be removed soon. 
 
+# Force matplotlib to write configuration to a location with write access. Attempting to fix issues on pawsey 
+export MPLCONFIGDIR="${GXSCRATCH}"
+#Redirect astropy cache and home location. Attempting to fix issue on pawsey.
+export XDG_CONFIG_HOME="${GXSCRATCH}"
+export XDG_CACHE_HOME="${GXSCRATCH}"
+
 # Loads a file that contains secrets used throughout the pipeline. These include
 # - MWA_ASVO_API_KEY
 # - GXDBHOST
