@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from multiprocessing import Pool
+from math import ceil
+
 from astropy.time import Time
 from astropy.io import fits
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
@@ -21,6 +24,71 @@ import matplotlib.cm as cm
 
 import argparse
 
+
+def make_plot(x, y, w, model, title, ylabel, outname):
+    figsize = (6, 6)
+    x = [X for (W, X) in sorted(zip(w, x))]
+    y = [Y for (W, Y) in sorted(zip(w, y))]
+    w = sorted(w)
+    SNR = np.log10(w)
+    fitplot = plt.figure(figsize=figsize)
+    ax = fitplot.add_subplot(111)
+    ax.set_title(title, fontsize=10)
+    ax.scatter(x, y, marker=".", c=SNR, cmap="Greys")
+    x = sorted(x)
+    ax.plot(x, model(x), "-", ms=1)
+    ax.set_xlabel(ylabel)
+    ax.set_ylabel("log10 ratio")
+    ax.set_ylim([-0.1, 0.1])
+
+    print("Saving {0}".format(outname))
+    fitplot.savefig(outname, bbox_inches="tight")
+
+
+def zmodel(x):
+    return np.zeros(len(x))
+
+
+def apply_correction_screen(
+    data: np.ndarray, correction: np.ndarray, reshape=None
+) -> np.ndarray:
+    """A simple function to apply a multiplicative correction screen to the input data. 
+    
+
+    Args:
+        data (np.ndarray): Image data that needs to be computed
+        correction (np.ndarray): Correction factor to apply in a multipilcative pixel-wise manner
+        reshape (tuple[int, ...], optional): It not None, the corrected data is cast into this shape. Defaults to None.
+
+    Returns:
+        np.ndarray: The corrected data
+    """
+
+    corrected_data = data * correction
+
+    if reshape is not None:
+        corrected_data = corrected_data.reshape(reshape)
+
+    return corrected_data
+
+    # outformat = "{0},{1},{2},{3}\n"
+    # outvars = [obsid, median, peak, std ]
+    # outputfile = obsid+"_ionodiff.csv"
+    # if not os.path.exists(outputfile):
+    #     with open(outputfile, 'w') as output_file:
+    #        output_file.write("#obsid,median,peak,std\n")
+    #        output_file.write(outformat.format(*outvars))
+
+
+def sigma_clip(ratios, n=1):
+    median = np.median(ratios)
+    std = np.nanstd(ratios)
+    ind = np.intersect1d(
+        np.where(ratios > median - n * std), np.where(ratios < median + n * std)
+    )
+    return ind
+
+
 parser = argparse.ArgumentParser()
 group1 = parser.add_argument_group("Input files")
 group1.add_argument(
@@ -38,6 +106,13 @@ group1.add_argument(
     default=None,
     help="Sky model to cross-match to (no default)",
 )
+group1.add_argument(
+    "--cores",
+    type=int,
+    default=None,
+    help="Specifies the number of cores to use when applying the correction screen. Is made by dividing each image into N-number of slices. Default will be to use know. ",
+)
+
 
 group2 = parser.add_argument_group("Control options")
 group2.add_argument(
@@ -138,47 +213,6 @@ else:
     print(results.filelist)
     print("Must specify a list of files to read!")
     sys.exit(1)
-
-
-def sigma_clip(ratios, n=1):
-    median = np.median(ratios)
-    std = np.nanstd(ratios)
-    ind = np.intersect1d(
-        np.where(ratios > median - n * std), np.where(ratios < median + n * std)
-    )
-    return ind
-
-
-def make_plot(x, y, w, model, title, ylabel, outname):
-    figsize = (6, 6)
-    x = [X for (W, X) in sorted(zip(w, x))]
-    y = [Y for (W, Y) in sorted(zip(w, y))]
-    w = sorted(w)
-    SNR = np.log10(w)
-    fitplot = plt.figure(figsize=figsize)
-    ax = fitplot.add_subplot(111)
-    ax.set_title(title, fontsize=10)
-    ax.scatter(x, y, marker=".", c=SNR, cmap="Greys")
-    x = sorted(x)
-    ax.plot(x, model(x), "-", ms=1)
-    ax.set_xlabel(ylabel)
-    ax.set_ylabel("log10 ratio")
-    ax.set_ylim([-0.1, 0.1])
-
-    print("Saving {0}".format(outname))
-    fitplot.savefig(outname, bbox_inches="tight")
-
-
-def zmodel(x):
-    return np.zeros(len(x))
-
-    # outformat = "{0},{1},{2},{3}\n"
-    # outvars = [obsid, median, peak, std ]
-    # outputfile = obsid+"_ionodiff.csv"
-    # if not os.path.exists(outputfile):
-    #     with open(outputfile, 'w') as output_file:
-    #        output_file.write("#obsid,median,peak,std\n")
-    #        output_file.write(outformat.format(*outvars))
 
 
 if results.read_coefficients is True:
@@ -526,9 +560,33 @@ if results.do_rescale is True:
                         print(f"Caching correction screen for {img_shape}")
                         corr[img_shape] = corr_apply
 
-                    hdu_in[0].data = np.array(
-                        corr[img_shape] * hdu_in[0].data, dtype=np.float32
-                    )
+                    if results.cores in [None, 1]:
+                        print("Applying correction in a single core mode. ")
+                        hdu_in[0].data = np.array(
+                            corr[img_shape] * hdu_in[0].data, dtype=np.float32
+                        )
+                    else:
+                        screen = corr[img_shape]
+                        cores = int(results.cores)
+                        slices = cores * 16  # over sample for smaller slices
+                        stride = ceil(hdu_in[0].data.shape[0] / slices)
+
+                        pair_slices = [
+                            (
+                                hdu_in[0].data[i * stride : (i + 1) * stride],
+                                screen[i * stride : (i + 1) * stride],
+                            )
+                            for i in range(slices)
+                        ]
+
+                        with Pool(cores) as pool:
+                            result_imgs = pool.starmap(
+                                apply_correction_screen, pair_slices
+                            )
+
+                        corrected_img = np.vstack(result_imgs).astype(np.float32)
+
+                        hdu_in[0].data = corrected_img
 
                     hdu_in.writeto(outfits, overwrite=True)
                     hdu_in.close()
