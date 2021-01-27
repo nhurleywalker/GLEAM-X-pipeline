@@ -59,10 +59,10 @@ if [[ -e "${obsid}_deep-${subchan}-image-pb_warp-XX-beam.fits" ]]
                     -c "$cstart-$cend"
 fi
 
-if [[ -e "${obsnum}_deep-${subchan}-image-pb_warp_weight.fits" ]]
+if [[ -e "${obsid}_deep-${subchan}-image-pb_warp_weight.fits" ]]
 then 
     echo "Removing existing weight map"
-    rm "${obsnum}_deep-${subchan}-image-pb_warp_weight.fits"
+    rm "${obsid}_deep-${subchan}-image-pb_warp_weight.fits"
 fi 
 
 generate_weight_map.py "${obsid}_deep-${subchan}-image-pb_warp-XX-beam.fits" \
