@@ -57,9 +57,9 @@ then
     then 
         rm "${obsid}_deep-${subchan}-image-pb_warp-XX-beam.fits"
     fi
-if [[ -e "${obsid}_deep-${subchan}-image-pb_warp-XX-beam.fits" ]]
+if [[ -e "${obsid}_deep-${subchan}-image-pb_warp-YY-beam.fits" ]]
     then 
-        rm "${obsid}_deep-${subchan}-image-pb_warp-XX-beam.fits"
+        rm "${obsid}_deep-${subchan}-image-pb_warp-YY-beam.fits"
     fi
 
     lookup_beam.py "${obsid}" \
