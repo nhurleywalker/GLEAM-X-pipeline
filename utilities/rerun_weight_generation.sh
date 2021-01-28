@@ -1,8 +1,12 @@
 #! /bin/bash -l
 # A script to regenerate the weight maps for specified obsid and subchan. 
-# This was written to run against a set of obsids whose weght maps were
+# This was written to run against a set of obsids whose weight maps were
 # filled with nans. It does not perform the larger post_imaging set of 
 # tasks, and critically relies upon there being an rms map being present. 
+# This script will ensure that appropriate data products existing and
+# will recreate them (excluding the RMS map from aegean, which would
+# indicate a larger problem if it did not exists). This script should
+# be executed within the context of the GLEAM-X container
 
 set -x
 
@@ -14,13 +18,18 @@ then
     exit 1 
 fi
 
-
 obsid=$1
 subchan=$2
 
 if [ ! -d "${obsid}" ]
 then
     echo "Directory ${obsid} does not exist. Exiting, "
+    exit 1
+fi
+
+if [[ ! -e "${obsid}/${obsid}_deep-${subchan}-image-pb_warp_rms.fits" ]]
+then 
+    echo "${obsid}_deep-${subchan}-image-pb_warp_rms.fits not found. Exiting. "
     exit 1
 fi
 
