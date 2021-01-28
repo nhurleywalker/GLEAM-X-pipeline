@@ -60,8 +60,7 @@ done
 polyfit_snapshots.py \
                --filelist "${sublist}" \
                --skymodel="${GXBASE}"/models/GGSM_sparse_unresolved.fits \
-               $readfile $write --rescale --correctall --overwrite --plot \
-               --cores 8
+               $readfile $write --rescale --correctall --overwrite --plot 
 
 # Check that all files created so I can use the right exit code
 exitcode=0

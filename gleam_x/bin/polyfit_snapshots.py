@@ -106,13 +106,6 @@ group1.add_argument(
     default=None,
     help="Sky model to cross-match to (no default)",
 )
-group1.add_argument(
-    "--cores",
-    type=int,
-    default=None,
-    help="Specifies the number of cores to use when applying the correction screen. Is made by dividing each image into N-number of slices. Default will be to use know. ",
-)
-
 
 group2 = parser.add_argument_group("Control options")
 group2.add_argument(
@@ -560,33 +553,9 @@ if results.do_rescale is True:
                         print(f"Caching correction screen for {img_shape}")
                         corr[img_shape] = corr_apply
 
-                    if results.cores in [None, 1]:
-                        print("Applying correction in a single core mode. ")
-                        hdu_in[0].data = np.array(
-                            corr[img_shape] * hdu_in[0].data, dtype=np.float32
-                        )
-                    else:
-                        screen = corr[img_shape]
-                        cores = int(results.cores)
-                        slices = cores * 16  # over sample for smaller slices
-                        stride = ceil(hdu_in[0].data.shape[0] / slices)
-
-                        pair_slices = [
-                            (
-                                hdu_in[0].data[i * stride : (i + 1) * stride],
-                                screen[i * stride : (i + 1) * stride],
-                            )
-                            for i in range(slices)
-                        ]
-
-                        with Pool(cores) as pool:
-                            result_imgs = pool.starmap(
-                                apply_correction_screen, pair_slices
-                            )
-
-                        corrected_img = np.vstack(result_imgs).astype(np.float32)
-
-                        hdu_in[0].data = corrected_img
+                    hdu_in[0].data = np.array(
+                        corr[img_shape] * hdu_in[0].data, dtype=np.float32
+                    )
 
                     hdu_in.writeto(outfits, overwrite=True)
                     hdu_in.close()
