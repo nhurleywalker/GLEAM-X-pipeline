@@ -1,4 +1,6 @@
 import os
+from typing import Tuple, Any
+
 import numpy as np
 import astropy.units as u
 
@@ -22,7 +24,7 @@ LOCATION = EarthLocation.from_geodetic(
     lat=LAT * u.deg, lon=LON * u.deg, height=ALT * u.m
 )
 
-
+# TODO: Make Source use and return proper units
 class Source:
     def __init__(self, name, pos, flux, alpha, beta):
         self.name = name
@@ -271,6 +273,19 @@ def ateam_model_creation(
             out_file.write(model_text)
 
 
+def attach_units_or_None(param, to_unit) -> Tuple["u", None]:
+    """Test is params is set, and if it is not None multiple the unit
+
+    Args:
+        param (Any): item to attach the unit to
+        to_unit (u): Units to add
+    
+    Returns:
+        Tuple[u, None]: If param is None returns None, others the value with the unit attached
+    """
+    return param * to_unit if param is not None else None
+
+
 if __name__ == "__main__":
 
     try:
@@ -325,14 +340,13 @@ if __name__ == "__main__":
         "--min-elevation",
         default=None,
         type=float,
-        help="Minimum elevation a candidate source should hae before its components are added to the model. ",
+        help="Minimum elevation (degrees) a candidate source should hae before its components are added to the model. ",
     )
 
     args = parser.parse_args()
 
-    args.search_radius *= u.arcminute
-    args.min_elevation *= u.degree
-    # print(args)
+    args.search_radius = attach_units_or_None(args.search_radius, u.arcminute)
+    args.min_elevation = attach_units_or_None(args.min_elevation, u.degree)
 
     for metafits in args.metafits:
         print(f"{metafits}...")
