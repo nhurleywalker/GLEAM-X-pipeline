@@ -5,11 +5,22 @@ import astropy.units as u
 from argparse import ArgumentParser
 from astropy.wcs import WCS
 from astropy.io import fits
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+from astropy.time import Time
 from astropy.table import Table
 from mwa_pb_lookup.lookup_beam import beam_lookup_1d as gleamx_beam_lookup
 from gleam_x.bin.beam_value_at_radec import parse_metafits, beam_value
 from gleam_x.db.check_src_fov import check_coords
+
+# TODO: Move to a proper GLEAM-X location
+# MWA location from CONV2UVFITS/convutils.h
+LAT = -26.703319
+LON = 116.67081
+ALT = 377.0
+
+LOCATION = EarthLocation.from_geodetic(
+    lat=LAT * u.deg, lon=LON * u.deg, height=ALT * u.m
+)
 
 
 class Source:
@@ -167,7 +178,7 @@ def create_wcs(ra, dec, cenchan):
     return w
 
 
-@u.quantity_input(search_radius=u.arcminute)
+@u.quantity_input(search_radius=u.arcminute, min_elevation=u.degree)
 def ateam_model_creation(
     metafits_file,
     ggsm,
@@ -177,6 +188,8 @@ def ateam_model_creation(
     model_output=None,
     sources=BRIGHT_SOURCES,
     pixel_border=0,
+    max_response=None,
+    min_elevation=None,
 ):
     """Search around known A-Team sources for components in the GGSM, and create
     a corresponding model in Andre's formation for use in mwa_reduce tasks.
@@ -189,7 +202,9 @@ def ateam_model_creation(
         check_fov (bool, optional): Consider whether a A-Team source is within the GLEAM-X image before searching for components. Defaults to False.
         model_output (str, optional): Output path to write file to. Defaults to None.
         sources (list[Source], optional): Colleciton of bright sources used that will be modelled and potentially included as components to subtract. Defaults to known bright sources.
-        pixel_border(int, options): A bright source has to be within this many pixels from the edge of an image to be includedin a model. Defaults to 0. 
+        pixel_border(int, optional): A bright source has to be within this many pixels from the edge of an image to be includedin a model. Defaults to 0. 
+        max_response (float, optional): Sources where the primary beam attentuation is less than this number are removed. 
+        min_elevation (float, optional): Minimum elevation a source should have before being included in the model. If None the elevation is not considered. Defaults to None. 
     """
 
     if model_output == True:
@@ -199,7 +214,12 @@ def ateam_model_creation(
 
     header = fits.open(metafits_file)[0].header
 
+    # Mid-point of the observation used for AltAz.
     gpstime = header["GPSTIME"]
+    start_time = header["DATE-OBS"]
+    duration = header["EXPOSURE"] * u.s
+    obs_time = Time(start_time, format="isot", scale="utc") + 0.5 * duration
+
     cenchan = round(freq / 1e6 / 1.28 + 0.5)
 
     metafits_wcs = create_wcs(header["RA"], header["DEC"], cenchan)
@@ -208,6 +228,7 @@ def ateam_model_creation(
     ggsm_sky = SkyCoord(ggsm_tab["RAJ2000"], ggsm_tab["DEJ2000"], unit=(u.deg, u.deg))
 
     model_text = "skymodel fileformat 1.1\n"
+    no_comps = 0
 
     for src in sources:
         response = gleamx_beam_lookup(src.pos.ra.deg, src.pos.dec.deg, grid, time, freq)
@@ -219,6 +240,13 @@ def ateam_model_creation(
         if app_flux < min_flux or (check_fov and in_fov):
             continue
 
+        if max_response is not None and np.mean(response) > max_response:
+            continue
+
+        altaz = src.pos.transform_to(AltAz(obstime=obs_time, location=LOCATION))
+        if min_elevation is not None and altaz.alt < min_elevation:
+            continue
+
         # Decide if a potential source is within a certain border around the image
         # Only include it in the model to subtract if it is on the edge, otherwise
         # ignore and hope for the best
@@ -228,15 +256,18 @@ def ateam_model_creation(
             continue
 
         matches = search_ggsm(src.pos, ggsm_sky, search_radius)
-        comps = ggsm[matches]
+        comps = ggsm_tab[matches]
+        no_comps += len(comps)
+
+        print(f"{src.name} is going to the model...")
 
         for comp in comps:
             comp_model = ggsm_row_model(comp)
             model_text += comp_model
 
-    if model_output not in [None, False]:
+    if model_output not in [None, False] and no_comps > 0:
         with open(model_output, "w") as out_file:
-            print(f"Writing to {model_output}")
+            print(f"Writing {no_comps} components to {model_output}")
             out_file.write(model_text)
 
 
@@ -252,7 +283,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m",
         "--min-flux",
-        default=1.0,
+        default=0,
         type=float,
         help="Minimum brightness, in Jy, for a source to be considered as one to peel",
     )
@@ -267,7 +298,7 @@ if __name__ == "__main__":
         "--store-model",
         default=False,
         action="store_true",
-        help="Store the peel sky-model as METAFITS.peel",
+        help="Store the peel sky-model as METAFITS.skymodel",
     )
     parser.add_argument(
         "--ggsm", default=GGSM, type=str, help="Path to the GLEAM Global Sky Model"
@@ -284,11 +315,24 @@ if __name__ == "__main__":
         default=0,
         help="A masking border widt. If non-zero, sources will only be considered for subtraction if ther are fewer than this many pixels from the border. If zero this criteria is ignored. ",
     )
+    parser.add_argument(
+        "--max-response",
+        type=float,
+        default=None,
+        help="Include sources in the model if they are at a position where their primary beam attentuation is below this threshold. In practise this would select objects towards the edge of an image away from the most sensitive part of the primary beam. ",
+    )
+    parser.add_argument(
+        "--min-elevation",
+        default=None,
+        type=float,
+        help="Minimum elevation a candidate source should hae before its components are added to the model. ",
+    )
 
     args = parser.parse_args()
 
     args.search_radius *= u.arcminute
-    print(args)
+    args.min_elevation *= u.degree
+    # print(args)
 
     for metafits in args.metafits:
         print(f"{metafits}...")
@@ -300,5 +344,7 @@ if __name__ == "__main__":
             check_fov=args.check_fov,
             model_output=args.store_model,
             pixel_border=args.pixel_border,
+            max_response=args.max_response,
+            min_elevation=args.min_elevation,
         )
 
