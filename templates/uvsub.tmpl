@@ -62,7 +62,7 @@ fi
 if [[ ! -e "${obsnum}.metafits.skymodel" ]]
 then
     echo "Generating model of A-Team sources for uv-subtraction"
-    generate_ateam_subtract_model.py "${obsnum}.metafits" \
+    python generate_ateam_subtract_model.py "${obsnum}.metafits" \
                                     --ggsm "${GXBASE}/models/GGSM.fits" \
                                     --max-response 0.1 \
                                     --min-elevation 0.0 \
@@ -70,7 +70,7 @@ then
                                     --apply-beam
 fi
 submodel="${obsnum}.metafits.skymodel"
-ls -lh
+
 echo "Subtracting ${submodel}"
 
 # calibrate
