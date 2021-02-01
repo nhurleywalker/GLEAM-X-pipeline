@@ -1,0 +1,82 @@
+#! /bin/bash -l
+
+# A template script to generate a model of a-team sources that will be subtracted
+# from the visibility dataset. The idea is to generate the model based on bright 
+# sources that are above the horizon but are outside the main PB. These will likely
+# be sources that can not be deconvolved because the source is not within the 
+# clean region. Although a simple subtract does not solve for position dependent
+# calibration effects, they should be able to minimise the sidelobes that extend 
+# from the sources into the field. Even suppressing these sidelobes by a small
+# fraction would be useful. 
+
+set -x
+
+pipeuser=PIPEUSER
+obsnum=OBSNUM
+
+# If obsnum is a file, then we are in an array job
+if [[ -f "${obsnum}" ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
+    echo "uvsubtract obsid ${obsnum}"
+else
+    taskid=1
+    jobid=${SLURM_JOB_ID}
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
+fi
+}
+
+datadir=DATADIR
+
+# GLEAM-X sky model
+catfile="${GXBASE}/models/GGSM.fits"
+
+# MWA beam information
+MWAPATH="${GXMWAPB}"
+
+# start
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
+
+cd "${datadir}/${obsnum}" || exit
+
+metafits="${obsnum}.metafits"
+if [[ ! -e ${metafits} ]] || [[ ! -s ${metafits} ]]
+then
+    wget -O "${metafits}" http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
+    test_fail $?
+fi
+
+if [[ ! -e "${obsnum}.metafits.skymodel" ]]
+then
+    echo "Generating model of A-Team sources for uv-subtraction"
+    generate_ateam_subtract_model.py "${obsnum}.metafits" \
+                                    --ggsm "${GXBASE}/models/GGSM.fits" \
+                                    --max-response 0.1 \
+                                    --min-elevation 0.0 \
+                                    --store-model
+fi
+submodel="${obsnum}.metafits.skymodel"
+
+echo "Subtracting ${submodel}"
+
+# calibrate
+subtrmodel \
+        -applybeam \
+        "${submodel}" \
+        "${obsnum}".ms
+test_fail $?
+
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
