@@ -62,7 +62,7 @@ fi
 if [[ ! -e "${obsnum}.metafits.skymodel" ]]
 then
     echo "Generating model of A-Team sources for uv-subtraction"
-    python generate_ateam_subtract_model.py "${obsnum}.metafits" \
+    generate_ateam_subtract_model.py "${obsnum}.metafits" \
                                     --ggsm "${GXBASE}/models/GGSM.fits" \
                                     --max-response 0.1 \
                                     --min-elevation 0.0 \
