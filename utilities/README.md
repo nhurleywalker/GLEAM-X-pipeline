@@ -1,0 +1,3 @@
+# Utility Scripts
+
+These are a small collection of scripts that have been useful for non-standard tasks that have been applied to GLEAM-X data. As they are designed as single use (or used relatively infrequently) they are not written with the same SLURM functionality. Generally these scripts have been written to repair or complete certain processing tasks (or components of certain tasks) that were not successful or otherwise needed to be repeated. 
