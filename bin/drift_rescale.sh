@@ -99,7 +99,7 @@ error="${error//%A/${jobid}}"
 output="${output//%A/${jobid}}"
 
 subchans=(0000 0001 0002 0003 MFS)
-echo "Submitted ${script} as ${jobid}. Follow progress here:"
+echo "Submitted ${script} as ${jobid} . Follow progress here:"
 
 # record submission
 if [ "${GXTRACK}" = "track" ]
