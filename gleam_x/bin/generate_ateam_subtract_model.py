@@ -192,6 +192,7 @@ def ateam_model_creation(
     pixel_border=0,
     max_response=None,
     min_elevation=None,
+    apply_beam=False,
 ):
     """Search around known A-Team sources for components in the GGSM, and create
     a corresponding model in Andre's formation for use in mwa_reduce tasks.
@@ -207,6 +208,7 @@ def ateam_model_creation(
         pixel_border(int, optional): A bright source has to be within this many pixels from the edge of an image to be includedin a model. Defaults to 0. 
         max_response (float, optional): Sources where the primary beam attentuation is less than this number are removed. 
         min_elevation (float, optional): Minimum elevation a source should have before being included in the model. If None the elevation is not considered. Defaults to None. 
+        apply_beam (bool, optional): Apply primary beam attenuation to flux densities that get placed into the model. Defaults to False. 
     """
 
     if model_output == True:
@@ -262,6 +264,12 @@ def ateam_model_creation(
         no_comps += len(comps)
 
         print(f"{src.name} is going to the model...")
+        if apply_beam:
+            print("...Applying primary beam attenuation to the components")
+            comps_response = gleamx_beam_lookup(
+                ggsm_sky[matches].ra.deg, ggsm_sky[matches].dec.deg, grid, time, freq
+            )
+            comps["S_200"] = comps["S_200"] * np.mean(comps_response, axis=0)
 
         for comp in comps:
             comp_model = ggsm_row_model(comp)
@@ -342,6 +350,12 @@ if __name__ == "__main__":
         type=float,
         help="Minimum elevation (degrees) a candidate source should hae before its components are added to the model. ",
     )
+    parser.add_argument(
+        "--apply-beam",
+        default=False,
+        action="store_true",
+        help="Place the apparent brightness of each component into the model, not to expected brightness that is described by the GGSM.",
+    )
 
     args = parser.parse_args()
 
@@ -360,5 +374,6 @@ if __name__ == "__main__":
             pixel_border=args.pixel_border,
             max_response=args.max_response,
             min_elevation=args.min_elevation,
+            apply_beam=args.apply_beam,
         )
 
