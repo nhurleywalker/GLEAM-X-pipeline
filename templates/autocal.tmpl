@@ -92,7 +92,7 @@ current=$(chgcentre "${obsnum}.ms")
 if [[ $current == *"shift"* ]] 
 then
     echo "Detected that this measurement set has undergone a denormal shift; this must be undone before calibration."
-    coords=$(calc_pointing.py --metafits="${metafits}")
+    coords=$(calc_pointing.py "${metafits}")
     echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
     chgcentre \
             "${obsnum}.ms" \
