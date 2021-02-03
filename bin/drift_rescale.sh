@@ -102,20 +102,19 @@ subchans=(0000 0001 0002 0003 MFS)
 echo "Submitted ${script} as ${jobid} . Follow progress here:"
 
 # record submission
-if [ "${GXTRACK}" = "track" ]
-then
-    for taskid in $(seq 0 1 4)
-    do
-        terror="${error//%a/${taskid}}"
-        toutput="${output//%a/${taskid}}"
-        subchan=${subchans[$taskid]}
+for taskid in $(seq 0 1 4)
+do
+    terror="${error//%a/${taskid}}"
+    toutput="${output//%a/${taskid}}"
+    subchan=${subchans[$taskid]}
 
-        echo "Submitting track task for ${taskid}"
-        echo "${toutput}"
-        echo "${terror}"
+    echo "${toutput}"
+    echo "${terror}"
 
-        obsnum=$(cat "${obslist}")
-        ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
-                            --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband="${subchan}"
-    done
-fi
+    if [ "${GXTRACK}" = "track" ]
+    then
+    obsnum=$(cat "${obslist}")
+    ${GXCONTAINER} track_task.py queue_mosaic --jobid="${jobid}" --taskid="${taskid}" --task='rescale' --submission_time="$(date +%s)" --batch_file="${script}" \
+                        --batch_obs_id ${obsnum} --stderr="${terror}" --stdout="${toutput}" --subband="${subchan}"
+    fi
+done
