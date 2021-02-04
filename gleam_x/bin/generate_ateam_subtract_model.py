@@ -205,7 +205,7 @@ def ateam_model_creation(
         search_radius (units, optional): Radius to use when search for nearby component. Defaults to 10.*u.arcminute
         min_flux (float, optional): Minimum flux in Jy to use to filter out faint objects. Defaults to 0.
         check_fov (bool, optional): Consider whether a A-Team source is within the GLEAM-X image before searching for components. Defaults to False.
-        model_output (str, optional): Output path to write file to. Defaults to None.
+        model_output (str, optional): Output path to write file to. If True ;skymodel' is appended to the metafits file. Defaults to None.
         sources (list[Source], optional): Colleciton of bright sources used that will be modelled and potentially included as components to subtract. Defaults to known bright sources.
         pixel_border(int, optional): A bright source has to be within this many pixels from the edge of an image to be includedin a model. Defaults to 0. 
         max_response (float, optional): Sources where the primary beam attentuation is less than this number are removed. 
@@ -320,10 +320,11 @@ if __name__ == "__main__":
         help="Check to only include sources if they are outside the image boundaries, assuming 8000x8000 pixels and pixel scale of 0.5 / central channel",
     )
     parser.add_argument(
-        "--store-model",
-        default=False,
-        action="store_true",
-        help="Store the peel sky-model as METAFITS.skymodel",
+        "--model-output",
+        type=str,
+        nargs=1,
+        default=None,
+        help="The path to save the model as.",
     )
     parser.add_argument(
         "--ggsm", default=GGSM, type=str, help="Path to the GLEAM Global Sky Model"
@@ -356,13 +357,14 @@ if __name__ == "__main__":
         "--apply-beam",
         default=False,
         action="store_true",
-        help="Place the apparent brightness of each component into the model, not to expected brightness that is described by the GGSM.",
+        help="Place the apparent brightness of each component into the model, not the expected brightness that is described by the GGSM.",
     )
 
     args = parser.parse_args()
 
     args.search_radius = attach_units_or_None(args.search_radius, u.arcminute)
     args.min_elevation = attach_units_or_None(args.min_elevation, u.degree)
+    args.model_output = args.model_output[0] if args.model_output is not None else None
 
     for metafits in args.metafits:
         print(f"{metafits}...")
@@ -372,7 +374,7 @@ if __name__ == "__main__":
             search_radius=args.search_radius,
             min_flux=args.min_flux,
             check_fov=args.check_fov,
-            model_output=args.store_model,
+            model_output=args.model_output,
             pixel_border=args.pixel_border,
             max_response=args.max_response,
             min_elevation=args.min_elevation,
