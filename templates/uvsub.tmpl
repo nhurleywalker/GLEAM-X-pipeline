@@ -73,14 +73,14 @@ then
                                     --ggsm "${catfile}" \
                                     --max-response 0.1 \
                                     --min-elevation 0.0 \
-                                    --mode-output "${submodel}" \
-                                    --apply-beam
+                                    --mode-output "${submodel}" 
 fi
 
 echo "Subtracting ${submodel}"
 
 # calibrate
 subtrmodel \
+        -applybeam -mwa-path "${MWAPATH}" \
         "${submodel}" \
         "${obsnum}".ms
 test_fail $?
