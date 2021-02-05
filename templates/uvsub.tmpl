@@ -80,7 +80,7 @@ echo "Subtracting ${submodel}"
 
 # calibrate
 subtrmodel \
-        -applybeam -mwa-path "${MWAPATH}" \
+        -applybeam -mwapath "${MWAPATH}" \
         "${submodel}" \
         "${obsnum}".ms
 test_fail $?
