@@ -78,6 +78,22 @@ fi
 
 echo "Subtracting ${submodel}"
 
+# Check whether the phase centre has already changed
+# Calibration will fail if it has, so measurement set must be shifted back to its original position
+current=$(chgcentre "${obsnum}.ms") 
+
+if [[ $current == *"shift"* ]] 
+then
+    echo "Detected that this measurement set has undergone a denormal shift; this must be undone before subtrmodel."
+    coords=$(calc_pointing.py "${metafits}")
+    echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
+    chgcentre \
+            "${obsnum}.ms" \
+            "${coords}"
+else 
+    echo "Detected that no shift is needed for this measurement set."
+fi
+
 # calibrate
 subtrmodel \
         -applybeam -mwapath "${MWAPATH}" \
