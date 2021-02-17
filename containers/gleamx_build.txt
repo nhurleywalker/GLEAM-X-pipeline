@@ -32,7 +32,6 @@ apt install -y \
             git \
             wget \
             pigz \
-            swarp \
             stilts \
             graphviz-dev \
             xorg \
@@ -77,13 +76,46 @@ apt install -y \
             libboost-python-dev \
             libboost-test-dev \
             libgsl-dev \
-            parallel 
-            
+            parallel \
+            vim \
+            autoconf \
+            libtool
+
+# Swarp package has been replaced with compile from source to address a pixel flagging issue during coadd 
+# when pixels had large weight values
+#            swarp 
+#            && ln -s /usr/bin/SWarp /usr/bin/swarp
+
+
 apt autoremove -y
 apt clean -y
+
 cd / \
-    && ln -s /usr/include \
-    && ln -s /usr/bin/SWarp /usr/bin/swarp
+    && git clone https://github.com/tjgalvin/swarp.git \
+    && cd swarp \
+    && git checkout big \
+    && ./autogen.sh \
+    && ./configure \
+    && make \
+    && make install \
+    && cd / \
+    && rm -r swarp
+
+cd / \
+    && ln -s /usr/include 
+    
+# ------------------------------------------------
+# WCSTools
+# The latest version has a bug in getfits. Using 
+# older version for this reason. 
+# ------------------------------------------------
+cd / \
+    && cd opt \
+    && wget http://tdc-www.harvard.edu/software/wcstools/Old/wcstools-3.8.7.tar.gz \
+    && tar xvfz wcstools-3.8.7.tar.gz \
+    && cd ./wcstools-3.8.7 \
+    && make -j8 
+# ------------------------------------------------
 
 # ------------------------------------------------
 # mwa-reduce
@@ -111,17 +143,6 @@ cd / \
     && wget https://casa.nrao.edu/download/distro/casa/release/el6/casa-"${version}".tar.gz \
     && tar -xf casa-"${version}".tar.gz \
     && rm -rf casa-"${version}".tar.gz
-# ------------------------------------------------
-
-# ------------------------------------------------
-# WCSTools
-# ------------------------------------------------
-cd / \
-    && cd opt \
-    && wget http://tdc-www.harvard.edu/software/wcstools/wcstools-3.9.6.tar.gz \
-    && tar xvfz wcstools-3.9.6.tar.gz \
-    && cd ./wcstools-3.9.6 \
-    && make -j8 
 # ------------------------------------------------
 
 # ------------------------------------------------
@@ -271,7 +292,7 @@ export LC_ALL=C # Suppress perl locale errors
 # ------------------------------------------------
 # WCSTools 
 # ------------------------------------------------
-export PATH="/opt/wcstools-3.9.6/bin:$PATH"
+export PATH="/opt/wcstools-3.8.7/bin:$PATH"
 # ------------------------------------------------
 
 # ------------------------------------------------
