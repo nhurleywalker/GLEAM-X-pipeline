@@ -96,7 +96,7 @@ then
     echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
     chgcentre \
             "${obsnum}.ms" \
-            "${coords}"
+            ${coords}
 else
     echo "Detected that this measurement set has not yet had its phase centre changed. Not shifting."
 fi
