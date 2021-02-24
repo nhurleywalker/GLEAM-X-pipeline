@@ -155,8 +155,34 @@ do
            --table="${file},${file%.fits}.reg" \
            "${file}"
 done
-
 test_fail $?
+
+for file in "${obsnum}"_transient-t????-image_comp.fits
+do
+    stilts \
+        tpipe \
+        in="${file}" \
+        cmd="addcol -before island file ${file}" \
+        cmd="addcol -before island interval_start ${interval_start}" \
+        cmd="addcol -before island interval_stop ${interval_stop}" \
+        cmd="addcol -before island nscans ${nscans}" \
+        out="${file%.fits}_mod.fits"
+done
+
+ls "${obsnum}"_transient-t????-image_comp.fits > concat.list
+stilts tcat in=@concat.list out="${obsnum}_transient_concatenated_table.fits"
+stilts tmatch1 \
+            matcher="sky" \
+            params=120 \
+            action="identify" \
+            values="ra dec" \
+            in="${obsnum}_transient_concatenated_table.fits" \
+            out="${obsnum}_transient_matched_table.fits"
+test_fail $?
+
+# Clean up
+# rm "${obsnum}"_transient-t????-image_comp.fits
+# rm "${obsnum}_transient_concatenated_table.fits"
+
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
-track_task.py obs_status --obs_id="${obsnum}" --status='imaged'
 
