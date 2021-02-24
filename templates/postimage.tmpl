@@ -53,6 +53,23 @@ datadir=BASEDIR
 
 cd "${datadir}/${obsnum}" || exit 1
 
+metafits="${obsnum}.metafits"
+if [[ ! -e ${metafits} ]] || [[ ! -s ${metafits} ]]
+then
+    wget -O "${metafits}" http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}
+    test_fail $?
+fi
+
+chan=$( pyhead.py -p CENTCHAN "$metafits" | awk '{print $3}' )
+ra=$(pyhead.py -p RA $i | awk '{print $3}') 
+dec=$(pyhead.py -p DEC $i | awk '{print $3}') 
+b=$(python -c "import astropy.units as u; from astropy.coordinates import SkyCoord; print(abs(SkyCoord($ra*u.deg, $dec*u.deg).galactic.b.deg))")
+minsrcs=500
+if [[ "${chan}" -eq 69 ]] && (( $(echo  "$b < 10" | bc -l) ))
+then 
+    minsrcs=50
+fi
+
 metafits=$(ls -t ${obsnum}*metafits* | head -1)
 
 for subchan in ${subchans}
@@ -71,9 +88,9 @@ do
         aegean --cores ${GXNCPUS} --autoload --table="./${obsnum}_deep-${subchan}-image-pb.fits" "./${obsnum}_deep-${subchan}-image-pb.fits" > >(tee -a "${obsnum}_deep-${subchan}_aegean.log") 2> >(tee -a "${obsnum}_deep-${subchan}_aegean.log" >&2)
     fi
     nsrc=$(grep "INFO found" "${obsnum}_deep-${subchan}_aegean.log" | head -1 | awk '{print $3}')
-    if [[ $nsrc -lt 500 ]]
+    if [[ $nsrc -lt $minsrcs ]]
     then
-        echo "Can't warp ${obsnum} -- only $nsrc sources -- probably a horrible image"
+        echo "Can't warp ${obsnum} -- only $nsrc sources and minimum required id $minsrcs -- probably a horrible image"
     else
         RA=$( pyhead.py -p RA "${obsnum}.metafits" | awk '{print $3}' )
         Dec=$( pyhead.py -p DEC "${obsnum}.metafits" | awk '{print $3}' )
