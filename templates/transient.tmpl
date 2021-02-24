@@ -141,13 +141,14 @@ then
             "${obsnum}.ms"
 
     # Then you need to source-find the data... BANE would be expensive to run more than once, so just do it... once
-    BANE --compress "${obsnum}_transient-t0020-image.fits"
+    BANE --cores ${GXNCPUS} --compress "${obsnum}_transient-t0020-image.fits"
     test_fail $?
 fi
 
 for file in "${obsnum}"_transient-t????-image.fits
 do
-    aegean --maxsummits=2 \
+    aegean --cores ${GXNCPUS}\
+           --maxsummits=2 \
            --background="${obsnum}"_transient-t0020-image_bkg.fits \
            --noise="${obsnum}"_transient-t0020-image_rms.fits \
            --seedclip=5 \
