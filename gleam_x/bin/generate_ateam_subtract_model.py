@@ -26,6 +26,8 @@ LOCATION = EarthLocation.from_geodetic(
     lat=LAT * u.deg, lon=LON * u.deg, height=ALT * u.m
 )
 
+MODEL_MODES = ["subtrmodel", "casa"]
+
 # TODO: Make Source use and return proper units
 class Source:
     def __init__(self, name, pos, flux, alpha, beta):
@@ -182,10 +184,24 @@ def create_wcs(ra, dec, cenchan):
     return w
 
 
+def casa_outlier_source(src: Source):
+    line = (
+        f"#outlier {src.name}\n"
+        f"imagename='outlier{src.name}' \n"
+        f"imsize=[128,128] \n"
+        f"phasecenter=J2000 {str(src.pos.ra.to_string(u.hour))} "
+        f"{str(src.pos.dec.to_string(u.degree, alwayssign=True))} \n"
+        "\n"
+    )
+
+    return line
+
+
 @u.quantity_input(search_radius=u.arcminute, min_elevation=u.degree)
 def ateam_model_creation(
     metafits_file,
-    ggsm,
+    mode,
+    ggsm=None,
     search_radius=10 * u.arcminute,
     min_flux=0.0,
     check_fov=False,
@@ -212,6 +228,8 @@ def ateam_model_creation(
         min_elevation (float, optional): Minimum elevation a source should have before being included in the model. If None the elevation is not considered. Defaults to None. 
         apply_beam (bool, optional): Apply primary beam attenuation to flux densities that get placed into the model. Defaults to False. 
     """
+    if mode not in MODEL_MODES:
+        raise ValueError(f"Expected mode with {MODEL_MODES}, received {mode}")
 
     if model_output == True:
         model_output = f"{metafits_file}.skymodel"
@@ -229,12 +247,18 @@ def ateam_model_creation(
     cenchan = round(freq / 1e6 / 1.28 + 0.5)
 
     metafits_wcs = create_wcs(header["RA"], header["DEC"], cenchan)
-
-    ggsm_tab = Table.read(ggsm)
-    ggsm_sky = SkyCoord(ggsm_tab["RAJ2000"], ggsm_tab["DEJ2000"], unit=(u.deg, u.deg))
-
-    model_text = "skymodel fileformat 1.1\n"
     no_comps = 0
+
+    if mode == "subtrmodel":
+        model_text = "skymodel fileformat 1.1\n"
+
+        assert ggsm is not None, "GGSM needs to be set for subtrmodel mode"
+        ggsm_tab = Table.read(ggsm)
+        ggsm_sky = SkyCoord(
+            ggsm_tab["RAJ2000"], ggsm_tab["DEJ2000"], unit=(u.deg, u.deg)
+        )
+    else:
+        model_text = ""
 
     for src in sources:
         response = gleamx_beam_lookup(src.pos.ra.deg, src.pos.dec.deg, grid, time, freq)
@@ -261,21 +285,30 @@ def ateam_model_creation(
         ):
             continue
 
-        matches = search_ggsm(src.pos, ggsm_sky, search_radius)
-        comps = ggsm_tab[matches]
-        no_comps += len(comps)
+        if mode == "casa":
+            model_text += casa_outlier_source(src)
+            no_comps += 1
 
-        print(f"{src.name} is going to the model...")
-        if apply_beam:
-            print("...Applying primary beam attenuation to the components")
-            comps_response = gleamx_beam_lookup(
-                ggsm_sky[matches].ra.deg, ggsm_sky[matches].dec.deg, grid, time, freq
-            )
-            comps["S_200"] = comps["S_200"] * np.mean(comps_response, axis=0)
+        elif mode == "subtrmodel":
+            matches = search_ggsm(src.pos, ggsm_sky, search_radius)
+            comps = ggsm_tab[matches]
+            no_comps += len(comps)
 
-        for comp in comps:
-            comp_model = ggsm_row_model(comp)
-            model_text += comp_model
+            print(f"{src.name} is going to the model...")
+            if apply_beam:
+                print("...Applying primary beam attenuation to the components")
+                comps_response = gleamx_beam_lookup(
+                    ggsm_sky[matches].ra.deg,
+                    ggsm_sky[matches].dec.deg,
+                    grid,
+                    time,
+                    freq,
+                )
+                comps["S_200"] = comps["S_200"] * np.mean(comps_response, axis=0)
+
+            for comp in comps:
+                comp_model = ggsm_row_model(comp)
+                model_text += comp_model
 
     if model_output not in [None, False] and no_comps > 0:
         with open(model_output, "w") as out_file:
@@ -305,6 +338,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description="Simple test script to figure out peeling")
     parser.add_argument("metafits", nargs="+", help="metafits file of observation")
+
     parser.add_argument(
         "-m",
         "--min-flux",
@@ -357,9 +391,15 @@ if __name__ == "__main__":
         "--apply-beam",
         default=False,
         action="store_true",
-        help="Place the apparent brightness of each component into the model, not the expected brightness that is described by the GGSM.",
+        help="Place the apparent brightness of each component into the model if subtrmodel is used, not the expected brightness that is described by the GGSM.",
     )
 
+    parser.add_argument(
+        "--mode",
+        default=MODEL_MODES[0],
+        choices=MODEL_MODES,
+        help="The type of model file to create. subtrmodel for the AO style, or casa to create a outlier file for imaging. ",
+    )
     args = parser.parse_args()
 
     args.search_radius = attach_units_or_None(args.search_radius, u.arcminute)
@@ -370,7 +410,8 @@ if __name__ == "__main__":
         print(f"{metafits}...")
         ateam_model_creation(
             metafits,
-            args.ggsm,
+            args.mode,
+            ggsm=args.ggsm,
             search_radius=args.search_radius,
             min_flux=args.min_flux,
             check_fov=args.check_fov,
