@@ -49,9 +49,6 @@ then
     exit 1
 fi
 
-# MWA beam information
-MWAPATH="${GXMWAPB}"
-
 # start
 track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
@@ -64,19 +61,18 @@ then
     test_fail $?
 fi
 
-submodel="${obsnum}.ateam_subtract_model"
+submodel="${obsnum}.ateam_outlier"
+casa="casa --nogui --agg --nologger -c"
 
-if [[ ! -e "${obsnum}.metafits.skymodel" ]]
+if [[ ! -e "${submodel}" ]]
 then
     echo "Generating model of A-Team sources for uv-subtraction"
     generate_ateam_subtract_model.py "${obsnum}.metafits" \
-                                    --ggsm "${catfile}" \
+                                    --mode casa \
                                     --max-response 0.1 \
                                     --min-elevation 0.0 \
                                     --model-output "${submodel}" 
 fi
-
-echo "Subtracting ${submodel}"
 
 # Check whether the phase centre has already changed
 # Calibration will fail if it has, so measurement set must be shifted back to its original position
@@ -94,11 +90,31 @@ else
     echo "Detected that no shift is needed for this measurement set."
 fi
 
-# calibrate
-subtrmodel \
-        -applybeam -mwapath "${MWAPATH}" \
-        "${submodel}" \
-        "${obsnum}".ms
+$casa \
+    "tclean("\
+        "vis='${obsnum}.ms', "\
+        "imagename='centerfield', "\
+        "imsize=[128,128], "\
+        "niter=500, "\
+        "gain=0.1, "\
+        "wprojplanes=1024, "\
+        "outlierfile='${submodel}', "\
+        "nterms=3, "\
+        "threshold='0.1Jy', "\
+        "cell='10arcsec', "\
+        "weighting='briggs', "\
+        "robust=0.0, "\
+        "stokes='XXYY', "\
+        "savemodel='modelcolumn', "\
+        "deconvolver='mtmfs"\
+    ")"
+test_fail $?
+
+$casa \
+   "uvsub("\
+        "vis='${obsnum}.ms', "\
+        "reverse=False"\
+    ")"
 test_fail $?
 
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"

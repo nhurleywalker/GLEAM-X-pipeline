@@ -187,7 +187,7 @@ def create_wcs(ra, dec, cenchan):
 def casa_outlier_source(src: Source):
     line = (
         f"#outlier {src.name}\n"
-        f"imagename='outlier{src.name}' \n"
+        f"imagename=outlier{src.name}\n"
         f"imsize=[128,128] \n"
         f"phasecenter=J2000 {str(src.pos.ra.to_string(u.hour))} "
         f"{str(src.pos.dec.to_string(u.degree, alwayssign=True))} \n"
