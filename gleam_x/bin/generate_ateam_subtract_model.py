@@ -27,7 +27,7 @@ LOCATION = EarthLocation.from_geodetic(
     lat=LAT * u.deg, lon=LON * u.deg, height=ALT * u.m
 )
 
-MODEL_MODES = ["subtrmodel", "casa", "casaclean"]
+MODEL_MODES = ["subtrmodel", "casa", "casaclean", "count"]
 
 # TODO: Make Source use and return proper units
 class Source:
@@ -206,43 +206,6 @@ def casa_outlier_source(src: Source) -> str:
     return line
 
 
-# def casa_clean_last(outliers: defaultdict, metafits: str, outpath: str = None):
-#     """Creates a casa clean last file for execution
-
-#     Args:
-#         outliers (defaultdict): Set ot outlying sources that need to be removed
-#         metafits (str): the metafits file used throughout processing, expected to confirm to gleam-x typical usage
-#         outpath (str, optional): path to create the clean last file at. If None will write out 'clean.last' (defaults to None)
-#     """
-#     obsid = metafits.replace(".metafits", "")
-
-#     out = "taskname = 'clean'\n"
-#     out += f"vis = '{obsid}.ms'\n"
-#     out += "stokes = 'I'\n"
-#     out += "nterms = 3\n"
-#     out += "deconvolver = 'mtmfs'\n"
-#     out += "niter = 600 \n"
-#     out += "gain = 0.1 \n"
-#     out += "wprojplanes = 1024 \n"
-#     out += "threshold = '0.1Jy' \n"
-#     out += "cell = '10arcsec' \n"
-#     out += "weighting = 'briggs' \n"
-#     out += "robust = 0.0 \n"
-#     out += "savemodel = 'modelcolumn'\n"
-
-#     for k, v in outliers.items():
-#         out += f"{k} = {v}\n"
-#     out += "go\n"
-
-#     out += "taskname = 'uvsub'\n"
-#     out += "go\n"
-
-#     outpath = "clean.last" if outpath is None else outpath
-#     with open(outpath, "w") as outfile:
-#         print(f"Writing to {outpath}...")
-#         outfile.write(out)
-
-
 def casa_clean_script(
     outliers: defaultdict,
     metafits: str,
@@ -260,6 +223,8 @@ def casa_clean_script(
     obsid = metafits.replace(".metafits", "")
     outpath = outpath if outpath is not None else "casa_script.casa"
 
+    # TODO: Adjust the cell size depending on frequency
+
     with open(outpath, "w") as out:
         for c, (imagename, phasecenter, imsize) in enumerate(
             zip(outliers["imagename"], outliers["phasecenter"], outliers["imsize"])
@@ -271,9 +236,9 @@ def casa_clean_script(
                 f"vis='{obsid}.ms', imagename='{imagename}', "
                 f"imsize={imsize}, phasecenter='{phasecenter}', "
                 f"datacolumn='{datacolumn}', "
-                "nterms=3, deconvolver='mtmfs',threshold='0.1Jy', "
+                "nterms=3, deconvolver='mtmfs',threshold='0.05Jy', "
                 "stokes='XXYY',  "
-                "niter=500, gain=0.1,  wprojplanes=1024,"
+                "niter=5000, gain=0.1,  wprojplanes=1024,"
                 "cell='10arcsec', weighting='briggs', robust=0.0, savemodel='modelcolumn' "
                 ")\n"
             )
@@ -424,6 +389,8 @@ def ateam_model_creation(
         elif mode == "casaclean":
             model_dict = casa_clean_source(src, model_dict)
             no_comps += 1
+        elif mode == "count":
+            no_comps += 1
         elif mode == "subtrmodel":
             matches = search_ggsm(src.pos, ggsm_sky, search_radius)
             comps = ggsm_tab[matches]
@@ -444,6 +411,9 @@ def ateam_model_creation(
             for comp in comps:
                 comp_model = ggsm_row_model(comp)
                 model_text += comp_model
+
+    if mode == "count":
+        print(f"{no_comps} sources matched criteria")
 
     if model_output not in [None, False] and no_comps > 0:
         if mode == "casaclean":
