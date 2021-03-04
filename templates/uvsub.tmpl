@@ -1,13 +1,9 @@
 #! /bin/bash -l
 
 # A template script to generate a model of a-team sources that will be subtracted
-# from the visibility dataset. The idea is to generate the model based on bright 
-# sources that are above the horizon but are outside the main PB. These will likely
-# be sources that can not be deconvolved because the source is not within the 
-# clean region. Although a simple subtract does not solve for position dependent
-# calibration effects, they should be able to minimise the sidelobes that extend 
-# from the sources into the field. Even suppressing these sidelobes by a small
-# fraction would be useful. 
+# from the visibility dataset. The idea is to make small images around a-team sources
+# which that than subtracted from the visibilities. We are using casa and not wsclean
+# so that we can avoid having to potentially do multiple chgcenters and wsclean runs
 
 set -x
 
@@ -62,15 +58,16 @@ then
 fi
 
 submodel="${obsnum}.ateam_outlier"
-casa="casa --nogui --agg --nologger -c"
+casa="casa --nogui --agg --nologger -c "
 
 if [[ ! -e "${submodel}" ]]
 then
     echo "Generating model of A-Team sources for uv-subtraction"
     generate_ateam_subtract_model.py "${obsnum}.metafits" \
-                                    --mode casa \
-                                    --max-response 0.1 \
+                                    --mode casaclean \
                                     --min-elevation 0.0 \
+                                    --min-flux 0.5  \
+                                    --check-fov \
                                     --model-output "${submodel}" 
 fi
 
@@ -91,30 +88,7 @@ else
 fi
 
 $casa \
-    "tclean("\
-        "vis='${obsnum}.ms', "\
-        "imagename='centerfield', "\
-        "imsize=[128,128], "\
-        "niter=500, "\
-        "gain=0.1, "\
-        "wprojplanes=1024, "\
-        "outlierfile='${submodel}', "\
-        "nterms=3, "\
-        "threshold='0.1Jy', "\
-        "cell='10arcsec', "\
-        "weighting='briggs', "\
-        "robust=0.0, "\
-        "stokes='XXYY', "\
-        "savemodel='modelcolumn', "\
-        "deconvolver='mtmfs"\
-    ")"
-test_fail $?
-
-$casa \
-   "uvsub("\
-        "vis='${obsnum}.ms', "\
-        "reverse=False"\
-    ")"
+    "execfile('${submodel}')"
 test_fail $?
 
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
