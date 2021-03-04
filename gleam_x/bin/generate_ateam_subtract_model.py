@@ -2,6 +2,7 @@
 
 import os
 from typing import Tuple, Any
+from collections import defaultdict
 
 import numpy as np
 import astropy.units as u
@@ -26,7 +27,7 @@ LOCATION = EarthLocation.from_geodetic(
     lat=LAT * u.deg, lon=LON * u.deg, height=ALT * u.m
 )
 
-MODEL_MODES = ["subtrmodel", "casa"]
+MODEL_MODES = ["subtrmodel", "casa", "casaclean"]
 
 # TODO: Make Source use and return proper units
 class Source:
@@ -184,7 +185,15 @@ def create_wcs(ra, dec, cenchan):
     return w
 
 
-def casa_outlier_source(src: Source):
+def casa_outlier_source(src: Source) -> str:
+    """Generate a new entry in a casa tclean outlier file for a A-Team source
+
+    Args:
+        src (Source): The source to add to the outlier file
+
+    Returns:
+        str: An entry in the outlier file for tclean
+    """
     line = (
         f"#outlier {src.name}\n"
         f"imagename=outlier{src.name}\n"
@@ -195,6 +204,121 @@ def casa_outlier_source(src: Source):
     )
 
     return line
+
+
+# def casa_clean_last(outliers: defaultdict, metafits: str, outpath: str = None):
+#     """Creates a casa clean last file for execution
+
+#     Args:
+#         outliers (defaultdict): Set ot outlying sources that need to be removed
+#         metafits (str): the metafits file used throughout processing, expected to confirm to gleam-x typical usage
+#         outpath (str, optional): path to create the clean last file at. If None will write out 'clean.last' (defaults to None)
+#     """
+#     obsid = metafits.replace(".metafits", "")
+
+#     out = "taskname = 'clean'\n"
+#     out += f"vis = '{obsid}.ms'\n"
+#     out += "stokes = 'I'\n"
+#     out += "nterms = 3\n"
+#     out += "deconvolver = 'mtmfs'\n"
+#     out += "niter = 600 \n"
+#     out += "gain = 0.1 \n"
+#     out += "wprojplanes = 1024 \n"
+#     out += "threshold = '0.1Jy' \n"
+#     out += "cell = '10arcsec' \n"
+#     out += "weighting = 'briggs' \n"
+#     out += "robust = 0.0 \n"
+#     out += "savemodel = 'modelcolumn'\n"
+
+#     for k, v in outliers.items():
+#         out += f"{k} = {v}\n"
+#     out += "go\n"
+
+#     out += "taskname = 'uvsub'\n"
+#     out += "go\n"
+
+#     outpath = "clean.last" if outpath is None else outpath
+#     with open(outpath, "w") as outfile:
+#         print(f"Writing to {outpath}...")
+#         outfile.write(out)
+
+
+def casa_clean_script(
+    outliers: defaultdict,
+    metafits: str,
+    outpath: str = None,
+    corrected_data: bool = False,
+):
+    """Creates a casa clean last file for execution
+
+    Args:
+        outliers (defaultdict): Set ot outlying sources that need to be removed
+        metafits (str): the metafits file used throughout processing, expected to confirm to gleam-x typical usage
+        outpath (str, optional): path to create the clean last file at. If None will write out 'clean.last' (defaults to None)
+        ms_debug (bool, optional): whether imaging should be performed using CORRECTED_DATA column (default is False)
+    """
+    obsid = metafits.replace(".metafits", "")
+    outpath = outpath if outpath is not None else "casa_script.casa"
+
+    with open(outpath, "w") as out:
+        for c, (imagename, phasecenter, imsize) in enumerate(
+            zip(outliers["imagename"], outliers["phasecenter"], outliers["imsize"])
+        ):
+            out.write(f"print('Running tclean on {imagename}') \n")
+            datacolumn = "data" if c == 0 and corrected_data == False else "corrected"
+            clean = (
+                "tclean("
+                f"vis='{obsid}.ms', imagename='{imagename}', "
+                f"imsize={imsize}, phasecenter='{phasecenter}', "
+                f"datacolumn='{datacolumn}', "
+                "nterms=3, deconvolver='mtmfs',threshold='0.1Jy', "
+                "stokes='XXYY',  "
+                "niter=500, gain=0.1,  wprojplanes=1024,"
+                "cell='10arcsec', weighting='briggs', robust=0.0, savemodel='modelcolumn' "
+                ")\n"
+            )
+            out.write(clean)
+            # nterms=2, deconvolver='mtmfs',threshold='0.1Jy' ,
+
+            out.write(f"print('Running uvsub on {imagename}') \n")
+            uvsub = f"uvsub(vis='{obsid}.ms')\n"
+            out.write(uvsub)
+
+        if corrected_data is False:
+            doc = "# Need to move corrected column back to data, and delete data. The uvsub will always created corrected_data. \n"
+            out.write(doc)
+
+            txt = (
+                "print('Moving the CORRECTED_DATA column to the DATA column')\n"
+                f"tb.open('{obsid}.ms', nomodify=False)\n"
+                f"tb.removecols('DATA')\n"
+                f"tb.renamecol('CORRECTED_DATA', 'DATA')\n"
+                f"tb.flush()\n"
+                f"tb.close()\n"
+            )
+            out.write(txt)
+
+
+def casa_clean_source(
+    src: Source, outliers: defaultdict, imsize=(128, 128)
+) -> defaultdict:
+    """Adds to the bookkeeping a new source that will be used to generate a clean.last file
+
+    Args:
+        src (Source): a source to add to the existing outlier record
+        outliers (defaultdict): the record keeper contain sources to add to the clean.last file
+        imsize (tuple, optional): The imagesize of each cutout. Defaults to (128,128).
+
+    Returns:
+        defaultdict: updated recorded with new source inserted
+    """
+    outliers["imagename"].append(f"outlier{src.name}")
+    outliers["phasecenter"].append(
+        f"J2000 {str(src.pos.ra.to_string(u.hour))} {str(src.pos.dec.to_string(u.degree, alwayssign=True))}"
+    )
+    outliers["imsize"].append(list(imsize))
+
+    return outliers
 
 
 @u.quantity_input(search_radius=u.arcminute, min_elevation=u.degree)
@@ -208,9 +332,11 @@ def ateam_model_creation(
     model_output=None,
     sources=BRIGHT_SOURCES,
     pixel_border=0,
+    min_response=None,
     max_response=None,
     min_elevation=None,
     apply_beam=False,
+    corrected_data: bool = False,
 ):
     """Search around known A-Team sources for components in the GGSM, and create
     a corresponding model in Andre's formation for use in mwa_reduce tasks.
@@ -224,9 +350,11 @@ def ateam_model_creation(
         model_output (str, optional): Output path to write file to. If True ;skymodel' is appended to the metafits file. Defaults to None.
         sources (list[Source], optional): Colleciton of bright sources used that will be modelled and potentially included as components to subtract. Defaults to known bright sources.
         pixel_border(int, optional): A bright source has to be within this many pixels from the edge of an image to be includedin a model. Defaults to 0. 
+        min_response (float, optional): Sources where the primary beam attentuation is more than this number are removed. 
         max_response (float, optional): Sources where the primary beam attentuation is less than this number are removed. 
         min_elevation (float, optional): Minimum elevation a source should have before being included in the model. If None the elevation is not considered. Defaults to None. 
         apply_beam (bool, optional): Apply primary beam attenuation to flux densities that get placed into the model. Defaults to False. 
+        corrected_data (bool, optional): Whether to image the corrected data column when creating the casa outlier and subtraction imaging script. Defaults to False. 
     """
     if mode not in MODEL_MODES:
         raise ValueError(f"Expected mode with {MODEL_MODES}, received {mode}")
@@ -257,8 +385,10 @@ def ateam_model_creation(
         ggsm_sky = SkyCoord(
             ggsm_tab["RAJ2000"], ggsm_tab["DEJ2000"], unit=(u.deg, u.deg)
         )
-    else:
+    elif mode == "casa":
         model_text = ""
+    elif mode == "casaclean":
+        model_dict = defaultdict(list)
 
     for src in sources:
         response = gleamx_beam_lookup(src.pos.ra.deg, src.pos.dec.deg, grid, time, freq)
@@ -271,6 +401,9 @@ def ateam_model_creation(
             continue
 
         if max_response is not None and np.mean(response) > max_response:
+            continue
+
+        if min_response is not None and np.mean(response) < min_response:
             continue
 
         altaz = src.pos.transform_to(AltAz(obstime=obs_time, location=LOCATION))
@@ -288,7 +421,9 @@ def ateam_model_creation(
         if mode == "casa":
             model_text += casa_outlier_source(src)
             no_comps += 1
-
+        elif mode == "casaclean":
+            model_dict = casa_clean_source(src, model_dict)
+            no_comps += 1
         elif mode == "subtrmodel":
             matches = search_ggsm(src.pos, ggsm_sky, search_radius)
             comps = ggsm_tab[matches]
@@ -311,9 +446,17 @@ def ateam_model_creation(
                 model_text += comp_model
 
     if model_output not in [None, False] and no_comps > 0:
-        with open(model_output, "w") as out_file:
-            print(f"Writing {no_comps} components to {model_output}")
-            out_file.write(model_text)
+        if mode == "casaclean":
+            casa_clean_script(
+                model_dict,
+                metafits_file,
+                outpath=model_output,
+                corrected_data=corrected_data,
+            )
+        else:
+            with open(model_output, "w") as out_file:
+                print(f"Writing {no_comps} components to {model_output}")
+                out_file.write(model_text)
 
 
 def attach_units_or_None(param, to_unit) -> Tuple["u", None]:
@@ -344,7 +487,7 @@ if __name__ == "__main__":
         "--min-flux",
         default=0,
         type=float,
-        help="Minimum brightness, in Jy, for a source to be considered as one to peel",
+        help="Minimum apparent brightness, in Jy, for a source to be considered as one to include in model. A crude stokes-I intensity is formed by taking the mean of the XX and YY responses to derived the apparent brightness. ",
     )
     parser.add_argument(
         "-c",
@@ -376,6 +519,12 @@ if __name__ == "__main__":
         help="A masking border widt. If non-zero, sources will only be considered for subtraction if ther are fewer than this many pixels from the border. If zero this criteria is ignored. ",
     )
     parser.add_argument(
+        "--min-response",
+        type=float,
+        default=None,
+        help="Include sources in the model if they are at a position where their primary beam attentuation is above this threshold. In practise this would select objects towards the edge of an image away from the most sensitive part of the primary beam. ",
+    )
+    parser.add_argument(
         "--max-response",
         type=float,
         default=None,
@@ -400,6 +549,12 @@ if __name__ == "__main__":
         choices=MODEL_MODES,
         help="The type of model file to create. subtrmodel for the AO style, or casa to create a outlier file for imaging. ",
     )
+    parser.add_argument(
+        "--corrected-data",
+        default=False,
+        action="store_true",
+        help="In line with the GLEAM-X processing pipeline, if using the debug mode than the calibrated data are placed in the CORRECTED_DATA column, and these are the data that should be imaged initially. This is only relevant for the casa outlier subtraction mode. ",
+    )
     args = parser.parse_args()
 
     args.search_radius = attach_units_or_None(args.search_radius, u.arcminute)
@@ -418,7 +573,9 @@ if __name__ == "__main__":
             model_output=args.model_output,
             pixel_border=args.pixel_border,
             max_response=args.max_response,
+            min_response=args.min_response,
             min_elevation=args.min_elevation,
             apply_beam=args.apply_beam,
+            corrected_data=args.corrected_data,
         )
 
