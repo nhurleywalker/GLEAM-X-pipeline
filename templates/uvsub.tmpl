@@ -57,19 +57,6 @@ then
     test_fail $?
 fi
 
-submodel="${obsnum}.ateam_outlier"
-casa="casa --nogui --agg --nologger -c "
-
-if [[ ! -e "${submodel}" ]]
-then
-    echo "Generating model of A-Team sources for uv-subtraction"
-    generate_ateam_subtract_model.py "${obsnum}.metafits" \
-                                    --mode casaclean \
-                                    --min-elevation 0.0 \
-                                    --min-flux 0.5  \
-                                    --check-fov \
-                                    --model-output "${submodel}" 
-fi
 
 # Check whether the phase centre has already changed
 # Calibration will fail if it has, so measurement set must be shifted back to its original position
@@ -87,11 +74,28 @@ else
     echo "Detected that no shift is needed for this measurement set."
 fi
 
+submodel="${obsnum}.ateam_outlier"
+
+if [[ ! -e "${submodel}" ]]
+then
+    echo "Generating model of A-Team sources for uv-subtraction"
+    generate_ateam_subtract_model.py "${obsnum}.metafits" \
+                                    --mode casaclean \
+                                    --min-elevation 0.0 \
+                                    --min-flux 0.5  \
+                                    --check-fov \
+                                    --model-output "${submodel}" 
+fi
+
 if [[ -e "${submodel}" ]]
 then
     echo "Starting casa clean... "
-    $casa \
-        "execfile('${submodel}')"
+    casa \
+        --nogui \
+        --agg \
+        --nologger \
+        -c \
+            "execfile('${submodel}')"
     test_fail $?
 else
     echo "No casaclean script ${submodel} found. Exiting. "
