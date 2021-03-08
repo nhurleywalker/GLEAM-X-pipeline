@@ -87,8 +87,14 @@ else
     echo "Detected that no shift is needed for this measurement set."
 fi
 
-$casa \
-    "execfile('${submodel}')"
-test_fail $?
+if [[ -e "${submodel}" ]]
+then
+    echo "Starting casa clean... "
+    $casa \
+        "execfile('${submodel}')"
+    test_fail $?
+else
+    echo "No casaclean script ${submodel} found. Exiting. "
+fi
 
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
