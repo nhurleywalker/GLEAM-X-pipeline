@@ -413,7 +413,7 @@ def ateam_model_creation(
                 model_text += comp_model
 
     if mode == "count":
-        print(f"{no_comps} sources matched criteria")
+        return no_comps
 
     if model_output not in [None, False] and no_comps > 0:
         if mode == "casaclean":
@@ -427,6 +427,8 @@ def ateam_model_creation(
             with open(model_output, "w") as out_file:
                 print(f"Writing {no_comps} components to {model_output}")
                 out_file.write(model_text)
+
+    return None
 
 
 def attach_units_or_None(param, to_unit) -> Tuple["u", None]:
@@ -532,8 +534,7 @@ if __name__ == "__main__":
     args.model_output = args.model_output[0] if args.model_output is not None else None
 
     for metafits in args.metafits:
-        print(f"{metafits}...")
-        ateam_model_creation(
+        result = ateam_model_creation(
             metafits,
             args.mode,
             ggsm=args.ggsm,
@@ -548,4 +549,8 @@ if __name__ == "__main__":
             apply_beam=args.apply_beam,
             corrected_data=args.corrected_data,
         )
+
+        if result is not None:
+            if args.mode == "count":
+                print(f"{metafits} {result}")
 
