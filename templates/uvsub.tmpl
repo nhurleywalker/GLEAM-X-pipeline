@@ -94,8 +94,7 @@ then
         --nogui \
         --agg \
         --nologger \
-        -c \
-            "execfile('${submodel}')"
+        -c "${submodel}"
     test_fail $?
 else
     echo "No casaclean script ${submodel} found. Exiting. "
