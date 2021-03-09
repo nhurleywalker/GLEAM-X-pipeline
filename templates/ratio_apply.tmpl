@@ -1,0 +1,119 @@
+#! /bin/bash -l
+
+# A template script to create an incremental calibration solutions file to 
+# apply to a measurement set. This is to improve an incorrection that has 
+# already been applied to the measurement set, and it is not a task that
+# should regularly be applied to the data products. 
+
+set -x
+
+pipeuser=PIPEUSER
+obsnum=OBSNUM
+calid=CALID
+base=BASE
+debug=DEBUG
+
+# If obsnum is a file, then we are in an array job
+if [[ -f "${obsnum}" ]]
+then
+    taskid=${SLURM_ARRAY_TASK_ID}
+    jobid=${SLURM_ARRAY_JOB_ID}
+
+    echo "obsfile ${obsnum}"
+    obsnum=$(sed -n -e "${SLURM_ARRAY_TASK_ID}"p "${obsnum}")
+    echo "ratioapply obsid ${obsnum}"
+else
+    taskid=1
+    jobid=${SLURM_JOB_ID}
+fi
+
+echo "jobid: ${jobid}"
+echo "taskid: ${taskid}"
+
+function test_fail {
+if [[ $1 != 0 ]]
+then
+    track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
+    exit "$1"
+fi
+}
+
+
+# start
+track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
+
+cd "${base}/${obsnum}" || exit
+
+metafits="${obsnum}.metafits"
+if [[ ! -e ${metafits} ]] || [[ ! -s ${metafits} ]]
+then
+    wget -O "${metafits}" "http://ws.mwatelescope.org/metadata/fits?obs_id=${obsnum}"
+    test_fail $?
+fi
+
+incomplete="${base}/${calid}/${calid}_solutions_initial.bin"
+complete="${base}/${calid}/${calid}_solutions_initial_ref.bin"
+ratio="${base}/${calid}/${calid}_solution_initial_ref_ratio.bin"
+
+if [[ ! -z "${debug}" ]]
+then
+    if [[ ! -e "${incomplete}" ]] || [[ ! -s "${incomplete}" ]]
+    then
+        echo "The solution file ${incomplete} does not exist. Exiting. "
+        task_fail 1
+    fi
+fi
+
+if [[ ! -e "${complete}" ]] || [[ ! -s "${complete}" ]]
+then
+    echo "The solution file ${complete} does not exist. Exiting. "
+    task_fail 1
+fi
+
+# Check whether the phase centre has already changed
+# Calibration will fail if it has, so measurement set must be shifted back to its original position
+current=$(chgcentre "${obsnum}.ms") 
+
+if [[ $current == *"shift"* ]] 
+then
+    echo "Detected that this measurement set has undergone a denormal shift; this must be undone before subtrmodel."
+    coords=$(calc_pointing.py "${metafits}")
+    echo "Optimally shifting co-ordinates of measurement set to $coords, without zenith shiftback."
+    chgcentre \
+            "${obsnum}.ms" \
+            ${coords}
+else 
+    echo "Detected that no shift is needed for this measurement set."
+fi
+
+# If in debugging mode, apply to the CORRECTED_DATA column
+if [[ ! -z $debug ]]
+then
+    echo "Processing is in debug mode. "
+    echo "Calibration file is ${complete}"
+
+    applysolutions \
+                "${obsnum}.ms" \
+                "${complete}"
+# If in production mode, apply to the DATA column
+else
+    if [[ ! -e "${ratio}" ]]
+    then
+        echo "Creating the incremental solutions file. "
+        aocal_ratio.py \
+                "${complete}" \
+                "${incomplete}" \
+                "${ratio}"
+    else
+        echo "Found ${ratio}"
+    fi
+
+    echo "Calibration file is ${ratio}"
+    applysolutions \
+                -nocopy \
+                "${obsnum}.ms" \
+                "${ratio}"
+fi
+
+test_fail $?
+track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
