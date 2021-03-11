@@ -19,6 +19,7 @@ scripts = [
     "gleam_x/bin/alt_az_corrector.py",
     "gleam_x/bin/aocal_diff.py",
     "gleam_x/bin/aocal_phaseref.py",
+    "gleam_x/bin/aocal_ratio.py",
     "gleam_x/bin/beam_value_at_radec.py",
     "gleam_x/bin/calc_pointing.py",
     "gleam_x/bin/clip_clean_components.py",
