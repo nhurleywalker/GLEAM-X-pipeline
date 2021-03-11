@@ -122,7 +122,7 @@ then
 fi
 
 
-script="${GXSCRIPT}/apply_cal_${obsnum}.sh"
+script="${GXSCRIPT}/ratio_apply_cal_${obsnum}.sh"
 
 cat "${GXBASE}/templates/ratio_apply.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                        -e "s:BASEDIR:${base}:g" \
