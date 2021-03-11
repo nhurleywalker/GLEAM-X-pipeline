@@ -125,7 +125,7 @@ fi
 script="${GXSCRIPT}/ratio_apply_cal_${obsnum}.sh"
 
 cat "${GXBASE}/templates/ratio_apply.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
-                                       -e "s:BASEDIR:${base}:g" \
+                                       -e "s:BASE:${base}:g" \
                                        -e "s:DEBUG:${debug}:g" \
                                        -e "s:CALID:${calid}:g" \
                                        -e "s:PIPEUSER:${pipeuser}:g"  > ${script}
