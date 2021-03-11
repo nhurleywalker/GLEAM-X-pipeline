@@ -30,6 +30,14 @@ fi
 echo "jobid: ${jobid}"
 echo "taskid: ${taskid}"
 
+# If obsnum is a file, then we are in an array job
+if [[ -f ${calid} ]]
+then
+    echo "calid file is ${calid}"
+    calid=$(sed -n -e "${taskid}"p "${calid}")
+    echo "apply_cal calid ${calid}"
+fi
+
 function test_fail {
 if [[ $1 != 0 ]]
 then
@@ -113,6 +121,8 @@ else
                 -nocopy \
                 "${obsnum}.ms" \
                 "${ratio}"
+
+    aocal_plot.py --refant="${refant}" --amp_max=2 "${ratio}"
 fi
 
 refant=127
@@ -121,8 +131,6 @@ echo "Moving ${obsnum}.ms to denote ratio."
 mv \
     "${obsnum}.ms" \
     "${obsnum}_ratio_applied.ms"
-
-aocal_plot.py --refant="${refant}" --amp_max=2 "${ratio}"
 
 test_fail $?
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
