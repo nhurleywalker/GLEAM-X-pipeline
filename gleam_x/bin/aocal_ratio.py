@@ -20,6 +20,9 @@ def aocal_ratio(sol_numerator, sol_denominator, outpath):
 
     ao_ratio = ao_num / ao_den
 
+    mask = np.isfinite(ao_ratio)
+    ao_ratio[~mask] = np.nan
+
     ao_ratio.tofile(outpath)
 
 
