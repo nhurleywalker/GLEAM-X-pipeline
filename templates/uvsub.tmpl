@@ -37,14 +37,6 @@ fi
 
 datadir=DATADIR
 
-# GLEAM-X sky model
-catfile="${GXBASE}/models/GGSM.fits"
-if [[ ! -e "${catfile}" ]]
-then 
-    echo "GGSM is not accessible at ${catfile}"
-    exit 1
-fi
-
 # start
 track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date +%s)"
 
