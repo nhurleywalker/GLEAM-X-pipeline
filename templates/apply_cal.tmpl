@@ -45,15 +45,11 @@ track_task.py start --jobid="${jobid}" --taskid="${taskid}" --start_time="$(date
 
 cd "${base}/${obsnum}" || exit
 
-# TODO: replace with read -a
-# look for the calibrator solutions file
-calfile=($( ls -1t ${base}/${calid}/${calid}*solutions*.bin))
-calfile=${calfile[0]}
+calfile="${base}/${calid}/${calid}_local_gleam_model_solutions_initial_ref.bin"
 
-if [[ $? != 0 ]]
+if [[ ! -e "${calid}" ]]
 then
-    echo "Could not find calibrator file"
-    echo "looked for latest of: ${base}/${calid}/${calid}*solutions*.bin"
+    echo "Could not find calibrator file ${calid}"
     track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
     exit 1
 fi
