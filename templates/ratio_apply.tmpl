@@ -12,6 +12,7 @@ obsnum=OBSNUM
 calid=CALID
 base=BASE
 debug=DEBUG
+refant=127
 
 # If obsnum is a file, then we are in an array job
 if [[ -f "${obsnum}" ]]
@@ -125,12 +126,6 @@ else
     aocal_plot.py --refant="${refant}" --amp_max=2 "${ratio}"
 fi
 
-refant=127
-
-echo "Moving ${obsnum}.ms to denote ratio."
-mv \
-    "${obsnum}.ms" \
-    "${obsnum}_ratio_applied.ms"
 
 test_fail $?
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
