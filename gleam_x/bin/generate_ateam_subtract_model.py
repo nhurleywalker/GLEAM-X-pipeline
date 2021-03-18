@@ -27,7 +27,7 @@ LOCATION = EarthLocation.from_geodetic(
     lat=LAT * u.deg, lon=LON * u.deg, height=ALT * u.m
 )
 
-MODEL_MODES = ["subtrmodel", "casa", "casaclean", "count"]
+MODEL_MODES = ["subtrmodel", "casa", "casaclean", "count", "wsclean"]
 
 # TODO: Make Source use and return proper units
 class Source:
@@ -170,7 +170,7 @@ def create_wcs(ra, dec, cenchan):
     Returns:
         {astropy.wcs.WCS} -- WCS information describing the observation
     """
-    pixscale = 0.5 / float(cenchan)
+    pixscale = 0.6 / float(cenchan)
     # print("pixscale: ", pixscale)
     # print("cenchan: ", cenchan)
     w = WCS(naxis=2)
@@ -286,6 +286,67 @@ def casa_clean_source(
     return outliers
 
 
+def wsclean_script(
+    outliers: defaultdict,
+    metafits: str,
+    outpath: str = None,
+    corrected_data: bool = False,
+):
+    obsid = metafits.replace(".metafits", "")
+    outpath = outpath if outpath is not None else "casa_script.casa"
+
+    if len(outliers["imagename"]) == 0:
+        return
+
+    with open(outpath, "w") as out:
+        for c, (imagename, phasecenter, imsize) in enumerate(
+            zip(outliers["imagename"], outliers["phasecenter"], outliers["imsize"])
+        ):
+            datacolumn = "DATA" if corrected_data is False else "CORRECTED_DATA"
+
+            taql = f"taql alter table {obsid}.ms drop column MODEL_DATA\n"
+            out.write(taql)
+
+            chg = (
+                f"chgcentre "
+                f"{obsid}.ms "
+                f"{phasecenter.replace('J2000 ', '')} \n"
+                f"chgcentre "
+                f"-zenith "
+                f"-shiftback "
+                f"{obsid}.ms \n"
+            )
+            out.write(chg)
+
+            spec_fit = "-join-channels -channels out 64 -fit-spectral-pol 4"
+            wsclean = (
+                f"wsclean "
+                f"-mgain 0.8 -abs-mem 30 -nmiter 10 -niter 100000 -size 128 128 -pol XXYY "
+                f"-data-column {datacolumn} -name {imagename} -scale 10arcsec "
+                f"-weight briggs 0.5  -auto-mask 3 -auto-threshold 1 "
+                f" {spec_fit} "
+                f"{obsid}.ms \n"
+            )
+            out.write(wsclean)
+
+            taql = f"taql update {obsid}.ms set {datacolumn}={datacolumn}-MODEL_DATA\n"
+            out.write(taql)
+
+        coords = f"coords=$(calc_pointing.py '{metafits}') \n"
+        out.write(coords)
+
+        chg = (
+            f"chgcentre "
+            f"{obsid}.ms "
+            f"$coords \n"
+            f"chgcentre "
+            f"-zenith "
+            f"-shiftback "
+            f"{obsid}.ms \n"
+        )
+        out.write(chg)
+
+
 @u.quantity_input(search_radius=u.arcminute, min_elevation=u.degree)
 def ateam_model_creation(
     metafits_file,
@@ -352,7 +413,7 @@ def ateam_model_creation(
         )
     elif mode == "casa":
         model_text = ""
-    elif mode == "casaclean":
+    elif mode in ("casaclean", "wsclean"):
         model_dict = defaultdict(list)
 
     for src in sources:
@@ -386,7 +447,7 @@ def ateam_model_creation(
         if mode == "casa":
             model_text += casa_outlier_source(src)
             no_comps += 1
-        elif mode == "casaclean":
+        elif mode in ("casaclean", "wsclean"):
             model_dict = casa_clean_source(src, model_dict)
             no_comps += 1
         elif mode == "count":
@@ -418,6 +479,14 @@ def ateam_model_creation(
     if model_output not in [None, False] and no_comps > 0:
         if mode == "casaclean":
             casa_clean_script(
+                model_dict,
+                metafits_file,
+                outpath=model_output,
+                corrected_data=corrected_data,
+            )
+
+        elif mode == "wsclean":
+            wsclean_script(
                 model_dict,
                 metafits_file,
                 outpath=model_output,
