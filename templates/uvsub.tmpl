@@ -72,7 +72,7 @@ if [[ ! -e "${submodel}" ]]
 then
     echo "Generating model of A-Team sources for uv-subtraction"
     generate_ateam_subtract_model.py "${obsnum}.metafits" \
-                                    --mode casaclean \
+                                    --mode wsclean \
                                     --min-elevation 0.0 \
                                     --min-flux 5  \
                                     --check-fov \
@@ -81,15 +81,11 @@ fi
 
 if [[ -e "${submodel}" ]]
 then
-    echo "Starting casa clean... "
-    casa \
-        --nogui \
-        --agg \
-        --nologger \
-        -c "${submodel}"
+    echo "Running wslean outlier clean and subtraction... "
+    ./"${submodel}"
     test_fail $?
 else
-    echo "No casaclean script ${submodel} found. Exiting. "
+    echo "No wsclean script ${submodel} found. Exiting. "
 fi
 
 track_task.py finish --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
