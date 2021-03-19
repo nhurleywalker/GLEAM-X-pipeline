@@ -2,13 +2,15 @@
 
 # A template script to generate a model of a-team sources that will be subtracted
 # from the visibility dataset. The idea is to make small images around a-team sources
-# which that than subtracted from the visibilities. We are using casa and not wsclean
-# so that we can avoid having to potentially do multiple chgcenters and wsclean runs
+# which that than subtracted from the visibilities. We are using wsclean to first chgcenter
+# and the clean a small region arount the source. This is then subtracted from the 
+# column (DATA or CORRECTED_DATA). 
 
 set -x
 
 pipeuser=PIPEUSER
 obsnum=OBSNUM
+debug=DEBUG
 
 # If obsnum is a file, then we are in an array job
 if [[ -f "${obsnum}" ]]
@@ -70,18 +72,25 @@ submodel="${obsnum}.ateam_outlier"
 
 if [[ ! -e "${submodel}" ]]
 then
+    debugoption=
+    if [[ ! -z $debug ]]
+    then
+        debugoption='--corrected-data'
+    fi
     echo "Generating model of A-Team sources for uv-subtraction"
     generate_ateam_subtract_model.py "${obsnum}.metafits" \
                                     --mode wsclean \
                                     --min-elevation 0.0 \
                                     --min-flux 5  \
                                     --check-fov \
+                                    $debugoption \
                                     --model-output "${submodel}" 
 fi
 
 if [[ -e "${submodel}" ]]
 then
     echo "Running wslean outlier clean and subtraction... "
+    chmod +x "${submodel}"
     ./"${submodel}"
     test_fail $?
 else

@@ -9,6 +9,7 @@ echo "obs_uvsub.sh [-d dep] [-a account] [-t] obsnum
   -d dep     : job number for dependency (afterok)
   -t         : test. Don't submit job, just make the batch file
                and then return the submission command
+  -z         : Debug mode, so adjusts the CORRECTED_DATA column
   obsnum     : the obsid to process, or a text file of obsids (newline separated). 
                A job-array task will be submitted to process the collection of obsids. " 1>&2;
 exit 1;
@@ -18,9 +19,10 @@ pipeuser=${GXUSER}
 
 dep=
 tst=
+debug=
 
 # parse args and set options
-while getopts ':ta:d:p:' OPTION
+while getopts ':ta:d:p:z' OPTION
 do
     case "$OPTION" in
 	d)
@@ -35,6 +37,9 @@ do
 	t)
 	    tst=1
 	    ;;
+    z)
+        debug=1
+        ;;
 	? | : | h)
 	    usage
 	    ;;
@@ -83,6 +88,7 @@ script="${GXSCRIPT}/uvsub_${obsnum}.sh"
 
 cat "${GXBASE}/templates/uvsub.tmpl" | sed -e "s:OBSNUM:${obsnum}:g" \
                                      -e "s:DATADIR:${datadir}:g" \
+                                     -e "s:DEBUG:${debug}:g" \
                                      -e "s:PIPEUSER:${pipeuser}:g" > "${script}"
 
 
