@@ -61,16 +61,19 @@ if [[ $obsnum -lt 1151402936 ]] ; then
     basescale=1.1
     imsize=4000
     robust=-1.0
+    timeres=4
 elif [[ $obsnum -ge 1151402936 ]] && [[ $obsnum -lt 1191580576 ]] ; then
     telescope="MWAHEX"
     basescale=2.0
     imsize=2000
     robust=-2.0
+    timeres=8
 elif [[ $obsnum -ge 1191580576 ]] ; then
     telescope="MWALB"
     basescale=0.6
     imsize=8000
     robust=0.5
+    timeres=4
 fi
 
 # Set up channel-dependent options
@@ -92,9 +95,9 @@ taper_inner_tukey=50
 scale=$(echo "$basescale / $chan * 2" | bc -l)
 
 # Skipping first and last 8 seconds
-interval_start=16
+interval_start=$((8/$timeres))
 nscans=$(pyhead.py -p NSCANS "${metafits}" | awk '{print $3}')
-interval_stop=$(($nscans-16))
+interval_stop=$(($nscans-$interval_start))
 intervals_out=$((interval_stop-interval_start))
 
 # Check whether the phase centre has already changed
