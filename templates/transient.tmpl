@@ -175,7 +175,7 @@ do
         out="${file%.fits}_mod.fits"
 done
 
-ls "${obsnum}"_transient-t????-image_comp.fits > concat.list
+ls "${obsnum}"_transient-t????-image_comp_mod.fits > concat.list
 stilts tcat in=@concat.list out="${obsnum}_transient_concatenated_table.fits"
 stilts tmatch1 \
             matcher="sky" \
