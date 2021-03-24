@@ -95,7 +95,7 @@ taper_inner_tukey=50
 scale=$(echo "$basescale / $chan * 2" | bc -l)
 
 # Skipping first and last 8 seconds
-interval_start=$((16/timeres))
+interval_start=$((8/timeres))
 nscans=$(pyhead.py -p NSCANS "${metafits}" | awk '{print $3}')
 # native time resolution is 0.5 seconds
 ninterval=$(echo "$nscans*0.5/$timeres" | bc)
