@@ -66,7 +66,6 @@ fi
 
 queue="-p ${GXSTANDARDQ}"
 base="${GXSCRATCH}/${project}"
-cd "${base}" || exit 1
 
 obss=($(sort $obslist))
 listbase=$(basename "${obslist}")
