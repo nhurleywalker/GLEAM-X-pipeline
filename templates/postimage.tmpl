@@ -61,8 +61,8 @@ then
 fi
 
 chan=$( pyhead.py -p CENTCHAN "$metafits" | awk '{print $3}' )
-ra=$(pyhead.py -p RA $i | awk '{print $3}') 
-dec=$(pyhead.py -p DEC $i | awk '{print $3}') 
+ra=$(pyhead.py -p RA "$metafits" | awk '{print $3}') 
+dec=$(pyhead.py -p DEC "$metafits" | awk '{print $3}') 
 b=$(python -c "import astropy.units as u; from astropy.coordinates import SkyCoord; print(abs(SkyCoord($ra*u.deg, $dec*u.deg).galactic.b.deg))")
 minsrcs=500
 if [[ "${chan}" -eq 69 ]] && (( $(echo  "$b < 10" | bc -l) ))
@@ -103,12 +103,28 @@ do
         # TODO make this dependent on CENTCHAN
         radius=50. #24.8
 
+
+        if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp.fits" ]]
+        then
+            fits_warp.py --incat "./${obsnum}_deep-${subchan}-image-pb_comp.fits" \
+                         --refcat "${MODEL_CATALOGUE}" \
+                         --corrected "./${obsnum}_deep-${subchan}-image-pb_comp_warp-corrected.fits" \
+                         --xm "./${obsnum}_fits_warp_xm.fits" \
+                         --suffix warp \
+                         --infits "./${obsnum}_deep-${subchan}-image-pb.fits" \
+                         --ra1 ra --dec1 dec \
+                         --ra2 RAJ2000 --dec2 DEJ2000 \
+                         --plot \
+                         --cores ${GXNCPUS}
+                        # --signal peak_flux --noise local_rms --SNR 10
+        fi
+        
         if [[ ! -e ${obsnum}_${subchan}_xm.fits ]]
         then
             # flux_wrap dependency here
             # Match the image catalogue to the model table:
             match_catalogues \
-             "${obsnum}_deep-${subchan}-image-pb_comp.fits" \
+             "${obsnum}_deep-${subchan}-image-pb_comp_warp-corrected.fits" \
              "${MODEL_CATALOGUE}" \
              --separation "${separation}" \
              --exclusion_zone "${exclusion}" \
@@ -124,18 +140,6 @@ do
              -F "int_flux" \
              --eflux "err_int_flux" \
              --localrms "local_rms"
-        fi
-
-        if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp.fits" ]]
-        then
-            fits_warp.py --xm "./${obsnum}_${subchan}_xm.fits" \
-                         --suffix warp \
-                         --infits "./${obsnum}_deep-${subchan}-image-pb.fits" \
-                         --ra1 old_ra --dec1 old_dec \
-                         --ra2 RAJ2000 --dec2 DEJ2000 \
-                         --plot \
-                         --cores ${GXNCPUS}
-                        # --signal peak_flux --noise local_rms --SNR 10
         fi
         if [[ ! -e "${obsnum}_deep-${subchan}-image-pb_warp_${method}_cf_output.txt" ]]
         then
