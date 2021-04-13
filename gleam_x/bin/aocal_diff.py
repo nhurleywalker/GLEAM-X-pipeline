@@ -21,6 +21,7 @@ def get_tile_info(metafits):
     hdus = fits.open(metafits)
     inputs = hdus[1].data
     tiles = inputs[inputs['pol'] == 'X']
+    tiles = tiles[np.argsort(tiles['Tile'])]
     Names = tiles["TileName"]
     North = tiles["North"]
     East = tiles["East"]
@@ -131,6 +132,16 @@ def phase_map(diffs, metafits, names, obsid):
     cb.set_label('Phase change / degrees')
     outname = obsid+"_phasemap.png"
     fig.savefig(outname)
+    
+def phase_wrt_East(diffs, metafits, names, obsid):
+    fig = plt.figure(figsize = (10,8))
+    Names, North, East = get_tile_info(metafits)
+    ax = fig.add_subplot(111)
+    sc = ax.scatter(East, diffs, marker='o')
+    ax.set_xlabel("East / m")
+    ax.set_ylabel("diffs / degrees")
+    outname = obsid+"_wrt_East.png"
+    fig.savefig(outname)
 
 def csv_out(obsid, median, peak, std):
     outformat = "{0},{1},{2},{3}\n"
@@ -182,7 +193,7 @@ if __name__ == '__main__':
             # Could also take the average of a few frequencies, but it doesn't change anything
             # diffs = np.average(diffs[:, 0, 12:20], axis=1)
             phase_map(diffs, options.metafits, options.names, obsid)
-
+            phase_wrt_East(diffs, options.metafits, options.names, obsid)
     # New option: plot RMS
     if options.rms is True:
         rmss = np.array(phi_rms(ao, options.metafits, options.refant))
