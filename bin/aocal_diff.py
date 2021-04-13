@@ -51,7 +51,6 @@ def phi_rms(ao, metafits, refant):
     t_end = non_nan_intervals.max()
 # Calculate middle interval
     t_mid = int((t_end - t_start)/2.0)
-    print t_mid
 # Divide through by refant
 # (Probably unnecessary)
     ao = ao / ao[:, refant, :, :][:, np.newaxis, :, :]
@@ -68,8 +67,7 @@ def phi_rms(ao, metafits, refant):
 # Then find RMS -- over time axis only
            phi_rmss.append(np.std(temp_angles, axis=0))
 #           print np.std(ao[:, antenna, :, pol], axis=0)
-           print temp_angles.shape
-           print np.std(temp_angles, axis=0).shape
+#           print(np.std(temp_angles, axis=0).shape)
     return phi_rmss
 
 def histo_diffs(diffs, obsid):
@@ -127,6 +125,17 @@ def phase_map(diffs, metafits, names, obsid):
     outname = obsid+"_phasemap.png"
     fig.savefig(outname)
 
+def phase_wrt_East(diffs, metafits, names, obsid):
+    fig = plt.figure(figsize = (10,8))
+    Names, North, East = get_tile_info(metafits)
+#    ax = fig.add_axes([0.15, 0.1, 0.65, 0.75])
+#    ax.axis("equal")
+    sc = ax.scatter(diffs, East, marker='o')#, s=150, linewidths=4, c=diffs, cmap=plt.cm.hsv, vmin = -180., vmax = 180.)
+    ax.set_xlabel("East / m")
+    ax.set_ylabel("diffs / degrees")
+    outname = obsid+"_wrt_East.png"
+    fig.savefig(outname)
+
 def csv_out(obsid, median, peak, std):
     outformat = "{0},{1},{2},{3}\n"
     outvars = [obsid, median, peak, std ]
@@ -160,7 +169,7 @@ if __name__ == '__main__':
     if os.path.exists(filename):
         ao = aocal.fromfile(filename)
     else:
-        print filename+" does not exist!"
+        print("{0} does not exist!".format(filename))
         sys.exit(1)
 
     obsid = filename[0:10]
@@ -176,6 +185,7 @@ if __name__ == '__main__':
 # Could also take the average of a few frequencies, but it doesn't change anything
 #            diffs = np.average(diffs[:, 0, 12:20], axis=1)
             phase_map(diffs, options.metafits, options.names, obsid)
+            phase_wrt_East(diffs, options.metafits, options.names, obsid)
 
 # New option: plot RMS
     if options.rms is True:
