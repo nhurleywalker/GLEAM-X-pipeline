@@ -128,7 +128,7 @@ def phase_map(diffs, metafits, names, obsid):
 def phase_wrt_East(diffs, metafits, names, obsid):
     fig = plt.figure(figsize = (10,8))
     Names, North, East = get_tile_info(metafits)
-#    ax = fig.add_axes([0.15, 0.1, 0.65, 0.75])
+    ax = fig.add_subplot(111)
 #    ax.axis("equal")
     sc = ax.scatter(diffs, East, marker='o')#, s=150, linewidths=4, c=diffs, cmap=plt.cm.hsv, vmin = -180., vmax = 180.)
     ax.set_xlabel("East / m")
