@@ -130,7 +130,7 @@ def phase_wrt_East(diffs, metafits, names, obsid):
     Names, North, East = get_tile_info(metafits)
     ax = fig.add_subplot(111)
 #    ax.axis("equal")
-    sc = ax.scatter(diffs, East, marker='o')#, s=150, linewidths=4, c=diffs, cmap=plt.cm.hsv, vmin = -180., vmax = 180.)
+    sc = ax.scatter(East, diffs, marker='o')#, s=150, linewidths=4, c=diffs, cmap=plt.cm.hsv, vmin = -180., vmax = 180.)
     ax.set_xlabel("East / m")
     ax.set_ylabel("diffs / degrees")
     outname = obsid+"_wrt_East.png"
