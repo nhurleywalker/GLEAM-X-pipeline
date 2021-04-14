@@ -299,12 +299,14 @@ def wsclean_script(
         return
 
     with open(outpath, "w") as out:
+        out.write("#! /bin/bash \n")
+        out.write("set -x \n\n")
         for c, (imagename, phasecenter, imsize) in enumerate(
             zip(outliers["imagename"], outliers["phasecenter"], outliers["imsize"])
         ):
             datacolumn = "DATA" if corrected_data is False else "CORRECTED_DATA"
 
-            taql = f"taql alter table {obsid}.ms drop column MODEL_DATA\n"
+            taql = f"taql alter table {obsid}.ms drop column MODEL_DATA\n\n"
             out.write(taql)
 
             chg = (
@@ -314,7 +316,7 @@ def wsclean_script(
                 f"chgcentre "
                 f"-zenith "
                 f"-shiftback "
-                f"{obsid}.ms \n"
+                f"{obsid}.ms \n\n"
             )
             out.write(chg)
 
@@ -325,14 +327,16 @@ def wsclean_script(
                 f"-data-column {datacolumn} -name {imagename} -scale 10arcsec "
                 f"-weight briggs 0.5  -auto-mask 3 -auto-threshold 1 "
                 f" {spec_fit} "
-                f"{obsid}.ms \n"
+                f"{obsid}.ms \n\n"
             )
             out.write(wsclean)
 
-            taql = f"taql update {obsid}.ms set {datacolumn}={datacolumn}-MODEL_DATA\n"
+            taql = (
+                f"taql update {obsid}.ms set {datacolumn}={datacolumn}-MODEL_DATA\n\n"
+            )
             out.write(taql)
 
-        coords = f"coords=$(calc_pointing.py '{metafits}') \n"
+        coords = f"coords=$(calc_pointing.py '{metafits}') \n\n"
         out.write(coords)
 
         chg = (
@@ -342,7 +346,7 @@ def wsclean_script(
             f"chgcentre "
             f"-zenith "
             f"-shiftback "
-            f"{obsid}.ms \n"
+            f"{obsid}.ms \n\n"
         )
         out.write(chg)
 
