@@ -47,9 +47,9 @@ cd "${base}/${obsnum}" || exit
 
 calfile="${base}/${calid}/${calid}_local_gleam_model_solutions_initial_ref.bin"
 
-if [[ ! -e "${calid}" ]]
+if [[ ! -e "${calfile}" ]]
 then
-    echo "Could not find calibrator file ${calid}"
+    echo "Could not find calibrator file ${calfile}"
     track_task.py fail --jobid="${jobid}" --taskid="${taskid}" --finish_time="$(date +%s)"
     exit 1
 fi
